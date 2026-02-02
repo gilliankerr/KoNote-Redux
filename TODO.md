@@ -2,16 +2,17 @@
 
 ## Flagged
 
-- [ ] Phase prompts reference plan file `idempotent-cooking-walrus.md` — verify it exists or embed key decisions in CLAUDE.md — (FLAG1)
-- [ ] Confirm Phase 1 migrations were generated and committed — (FLAG2)
+_Nothing flagged._
 
 ## Active Work
 
-**Pre-Phase 2: Foundation gaps (expert review)**
-- [ ] Verify/generate Django migrations for all apps and commit migration files — (FIX1)
-- [ ] Create basic test suite: RBAC enforcement + PII encryption tests — (TEST1)
-- [ ] Add HTMX global error handler to app.js — (FIX2)
-- [ ] Register all models in admin.py for debugging during development — (FIX3)
+**Design Foundation (pre-Phase 2)**
+- [ ] Add KoNote design tokens to main.css — teal primary, warm neutrals, status colours, dark mode — (DES1)
+- [ ] Replace hardcoded badge hex colours with semantic token classes — (DES2)
+- [ ] Redesign login page — add wordmark, brand colour, warmth — (DES3)
+- [ ] Add skip-navigation link and aria-live regions for HTMX targets — (A11Y1)
+- [ ] Create empty state and loading indicator patterns — (DES4)
+- [ ] Move login inline styles to CSS class — (DES5)
 
 **Phase 2: Core Data — Programs & Clients**
 - [ ] Create program CRUD views and templates — (PROG1)
@@ -77,6 +78,10 @@
 
 ## Recently Done
 
+- [x] Generate Django migrations for all 8 apps — 2026-02-02 (FIX1)
+- [x] Create test suite: 15 tests for RBAC + PII encryption — 2026-02-02 (TEST1)
+- [x] Add HTMX global error handler + toast to app.js — 2026-02-02 (FIX2)
+- [x] Register all models in admin.py (8 apps) + enable Django admin — 2026-02-02 (FIX3)
 - [x] Phase 1: Django project scaffold, settings, Docker — 2026-02-02 (FOUND1)
 - [x] Phase 1: Security middleware (RBAC, audit, CSP, CSRF) — 2026-02-02 (FOUND2)
 - [x] Phase 1: All data models (clients, plans, notes, events, metrics) — 2026-02-02 (FOUND3)

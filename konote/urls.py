@@ -1,4 +1,5 @@
 """URL configuration for KoNote Web."""
+from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
@@ -12,4 +13,5 @@ urlpatterns = [
     path("admin/settings/", include("apps.admin_settings.urls")),
     path("admin/audit/", include("apps.audit.urls")),
     path("", include("apps.clients.urls_home")),
+    path("django-admin/", admin.site.urls),
 ]

@@ -54,12 +54,22 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- HTMX error toast — shown by app.js on network/server errors -->
+    <div id="htmx-error-toast" role="alert" hidden
+         style="position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);
+                background:var(--pico-del-color,#c62828);color:#fff;
+                padding:0.75rem 1.5rem;border-radius:0.5rem;z-index:9999;
+                font-size:0.9rem;max-width:90%;text-align:centre;">
+    </div>
+
     <footer class="container">
         <small>{{ site.product_name|default:"KoNote" }} &mdash; Secure Client Outcome Management</small>
     </footer>
 
     <!-- HTMX — dynamic interactions without a JS framework -->
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <!-- App JS — CSRF handling, error handlers -->
+    <script src="{% static 'js/app.js' %}"></script>
 
     {% block extra_scripts %}{% endblock %}
 </body>
