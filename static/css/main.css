@@ -1,0 +1,57 @@
+/* KoNote Web — custom styles layered on Pico CSS */
+
+/* Slightly tighter nav */
+nav {
+    padding-block: 0.5rem;
+}
+
+/* Status badges */
+.badge {
+    display: inline-block;
+    padding: 0.15em 0.5em;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+.badge--active { background: #d1fae5; color: #065f46; }
+.badge--completed { background: #dbeafe; color: #1e40af; }
+.badge--deactivated { background: #f3f4f6; color: #6b7280; }
+.badge--enrolled { background: #ede9fe; color: #5b21b6; }
+
+/* Program colour dot */
+.program-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.25rem;
+    vertical-align: middle;
+}
+
+/* Timeline styles (Phase 5) */
+.timeline {
+    border-left: 3px solid var(--pico-muted-border-color);
+    padding-left: 1.5rem;
+    margin-left: 0.5rem;
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+.timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -1.85rem;
+    top: 0.4rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--pico-primary);
+}
+
+/* Metric chart container */
+.chart-container {
+    position: relative;
+    width: 100%;
+    max-height: 300px;
+}

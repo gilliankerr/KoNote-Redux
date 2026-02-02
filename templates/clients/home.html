@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}{{ term.client_plural|default:"Clients" }} — {{ site.product_name|default:"KoNote" }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{{ term.client_plural|default:"Clients" }}</h1>
+    <p>Search and manage {{ term.client|default:"client" }} files.</p>
+</hgroup>
+
+<div role="search">
+    <input type="search"
+           name="q"
+           placeholder="Search by name or ID..."
+           aria-label="Search {{ term.client_plural|default:'clients' }}"
+           hx-get="/clients/?search=true"
+           hx-trigger="input changed delay:300ms"
+           hx-target="#client-list">
+</div>
+
+<div id="client-list">
+    <!-- Phase 2: Client list will render here via HTMX -->
+    <p>Client list will appear here once Phase 2 is implemented.</p>
+</div>
+{% endblock %}

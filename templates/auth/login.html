@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign In — KoNote</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+    <main class="container" style="max-width: 420px; margin-top: 10vh;">
+        <article>
+            <header>
+                <h1>Sign In</h1>
+            </header>
+
+            {% if error %}
+            <p role="alert" style="color: var(--pico-del-color);">{{ error }}</p>
+            {% endif %}
+
+            {% if auth_mode == "local" %}
+            <form method="post" action="/auth/login/">
+                {% csrf_token %}
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autofocus
+                       autocomplete="username">
+
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required
+                       autocomplete="current-password">
+
+                <button type="submit">Sign In</button>
+            </form>
+            {% else %}
+            <p>Click below to sign in with your organisation's Microsoft account.</p>
+            <a href="/auth/login/" role="button">Sign in with Microsoft</a>
+            {% endif %}
+        </article>
+    </main>
+</body>
+</html>

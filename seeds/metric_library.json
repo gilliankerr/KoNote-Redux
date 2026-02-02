@@ -1,0 +1,194 @@
+[
+  {
+    "name": "PHQ-9 (Depression)",
+    "definition": "Patient Health Questionnaire-9. Scores 0-27. Measures depression severity: 0-4 minimal, 5-9 mild, 10-14 moderate, 15-19 moderately severe, 20-27 severe.",
+    "category": "mental_health",
+    "min_value": 0,
+    "max_value": 27,
+    "unit": "score"
+  },
+  {
+    "name": "GAD-7 (Anxiety)",
+    "definition": "Generalized Anxiety Disorder-7. Scores 0-21. Measures anxiety severity: 0-4 minimal, 5-9 mild, 10-14 moderate, 15-21 severe.",
+    "category": "mental_health",
+    "min_value": 0,
+    "max_value": 21,
+    "unit": "score"
+  },
+  {
+    "name": "Wellness Scale",
+    "definition": "Self-reported overall wellness on a 1-10 scale. 1 = very poor, 10 = excellent.",
+    "category": "mental_health",
+    "min_value": 1,
+    "max_value": 10,
+    "unit": "score"
+  },
+  {
+    "name": "Coping Skills Rating",
+    "definition": "Staff assessment of client's coping skills. 1 = very limited, 5 = well-developed.",
+    "category": "mental_health",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "K10 (Psychological Distress)",
+    "definition": "Kessler Psychological Distress Scale. Scores 10-50. 10-19 likely well, 20-24 mild, 25-29 moderate, 30-50 severe distress.",
+    "category": "mental_health",
+    "min_value": 10,
+    "max_value": 50,
+    "unit": "score"
+  },
+  {
+    "name": "Housing Stability Index",
+    "definition": "Composite measure of housing stability. 1 = homeless/crisis, 5 = stable long-term housing.",
+    "category": "housing",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "Nights in Shelter (past 30 days)",
+    "definition": "Number of nights spent in emergency shelter in the past 30 days.",
+    "category": "housing",
+    "min_value": 0,
+    "max_value": 30,
+    "unit": "nights"
+  },
+  {
+    "name": "Monthly Income",
+    "definition": "Client's total monthly income from all sources, in local currency.",
+    "category": "housing",
+    "min_value": 0,
+    "max_value": null,
+    "unit": "$"
+  },
+  {
+    "name": "Housing Readiness",
+    "definition": "Assessment of readiness for independent housing. 1 = not ready, 5 = fully ready.",
+    "category": "housing",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "Job Readiness Score",
+    "definition": "Assessment of employment readiness. 1 = significant barriers, 5 = job-ready.",
+    "category": "employment",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "Hours Worked (past week)",
+    "definition": "Number of paid hours worked in the past 7 days.",
+    "category": "employment",
+    "min_value": 0,
+    "max_value": 168,
+    "unit": "hours"
+  },
+  {
+    "name": "Employment Status",
+    "definition": "Current employment status. 1 = unemployed, 2 = casual/temporary, 3 = part-time, 4 = full-time, 5 = full-time stable.",
+    "category": "employment",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "status"
+  },
+  {
+    "name": "Job Applications (past month)",
+    "definition": "Number of job applications submitted in the past 30 days.",
+    "category": "employment",
+    "min_value": 0,
+    "max_value": null,
+    "unit": "applications"
+  },
+  {
+    "name": "Days Clean",
+    "definition": "Consecutive days without substance use (self-reported).",
+    "category": "substance_use",
+    "min_value": 0,
+    "max_value": null,
+    "unit": "days"
+  },
+  {
+    "name": "Cravings Intensity",
+    "definition": "Self-reported craving intensity. 0 = no cravings, 10 = extreme cravings.",
+    "category": "substance_use",
+    "min_value": 0,
+    "max_value": 10,
+    "unit": "score"
+  },
+  {
+    "name": "Harm Reduction Score",
+    "definition": "Composite harm reduction measure. Tracks reduction in risky behaviours. 1 = high risk, 5 = low risk.",
+    "category": "substance_use",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "School Attendance Rate",
+    "definition": "Percentage of school days attended in the past month.",
+    "category": "youth",
+    "min_value": 0,
+    "max_value": 100,
+    "unit": "%"
+  },
+  {
+    "name": "Family Connection Score",
+    "definition": "Quality of family/caregiver relationship. 1 = no contact/conflict, 5 = strong positive connection.",
+    "category": "youth",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "Risk Behaviour Index",
+    "definition": "Assessment of engagement in risky behaviours. 1 = frequent high-risk, 5 = no risky behaviours.",
+    "category": "youth",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "Goal Progress (1-10)",
+    "definition": "Client's self-assessed progress toward their stated goal. 1 = no progress, 10 = goal achieved.",
+    "category": "general",
+    "min_value": 1,
+    "max_value": 10,
+    "unit": "score"
+  },
+  {
+    "name": "Client Satisfaction",
+    "definition": "Client satisfaction with services. 1 = very dissatisfied, 5 = very satisfied.",
+    "category": "general",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "Life Skills Assessment",
+    "definition": "Composite life skills score. Covers budgeting, cooking, communication, time management. 1 = very limited, 5 = independent.",
+    "category": "general",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "Social Support Network",
+    "definition": "Size and quality of support network. 1 = isolated, 5 = strong diverse network.",
+    "category": "general",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  },
+  {
+    "name": "Service Engagement",
+    "definition": "Level of engagement with program services. 1 = disengaged, 5 = fully engaged.",
+    "category": "general",
+    "min_value": 1,
+    "max_value": 5,
+    "unit": "score"
+  }
+]

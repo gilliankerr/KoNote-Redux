@@ -1,0 +1,69 @@
+services:
+  web:
+    build: .
+    environment:
+      - DJANGO_SETTINGS_MODULE=konote.settings.production
+      - DATABASE_URL=postgresql://konote:konote@db:5432/konote
+      - AUDIT_DATABASE_URL=postgresql://audit_writer:audit_pass@audit_db:5432/konote_audit
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY}
+      - AUTH_MODE=${AUTH_MODE:-local}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - AZURE_REDIRECT_URI=${AZURE_REDIRECT_URI:-}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      audit_db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=konote
+      - POSTGRES_USER=konote
+      - POSTGRES_PASSWORD=konote
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U konote"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  audit_db:
+    image: postgres:16-alpine
+    volumes:
+      - audit_pgdata:/var/lib/postgresql/data
+      - ./scripts/audit_db_init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    environment:
+      - POSTGRES_DB=konote_audit
+      - POSTGRES_USER=audit_writer
+      - POSTGRES_PASSWORD=audit_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit_writer -d konote_audit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  audit_pgdata:
+  caddy_data:
+  caddy_config:

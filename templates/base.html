@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ site.product_name|default:"KoNote" }}{% endblock %}</title>
+
+    <!-- Pico CSS — classless, accessible defaults -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+    <!-- App styles -->
+    <link rel="stylesheet" href="{% load static %}{% static 'css/main.css' %}">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <nav class="container-fluid">
+        <ul>
+            <li><a href="/" class="contrast">
+                <strong>{{ site.product_name|default:"KoNote" }}</strong>
+            </a></li>
+        </ul>
+        <ul>
+            <li><a href="/">{{ term.client_plural|default:"Clients" }}</a></li>
+            {% if features.programs %}
+            <li><a href="/programs/">{{ term.program_plural|default:"Programs" }}</a></li>
+            {% endif %}
+            {% if user.is_admin %}
+            <li><a href="/admin/settings/">Settings</a></li>
+            <li><a href="/admin/audit/">Audit Log</a></li>
+            {% endif %}
+            <li>
+                <details class="dropdown" role="list" dir="rtl">
+                    <summary aria-haspopup="listbox">{{ user.display_name }}</summary>
+                    <ul role="listbox">
+                        <li><a href="/auth/logout/">Sign Out</a></li>
+                    </ul>
+                </details>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <main class="container">
+        {% if messages %}
+        {% for message in messages %}
+        <article aria-label="notification" {% if message.tags %}class="{{ message.tags }}"{% endif %}>
+            {{ message }}
+        </article>
+        {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container">
+        <small>{{ site.product_name|default:"KoNote" }} &mdash; Secure Client Outcome Management</small>
+    </footer>
+
+    <!-- HTMX — dynamic interactions without a JS framework -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

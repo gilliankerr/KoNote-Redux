@@ -1,0 +1,181 @@
+"""Plan sections, targets, metrics — the core outcomes tracking models."""
+from django.conf import settings
+from django.db import models
+
+
+class MetricDefinition(models.Model):
+    """
+    A reusable metric type (e.g., 'PHQ-9 Score', 'Housing Stability').
+    Agencies pick from a pre-built library and can add their own.
+    """
+
+    CATEGORY_CHOICES = [
+        ("mental_health", "Mental Health"),
+        ("housing", "Housing"),
+        ("employment", "Employment"),
+        ("substance_use", "Substance Use"),
+        ("youth", "Youth"),
+        ("general", "General"),
+        ("custom", "Custom"),
+    ]
+
+    name = models.CharField(max_length=255)
+    definition = models.TextField(help_text="What this metric measures and how to score it.")
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default="custom")
+    is_library = models.BooleanField(default=False, help_text="Part of the built-in metric library.")
+    is_enabled = models.BooleanField(default=True, help_text="Available for use in this instance.")
+    min_value = models.FloatField(null=True, blank=True, help_text="Minimum valid value.")
+    max_value = models.FloatField(null=True, blank=True, help_text="Maximum valid value.")
+    unit = models.CharField(max_length=50, default="", blank=True, help_text="e.g., 'score', 'days', '%'")
+    status = models.CharField(
+        max_length=20, default="active",
+        choices=[("active", "Active"), ("deactivated", "Deactivated")],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "plans"
+        db_table = "metric_definitions"
+        ordering = ["category", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_category_display()})"
+
+
+class PlanSection(models.Model):
+    """A section within a client's plan (e.g., 'Social Skills', 'Employment Goals')."""
+
+    STATUS_CHOICES = [
+        ("default", "Active"),
+        ("completed", "Completed"),
+        ("deactivated", "Deactivated"),
+    ]
+
+    client_file = models.ForeignKey("clients.ClientFile", on_delete=models.CASCADE, related_name="plan_sections")
+    name = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, default="default", choices=STATUS_CHOICES)
+    status_reason = models.TextField(default="", blank=True)
+    program = models.ForeignKey(
+        "programs.Program", on_delete=models.SET_NULL, null=True, blank=True, related_name="plan_sections"
+    )
+    sort_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "plans"
+        db_table = "plan_sections"
+        ordering = ["sort_order"]
+
+    def __str__(self):
+        return self.name
+
+
+class PlanTarget(models.Model):
+    """
+    A specific goal/outcome within a plan section.
+    This is the core of the outcomes tracking system.
+    """
+
+    STATUS_CHOICES = [
+        ("default", "Active"),
+        ("completed", "Completed"),
+        ("deactivated", "Deactivated"),
+    ]
+
+    plan_section = models.ForeignKey(PlanSection, on_delete=models.CASCADE, related_name="targets")
+    client_file = models.ForeignKey("clients.ClientFile", on_delete=models.CASCADE, related_name="plan_targets")
+    name = models.CharField(max_length=255)
+    description = models.TextField(default="", blank=True)
+    status = models.CharField(max_length=20, default="default", choices=STATUS_CHOICES)
+    status_reason = models.TextField(default="", blank=True)
+    metrics = models.ManyToManyField(MetricDefinition, through="PlanTargetMetric", blank=True)
+    sort_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "plans"
+        db_table = "plan_targets"
+        ordering = ["sort_order"]
+
+    def __str__(self):
+        return self.name
+
+
+class PlanTargetRevision(models.Model):
+    """Immutable revision history for plan targets."""
+
+    plan_target = models.ForeignKey(PlanTarget, on_delete=models.CASCADE, related_name="revisions")
+    name = models.CharField(max_length=255)
+    description = models.TextField(default="", blank=True)
+    status = models.CharField(max_length=20, default="default")
+    status_reason = models.TextField(default="", blank=True)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "plans"
+        db_table = "plan_target_revisions"
+        ordering = ["-created_at"]
+
+
+class PlanTargetMetric(models.Model):
+    """Links a metric definition to a plan target."""
+
+    plan_target = models.ForeignKey(PlanTarget, on_delete=models.CASCADE)
+    metric_def = models.ForeignKey(MetricDefinition, on_delete=models.CASCADE)
+    sort_order = models.IntegerField(default=0)
+
+    class Meta:
+        app_label = "plans"
+        db_table = "plan_target_metrics"
+        ordering = ["sort_order"]
+        unique_together = ["plan_target", "metric_def"]
+
+
+# Plan templates — reusable plan structures
+class PlanTemplate(models.Model):
+    """A reusable plan structure that can be applied to new clients."""
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(default="", blank=True)
+    status = models.CharField(
+        max_length=20, default="active",
+        choices=[("active", "Active"), ("archived", "Archived")],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "plans"
+        db_table = "plan_templates"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class PlanTemplateSection(models.Model):
+    plan_template = models.ForeignKey(PlanTemplate, on_delete=models.CASCADE, related_name="sections")
+    name = models.CharField(max_length=255)
+    program = models.ForeignKey("programs.Program", on_delete=models.SET_NULL, null=True, blank=True)
+    sort_order = models.IntegerField(default=0)
+
+    class Meta:
+        app_label = "plans"
+        db_table = "plan_template_sections"
+        ordering = ["sort_order"]
+
+
+class PlanTemplateTarget(models.Model):
+    template_section = models.ForeignKey(PlanTemplateSection, on_delete=models.CASCADE, related_name="targets")
+    name = models.CharField(max_length=255)
+    description = models.TextField(default="", blank=True)
+    sort_order = models.IntegerField(default=0)
+
+    class Meta:
+        app_label = "plans"
+        db_table = "plan_template_targets"
+        ordering = ["sort_order"]

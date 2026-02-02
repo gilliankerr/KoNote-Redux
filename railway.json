@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "python manage.py migrate && python manage.py migrate --database=audit && python manage.py seed && gunicorn konote.wsgi:application --bind 0.0.0.0:$PORT --workers 3",
+    "healthcheckPath": "/auth/login/",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
