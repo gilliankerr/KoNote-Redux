@@ -50,7 +50,15 @@ I'm building KoNote Web, a nonprofit client management system. Phases 1-4 are do
 - This becomes the primary way to see a client's journey at a glance
 - Use the `.timeline` CSS classes already defined in `static/css/main.css`
 
-**6. Audit Log Viewer (Admin only)**
+**6. Aggregate Metrics Export (Funder Reporting)**
+- Admin or Program Manager view at `/reports/export/`
+- Form: select program, select metric(s), date range (start/end)
+- Generates a CSV with columns: client record ID, metric name, value, date, author
+- One row per metric value — funders can pivot/aggregate in Excel
+- Include a summary row at the top: program name, date range, total clients, total data points
+- This is the critical feature for funder accountability — agencies need to answer "how are our clients doing overall?"
+
+**7. Audit Log Viewer (Admin only)**
 - View at `/admin/audit/`
 - Table showing: timestamp, user, action, resource type, resource ID
 - Filter by: date range, user, action type, resource type

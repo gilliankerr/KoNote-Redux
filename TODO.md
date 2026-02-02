@@ -37,6 +37,7 @@ _Nothing flagged._
 - [ ] Create event type admin and event CRUD — (EVT1)
 - [ ] Create alerts CRUD — (EVT2)
 - [ ] Create client timeline view (notes + events combined) — (VIZ2)
+- [ ] Create aggregate metrics export (CSV by program + date range for funder reporting) — (RPT1)
 - [ ] Create audit log viewer with filtering and CSV export — (AUD1)
 
 **Phase 6: Customisation Admin**
@@ -60,7 +61,7 @@ _Nothing flagged._
 - [ ] GDPR toolkit UI — data export, right to erasure, consent management — (GDPR1)
 - [ ] French language support (bilingual UI) — (I18N1)
 - [ ] Data import from existing systems (CSV) — (IMP1)
-- [ ] Print/export progress reports to PDF — (RPT1)
+- [ ] Print/export progress reports to PDF — (RPT2)
 - [ ] Mobile-responsive optimisation pass — (UI1)
 - [ ] First-run setup wizard for new instances — (SETUP1)
 - [ ] Automated backups documentation — (OPS1)
