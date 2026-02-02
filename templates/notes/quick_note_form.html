@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Quick {{ term.progress_note|default:"Note" }} — {{ client.first_name }} {{ client.last_name }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>Quick {{ term.progress_note|default:"Note" }}</h1>
+    <p>{{ client.first_name }} {{ client.last_name }}</p>
+</hgroup>
+
+<form method="post">
+    {% csrf_token %}
+    <label for="{{ form.notes_text.id_for_label }}">{{ term.progress_note|default:"Note" }}</label>
+    {{ form.notes_text }}
+    {% if form.notes_text.errors %}
+    <small class="error">{{ form.notes_text.errors.0 }}</small>
+    {% endif %}
+
+    <div role="group">
+        <button type="submit">Save {{ term.quick_note|default:"Quick Note" }}</button>
+        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}
