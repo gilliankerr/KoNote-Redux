@@ -6,17 +6,6 @@ _Nothing flagged._
 
 ## Active Work
 
-**Phase 2: Core Data — Programs & Clients**
-- [ ] Create program CRUD views and templates — (PROG1)
-- [ ] Create user-program role assignment UI — (PROG2)
-- [ ] Create client file CRUD with encrypted PII — (CLI1)
-- [ ] Create client-program enrolment UI — (CLI2)
-- [ ] Create custom field definitions admin UI — (FIELD1)
-- [ ] Create client detail values form (EAV) — (FIELD2)
-- [ ] Create client search with HTMX — (CLI3)
-
-## Coming Up
-
 **Phase 3: Outcomes — Plans & Targets**
 - [ ] Create plan section CRUD for client files — (PLAN1)
 - [ ] Create plan target CRUD with status management — (PLAN2)
@@ -70,6 +59,7 @@ _Nothing flagged._
 
 ## Recently Done
 
+- [x] Phase 2: Program CRUD, role assignment, client CRUD, enrolment, custom fields, search — 2026-02-02 (PROG1–CLI3)
 - [x] Create theme.css with design tokens (swappable per agency) — 2026-02-02 (DES1)
 - [x] Replace badge colours with semantic token classes — 2026-02-02 (DES2)
 - [x] Redesign login page with wordmark and brand colour — 2026-02-02 (DES3)
