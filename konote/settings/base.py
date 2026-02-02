@@ -126,8 +126,8 @@ X_FRAME_OPTIONS = "DENY"
 
 # CSP — Content Security Policy
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'",)
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")  # Pico CSS needs inline
+CSP_SCRIPT_SRC = ("'self'", "https://unpkg.com")
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net")
 CSP_IMG_SRC = ("'self'", "data:")
 CSP_CONNECT_SRC = ("'self'",)
 CSP_FONT_SRC = ("'self'",)

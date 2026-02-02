@@ -88,3 +88,17 @@ TODO.md is a **dashboard** — scannable at a glance. It is not a project plan, 
 - When a task is blocked or needs a decision: add it to the Flagged section
 - When a flag is resolved: remove it from Flagged
 - Never put inline paragraphs, meeting notes, or decision detail in TODO.md
+
+### Marking Work In Progress
+
+- **Before starting a task**, mark it `🔨 IN PROGRESS` in TODO.md so other conversations don't duplicate the work
+- Format: `- [ ] 🔨 Task description — Owner (ID)`
+- **Before picking up a task**, check TODO.md first — if it's already marked 🔨, skip it
+- When done, replace the 🔨 line with `[x]` and move to Recently Done as usual
+
+### Parallel Work with Sub-Agents
+
+- When a phase has **independent tasks** (no dependencies between them), use sub-agents to work on them in parallel
+- Check TODO.md first to identify which tasks are independent vs. which depend on others
+- Mark all tasks being worked on as 🔨 IN PROGRESS before launching agents
+- Example: PROG1 (programs), CLI1 (clients), and FIELD1 (custom fields) can run in parallel because they don't depend on each other
