@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}{% if editing %}Edit{% else %}New{% endif %} {{ term.progress_note|default:"Note" }} Template{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{% if editing %}Edit{% else %}New{% endif %} {{ term.progress_note|default:"Note" }} Template</h1>
+</hgroup>
+
+<form method="post">
+    {% csrf_token %}
+
+    <fieldset>
+        <legend>Template Details</legend>
+        {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<small class="error">{{ field.errors.0 }}</small>{% endif %}
+        {% endfor %}
+    </fieldset>
+
+    <fieldset>
+        <legend>Sections</legend>
+        {{ formset.management_form }}
+        {% for section_form in formset %}
+        <article>
+            {% if section_form.instance.pk %}
+            <header>Section {{ forloop.counter }}</header>
+            {% else %}
+            <header>New Section</header>
+            {% endif %}
+            {{ section_form.id }}
+            {% for field in section_form %}
+                {% if field.name != "id" and field.name != "DELETE" %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<small class="error">{{ field.errors.0 }}</small>{% endif %}
+                {% endif %}
+            {% endfor %}
+            {% if section_form.instance.pk %}
+            <label>
+                {{ section_form.DELETE }} Remove this section
+            </label>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </fieldset>
+
+    <div role="group">
+        <button type="submit">Save Template</button>
+        <a href="{% url 'note_templates:template_list' %}" role="button" class="outline secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

@@ -11,6 +11,7 @@ urlpatterns = [
     path("notes/", include("apps.notes.urls")),
     path("events/", include("apps.events.urls")),
     path("reports/", include("apps.reports.urls")),
+    path("admin/settings/note-templates/", include("apps.notes.admin_urls")),
     path("admin/settings/", include("apps.admin_settings.urls")),
     path("admin/audit/", include("apps.audit.urls")),
     path("ai/", include("konote.ai_urls")),

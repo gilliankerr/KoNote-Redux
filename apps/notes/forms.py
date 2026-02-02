@@ -1,7 +1,7 @@
 """Forms for progress notes."""
 from django import forms
 
-from .models import ProgressNote, ProgressNoteTemplate
+from .models import ProgressNote, ProgressNoteTemplate, ProgressNoteTemplateSection
 
 
 class QuickNoteForm(forms.ModelForm):
@@ -111,6 +111,22 @@ class MetricValueForm(forms.Form):
                     f"Value must be at most {self.metric_def.max_value}."
                 )
         return val
+
+
+class NoteTemplateForm(forms.ModelForm):
+    """Form for creating/editing progress note templates."""
+
+    class Meta:
+        model = ProgressNoteTemplate
+        fields = ["name", "status"]
+
+
+class NoteTemplateSectionForm(forms.ModelForm):
+    """Form for a section within a note template."""
+
+    class Meta:
+        model = ProgressNoteTemplateSection
+        fields = ["name", "section_type", "sort_order"]
 
 
 class NoteCancelForm(forms.Form):
