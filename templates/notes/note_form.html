@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}New {{ term.progress_note|default:"Progress Note" }} — {{ client.first_name }} {{ client.last_name }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>New {{ term.progress_note|default:"Progress Note" }}</h1>
+    <p>{{ client.first_name }} {{ client.last_name }}</p>
+</hgroup>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Note settings -->
+    <fieldset>
+        <legend>Note Settings</legend>
+
+        <label for="{{ form.template.id_for_label }}">Template</label>
+        {{ form.template }}
+        {% if form.template.errors %}<small class="error">{{ form.template.errors.0 }}</small>{% endif %}
+
+        <label for="{{ form.backdate.id_for_label }}">Session Date</label>
+        {{ form.backdate }}
+        <small>{{ form.backdate.help_text }}</small>
+        {% if form.backdate.errors %}<small class="error">{{ form.backdate.errors.0 }}</small>{% endif %}
+    </fieldset>
+
+    <!-- Target entries — one accordion per active target -->
+    {% if target_forms %}
+    <h2>{{ term.target_plural|default:"Targets" }}</h2>
+    {% for tf in target_forms %}
+    <details {% if forloop.first %}open{% endif %}>
+        <summary>
+            {{ tf.target.name }}
+            <small>— {{ tf.target.plan_section.name }}</small>
+        </summary>
+
+        <!-- Hidden target ID -->
+        {{ tf.note_form.target_id }}
+
+        <label for="{{ tf.note_form.notes.id_for_label }}">Notes for this {{ term.target|default:"target" }}</label>
+        {{ tf.note_form.notes }}
+        {% if tf.note_form.notes.errors %}<small class="error">{{ tf.note_form.notes.errors.0 }}</small>{% endif %}
+
+        {% if tf.metric_forms %}
+        <h4>{{ term.metric_plural|default:"Metrics" }}</h4>
+        {% for mf in tf.metric_forms %}
+        {{ mf.metric_def_id }}
+        <label for="{{ mf.value.id_for_label }}">{{ mf.value.label }}</label>
+        {{ mf.value }}
+        {% if mf.value.help_text %}<small>{{ mf.value.help_text }}</small>{% endif %}
+        {% if mf.value.errors %}<small class="error">{{ mf.value.errors.0 }}</small>{% endif %}
+        {% endfor %}
+        {% endif %}
+    </details>
+    {% endfor %}
+    {% else %}
+    <p class="empty-state">No active {{ term.target_plural|default:"targets" }} found. <a href="{% url 'plans:plan_view' client_id=client.pk %}">Create a plan</a> first.</p>
+    {% endif %}
+
+    <!-- Summary -->
+    <fieldset>
+        <legend>Summary</legend>
+        <label for="{{ form.summary.id_for_label }}">Summary (optional)</label>
+        {{ form.summary }}
+        {% if form.summary.errors %}<small class="error">{{ form.summary.errors.0 }}</small>{% endif %}
+    </fieldset>
+
+    <div role="group">
+        <button type="submit">Save {{ term.progress_note|default:"Note" }}</button>
+        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,64 @@
+<!-- HTMX partial: expanded view of a single note -->
+<header>
+    <div>
+        {% if note.note_type == "quick" %}
+            <span class="badge badge-info">{{ term.quick_note|default:"Quick" }}</span>
+        {% else %}
+            <span class="badge badge-success">Full</span>
+        {% endif %}
+        {% if note.status == "cancelled" %}
+            <span class="badge badge-danger">Cancelled</span>
+        {% endif %}
+        <strong>{{ note.effective_date|date:"Y-m-d" }}</strong>
+        — {{ note.author.display_name|default:note.author }}
+        {% if note.author_program %}
+            <small>({{ note.author_program.name }})</small>
+        {% endif %}
+        {% if note.template %}
+            <small>| Template: {{ note.template.name }}</small>
+        {% endif %}
+    </div>
+</header>
+
+{% if note.status == "cancelled" %}
+    <p><del>{{ note.notes_text }}</del></p>
+    {% if note.status_reason %}<p><small>Cancellation reason: {{ note.status_reason }}</small></p>{% endif %}
+{% else %}
+    {% if note.notes_text %}
+        <p>{{ note.notes_text }}</p>
+    {% endif %}
+
+    {% if target_entries %}
+    {% for entry in target_entries %}
+    <details open>
+        <summary>{{ entry.plan_target.name }}</summary>
+        {% if entry.notes %}<p>{{ entry.notes }}</p>{% endif %}
+        {% if entry.metric_values.all %}
+        <table>
+            <thead><tr><th>{{ term.metric|default:"Metric" }}</th><th>Value</th></tr></thead>
+            <tbody>
+            {% for mv in entry.metric_values.all %}
+            <tr>
+                <td>{{ mv.metric_def.name }}{% if mv.metric_def.unit %} ({{ mv.metric_def.unit }}){% endif %}</td>
+                <td>{{ mv.value }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </details>
+    {% endfor %}
+    {% endif %}
+
+    {% if note.summary %}
+        <h4>Summary</h4>
+        <p>{{ note.summary }}</p>
+    {% endif %}
+{% endif %}
+
+<footer>
+    {% if note.status != "cancelled" %}
+    <a href="{% url 'notes:note_cancel' note_id=note.pk %}" class="secondary">Cancel this note</a>
+    {% endif %}
+    <a href="#" onclick="location.reload(); return false;" class="secondary">Collapse</a>
+</footer>

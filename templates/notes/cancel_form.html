@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel {{ term.progress_note|default:"Note" }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>Cancel {{ term.progress_note|default:"Note" }}</h1>
+    <p>{{ client.first_name }} {{ client.last_name }} — {{ note.effective_date|date:"Y-m-d" }}</p>
+</hgroup>
+
+<article>
+    <p><strong>Note content:</strong></p>
+    <p>{{ note.notes_text|truncatechars:300 }}</p>
+    {% if note.summary %}<p><strong>Summary:</strong> {{ note.summary|truncatechars:200 }}</p>{% endif %}
+</article>
+
+<form method="post">
+    {% csrf_token %}
+    <label for="{{ form.status_reason.id_for_label }}">{{ form.status_reason.label }}</label>
+    {{ form.status_reason }}
+    {% if form.status_reason.errors %}<small class="error">{{ form.status_reason.errors.0 }}</small>{% endif %}
+
+    <div role="group">
+        <button type="submit" class="contrast">Cancel This Note</button>
+        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">Go Back</a>
+    </div>
+</form>
+{% endblock %}

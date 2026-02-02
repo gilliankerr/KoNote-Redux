@@ -19,7 +19,7 @@
 
 <div role="group">
     <a href="{% url 'notes:quick_note_create' client_id=client.pk %}" role="button">{{ term.quick_note|default:"Quick Note" }}</a>
-    <a href="#" role="button" class="outline" aria-disabled="true">Full {{ term.progress_note|default:"Note" }} (coming soon)</a>
+    <a href="{% url 'notes:note_create' client_id=client.pk %}" role="button" class="outline">Full {{ term.progress_note|default:"Note" }}</a>
 </div>
 
 <!-- Tabs -->
@@ -62,7 +62,11 @@
             <p>{{ note.notes_text|truncatechars:200 }}</p>
         {% endif %}
         <footer>
-            <!-- Expand/collapse will be added in Step 4 -->
+            <a href="#"
+               hx-get="{% url 'notes:note_detail' note_id=note.pk %}"
+               hx-target="#note-{{ note.pk }}"
+               hx-swap="innerHTML"
+               hx-indicator="#loading-bar">View details</a>
         </footer>
     </article>
     {% endfor %}
