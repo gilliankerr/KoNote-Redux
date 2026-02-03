@@ -29,6 +29,10 @@
 
 <hr>
 
+<div role="group" style="margin-bottom: 1rem;">
+    <a href="{% url 'reports:client_progress_pdf' client_id=client.pk %}" role="button" class="outline">Export as PDF</a>
+</div>
+
 {% if chart_data %}
     {% for chart in chart_data %}
     <section>

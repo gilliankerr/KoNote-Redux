@@ -97,6 +97,15 @@ def export_form(request):
             }
         )
 
+    export_format = form.cleaned_data["format"]
+
+    if export_format == "pdf":
+        from .pdf_views import generate_funder_pdf
+        return generate_funder_pdf(
+            request, program, selected_metrics,
+            date_from, date_to, rows, unique_clients,
+        )
+
     # Build CSV response
     response = HttpResponse(content_type="text/csv")
     filename = f"metric_export_{program.name.replace(' ', '_')}_{date_from}_{date_to}.csv"

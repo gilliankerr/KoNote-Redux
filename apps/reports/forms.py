@@ -31,6 +31,18 @@ class MetricExportForm(forms.Form):
         widget=forms.DateInput(attrs={"type": "date"}),
     )
 
+    FORMAT_CHOICES = [
+        ("csv", "CSV (spreadsheet)"),
+        ("pdf", "PDF (printable report)"),
+    ]
+
+    format = forms.ChoiceField(
+        choices=FORMAT_CHOICES,
+        initial="csv",
+        widget=forms.RadioSelect,
+        label="Export format",
+    )
+
     def clean(self):
         cleaned = super().clean()
         date_from = cleaned.get("date_from")

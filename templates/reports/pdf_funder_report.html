@@ -1,0 +1,63 @@
+{% extends "reports/pdf_base.html" %}
+
+{% block title %}Funder Report — {{ program.name }}{% endblock %}
+
+{% block content %}
+<!-- Cover Page -->
+<div class="pdf-cover">
+    <h1>Funder Report</h1>
+    <div class="subtitle">{{ program.name }}</div>
+    <div class="meta">
+        {{ date_from }} to {{ date_to }}<br>
+        Generated {{ generated_at|date:"Y-m-d" }} by {{ generated_by }}
+    </div>
+</div>
+
+<!-- Summary -->
+<h2>Summary</h2>
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="number">{{ total_clients }}</div>
+        <div class="label">Clients</div>
+    </div>
+    <div class="summary-card">
+        <div class="number">{{ total_data_points }}</div>
+        <div class="label">Data Points</div>
+    </div>
+</div>
+
+<dl>
+    <dt>Programme</dt>
+    <dd>{{ program.name }}</dd>
+    <dt>Date Range</dt>
+    <dd>{{ date_from }} to {{ date_to }}</dd>
+    <dt>Metrics Included</dt>
+    <dd>{% for m in metrics %}{{ m.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+</dl>
+
+<!-- Data Table -->
+<div class="page-break"></div>
+<h2>Metric Data</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Client Record ID</th>
+            <th>Metric Name</th>
+            <th>Value</th>
+            <th>Date</th>
+            <th>Author</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.record_id }}</td>
+            <td>{{ row.metric_name }}</td>
+            <td>{{ row.value }}</td>
+            <td>{{ row.date }}</td>
+            <td>{{ row.author }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

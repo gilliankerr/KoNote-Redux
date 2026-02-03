@@ -5,7 +5,7 @@
 {% block content %}
 <hgroup>
     <h1>Funder Report Export</h1>
-    <p>Generate a CSV of aggregate metric data for a programme and date range.</p>
+    <p>Generate a report of aggregate metric data for a programme and date range.</p>
 </hgroup>
 
 {% if no_data %}
@@ -52,6 +52,17 @@
         </label>
     </div>
 
+    {# Export format #}
+    <fieldset>
+        <legend>{{ form.format.label }}</legend>
+        {% for radio in form.format %}
+        <label>
+            {{ radio.tag }}
+            {{ radio.choice_label }}
+        </label>
+        {% endfor %}
+    </fieldset>
+
     {# Metric checkboxes #}
     <fieldset>
         <legend>{{ form.metrics.label }}</legend>
@@ -66,6 +77,6 @@
         {% endfor %}
     </fieldset>
 
-    <button type="submit">Generate CSV</button>
+    <button type="submit">Generate Report</button>
 </form>
 {% endblock %}
