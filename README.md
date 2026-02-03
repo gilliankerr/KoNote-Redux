@@ -99,6 +99,18 @@ KoNote Web is a ground-up reimplementation using modern Python/Django, designed 
 >
 > **Important:** Running your own instance means taking responsibility for client data security. KoNote has strong protections built in, but you need to configure them correctly. See the [security responsibility section](docs/deploying-konote.md#understanding-your-responsibility) to understand what that involves.
 
+### Try It Instantly (Docker)
+
+Want to see KoNote before committing to a full setup? Run the demo with one command:
+
+```bash
+docker-compose -f docker-compose.demo.yml up
+```
+
+Then open http://localhost:8000 in your browser.
+
+> **Warning:** Demo mode uses default keys and is NOT SECURE. Do not enter real client data. For production, see the full setup below.
+
 ### Prerequisites
 
 - Python 3.12+

@@ -3,6 +3,7 @@ services:
     build: .
     environment:
       - DJANGO_SETTINGS_MODULE=konote.settings.production
+      - KONOTE_MODE=${KONOTE_MODE:-production}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-konote}
       - AUDIT_DATABASE_URL=postgresql://${AUDIT_POSTGRES_USER}:${AUDIT_POSTGRES_PASSWORD}@audit_db:5432/${AUDIT_POSTGRES_DB:-konote_audit}
       - SECRET_KEY=${SECRET_KEY}

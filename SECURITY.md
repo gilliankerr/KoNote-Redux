@@ -47,6 +47,74 @@ All personally identifiable information (PII) is encrypted at rest using **Ferne
 
 ---
 
+## Automatic Startup Security Check
+
+KoNote automatically runs security checks every time the application starts. This protects every deployment — Azure, Railway, Docker on a local network — without requiring the deployer to remember to run commands.
+
+### KONOTE_MODE Environment Variable
+
+| Mode | Behaviour |
+|------|-----------|
+| `production` (default) | **Blocks startup** if critical security checks fail |
+| `demo` | **Warns loudly** but allows startup for evaluation |
+
+**Critical checks (block startup in production mode):**
+- Encryption key configured and not using default
+- SECRET_KEY not using insecure default
+- Security middleware (RBAC, Audit) in place
+
+**Warning checks (logged but don't block):**
+- DEBUG mode enabled
+- Insecure cookie settings
+
+### Demo Mode
+
+For evaluation or testing, set `KONOTE_MODE=demo`:
+
+```bash
+# Docker Compose (easiest)
+docker-compose -f docker-compose.demo.yml up
+
+# Or set the environment variable
+KONOTE_MODE=demo docker-compose up
+```
+
+Demo mode shows a clear warning banner:
+```
+=======================================================
+  KONOTE IS RUNNING IN DEMO MODE
+=======================================================
+
+  Security checks found 2 issue(s):
+    - Using default encryption key (not safe for real data)
+    - DEBUG=True (should be False in production)
+
+  DO NOT use this instance for real client data.
+  Set KONOTE_MODE=production when ready for production use.
+=======================================================
+```
+
+### Production Mode
+
+Production mode (the default) blocks startup if critical checks fail:
+```
+=======================================================
+  STARTUP BLOCKED - CRITICAL SECURITY FAILURES
+=======================================================
+
+  2 critical check(s) failed:
+    - Using default encryption key (not safe for real data)
+    - Using insecure default SECRET_KEY
+
+  Fix these issues before starting KoNote in production.
+  For evaluation/demo, set KONOTE_MODE=demo
+=======================================================
+```
+
+This ensures that a nonprofit cannot accidentally deploy KoNote with insecure settings.
+
+---
+
 ## Running Security Checks
 
 ### 1. Security Audit Command (On-Demand)

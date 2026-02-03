@@ -10,6 +10,14 @@ python manage.py migrate --database=audit --noinput 2>&1 || echo "Audit migratio
 echo "Seeding data..."
 python manage.py seed 2>&1 || echo "Seed failed, continuing..."
 
+# Security check before starting the application
+# Set KONOTE_MODE=demo to allow startup with security warnings (for evaluation)
+# Set KONOTE_MODE=production (default) to block startup if security checks fail
+echo ""
+echo "Running security checks..."
+python manage.py startup_check
+# If startup_check exits non-zero, the script stops here (set -e)
+
 echo "Starting gunicorn on port 8000"
 exec gunicorn konote.wsgi:application \
     --bind 0.0.0.0:8000 \
