@@ -5,6 +5,14 @@ from .base import *  # noqa: F401, F403
 DEBUG = False
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 
+# Auto-detect Railway and add common domain patterns
+if os.environ.get("RAILWAY_ENVIRONMENT"):
+    # Ensure Railway domains are always allowed
+    railway_domains = [".railway.app", ".up.railway.app"]
+    for domain in railway_domains:
+        if domain not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(domain)
+
 # HTTPS — Railway handles TLS at the edge, so we don't redirect internally.
 # SECURE_PROXY_SSL_HEADER tells Django to trust the proxy's forwarded header.
 SECURE_SSL_REDIRECT = False  # Railway edge handles HTTPS redirect
@@ -12,6 +20,11 @@ SECURE_HSTS_SECONDS = 31536000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Secure cookies — default to True in production
+# Can override via environment if needed (e.g., for local HTTPS testing)
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "True").lower() != "false"
+CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "True").lower() != "false"
 
 # CSP — production overrides
 # ─────────────────────────────────────────────────────────────────────

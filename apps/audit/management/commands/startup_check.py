@@ -26,6 +26,7 @@ class Command(BaseCommand):
 
     # Checks that MUST pass in production (will block startup)
     CRITICAL_CHECKS = [
+        "database_urls",
         "encryption_key",
         "secret_key",
         "security_middleware",
@@ -148,6 +149,27 @@ class Command(BaseCommand):
     # -------------------------------------------------------------------------
     # Critical Checks
     # -------------------------------------------------------------------------
+
+    def _check_database_urls(self):
+        """Verify DATABASE_URL and AUDIT_DATABASE_URL are configured."""
+        missing = []
+
+        db_url = os.environ.get("DATABASE_URL", "")
+        audit_url = os.environ.get("AUDIT_DATABASE_URL", "")
+
+        if not db_url or db_url.startswith("sqlite:///dummy"):
+            missing.append("DATABASE_URL")
+
+        if not audit_url or audit_url.startswith("sqlite:///dummy"):
+            missing.append("AUDIT_DATABASE_URL")
+
+        if missing:
+            hint = ""
+            if os.environ.get("RAILWAY_ENVIRONMENT"):
+                hint = " (use ${{ServiceName.DATABASE_URL}} syntax in Railway)"
+            return False, f"Missing database configuration: {', '.join(missing)}{hint}"
+
+        return True, "Database URLs configured"
 
     def _check_encryption_key(self):
         """Verify FIELD_ENCRYPTION_KEY is set and valid."""
