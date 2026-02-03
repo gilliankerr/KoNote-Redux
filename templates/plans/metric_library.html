@@ -8,9 +8,14 @@
     <p>Manage available {{ term.metric_plural|default:"metrics" }} for outcome tracking.</p>
 </hgroup>
 
-<a href="{% url 'plans:metric_create' %}" role="button" class="outline" style="margin-bottom: 1rem;">
-    Add Custom {{ term.metric|default:"Metric" }}
-</a>
+<div role="group" style="margin-bottom: 1rem;">
+    <a href="{% url 'plans:metric_create' %}" role="button" class="outline">
+        Add Custom {{ term.metric|default:"Metric" }}
+    </a>
+    <a href="{% url 'plans:metric_import' %}" role="button" class="outline secondary">
+        Import from CSV
+    </a>
+</div>
 
 {% for category, metrics in metrics_by_category.items %}
 <section aria-labelledby="cat-{{ forloop.counter }}">

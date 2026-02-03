@@ -88,3 +88,20 @@ class MetricDefinitionForm(forms.ModelForm):
             "max_value": forms.NumberInput(attrs={"step": "any"}),
             "unit": forms.TextInput(attrs={"placeholder": "e.g., score, days, %"}),
         }
+
+
+class MetricImportForm(forms.Form):
+    """Form for uploading a CSV file of metric definitions."""
+
+    csv_file = forms.FileField(
+        label="CSV File",
+        help_text="Upload a CSV with columns: name, definition, category, min_value, max_value, unit",
+    )
+
+    def clean_csv_file(self):
+        csv_file = self.cleaned_data["csv_file"]
+        if not csv_file.name.endswith(".csv"):
+            raise forms.ValidationError("File must be a .csv file.")
+        if csv_file.size > 1024 * 1024:  # 1MB limit
+            raise forms.ValidationError("File too large. Maximum size is 1MB.")
+        return csv_file

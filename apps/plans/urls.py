@@ -19,6 +19,7 @@ urlpatterns = [
     # Metric library (admin)
     path("admin/metrics/", views.metric_library, name="metric_library"),
     path("admin/metrics/create/", views.metric_create, name="metric_create"),
+    path("admin/metrics/import/", views.metric_import, name="metric_import"),
     path("admin/metrics/<int:metric_id>/edit/", views.metric_edit, name="metric_edit"),
     path("admin/metrics/<int:metric_id>/toggle/", views.metric_toggle, name="metric_toggle"),
 ]
