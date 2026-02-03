@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Client Data Export" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{% trans "Client Data Export" %}</h1>
+    <p>{% trans "Export all client data as a CSV file for data portability, backup, or migration to another system." %}</p>
+</hgroup>
+
+{% if no_data %}
+<article aria-label="{% trans 'No results' %}">
+    <p><strong>{% trans "No data found." %}</strong> {% trans "There are no clients matching the selected filters. Try adjusting your filters or leave them blank to export all clients." %}</p>
+</article>
+{% endif %}
+
+<article aria-label="{% trans 'Data privacy notice' %}">
+    <p><strong>{% trans "Data Privacy Notice" %}</strong></p>
+    <p>{% trans "This export will include personally identifiable information (PII) such as names and birth dates. Handle the exported file according to your organisation's data protection policies." %}</p>
+</article>
+
+<form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <article class="pico-background-red-100" aria-label="{% trans 'Form errors' %}" role="alert">
+        {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </article>
+    {% endif %}
+
+    {# Programme filter (optional) #}
+    <label for="{{ form.program.id_for_label }}">
+        {{ form.program.label }}
+        {{ form.program }}
+        {% if form.program.help_text %}
+        <small>{{ form.program.help_text }}</small>
+        {% endif %}
+    </label>
+    {% if form.program.errors %}
+    <small class="error" role="alert">{{ form.program.errors.0 }}</small>
+    {% endif %}
+
+    {# Status filter (optional) #}
+    <label for="{{ form.status.id_for_label }}">
+        {{ form.status.label }}
+        {{ form.status }}
+        {% if form.status.help_text %}
+        <small>{{ form.status.help_text }}</small>
+        {% endif %}
+    </label>
+    {% if form.status.errors %}
+    <small class="error" role="alert">{{ form.status.errors.0 }}</small>
+    {% endif %}
+
+    {# Export options #}
+    <fieldset>
+        <legend>{% trans "Include in export" %}</legend>
+
+        <label>
+            {{ form.include_custom_fields }}
+            {{ form.include_custom_fields.label }}
+            {% if form.include_custom_fields.help_text %}
+            <small>{{ form.include_custom_fields.help_text }}</small>
+            {% endif %}
+        </label>
+
+        <label>
+            {{ form.include_enrolments }}
+            {{ form.include_enrolments.label }}
+            {% if form.include_enrolments.help_text %}
+            <small>{{ form.include_enrolments.help_text }}</small>
+            {% endif %}
+        </label>
+
+        <label>
+            {{ form.include_consent }}
+            {{ form.include_consent.label }}
+            {% if form.include_consent.help_text %}
+            <small>{{ form.include_consent.help_text }}</small>
+            {% endif %}
+        </label>
+    </fieldset>
+
+    <button type="submit">{% trans "Export Client Data" %}</button>
+</form>
+{% endblock %}

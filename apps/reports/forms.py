@@ -1,8 +1,9 @@
-"""Forms for the reports app — metric export filtering and CMT reports."""
+"""Forms for the reports app — metric export filtering, CMT reports, and client data export."""
 from django import forms
 
 from apps.programs.models import Program
 from apps.plans.models import MetricDefinition
+from apps.clients.models import ClientFile
 from .demographics import get_demographic_field_choices
 from .utils import get_fiscal_year_choices, get_fiscal_year_range, get_current_fiscal_year
 
@@ -167,3 +168,55 @@ class CMTExportForm(forms.Form):
             raise forms.ValidationError("Please select a fiscal year.")
 
         return cleaned
+
+
+class ClientDataExportForm(forms.Form):
+    """
+    Form for exporting all client data as CSV.
+
+    This export is designed for data portability and migration, allowing
+    agencies to extract all their client data in a standard format.
+    """
+
+    STATUS_CHOICES = [
+        ("", "— All statuses —"),
+        ("active", "Active only"),
+        ("inactive", "Inactive only"),
+        ("discharged", "Discharged only"),
+    ]
+
+    program = forms.ModelChoiceField(
+        queryset=Program.objects.filter(status="active"),
+        required=False,
+        label="Programme",
+        empty_label="— All programmes —",
+        help_text="Leave blank to export clients from all programmes.",
+    )
+
+    status = forms.ChoiceField(
+        choices=STATUS_CHOICES,
+        required=False,
+        label="Client status",
+        help_text="Filter by client status, or export all.",
+    )
+
+    include_custom_fields = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Include custom fields",
+        help_text="Add custom field values as additional columns.",
+    )
+
+    include_enrolments = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Include programme enrolments",
+        help_text="Add programme enrolment history as additional columns.",
+    )
+
+    include_consent = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Include consent information",
+        help_text="Add consent and data retention fields.",
+    )

@@ -17,7 +17,7 @@ from apps.programs.models import UserProgramRole
 from .achievements import get_achievement_summary, format_achievement_summary
 from .cmt_export import generate_cmt_data, generate_cmt_csv_rows
 from .demographics import aggregate_by_demographic, get_age_range, parse_grouping_choice
-from .forms import CMTExportForm, MetricExportForm
+from .forms import CMTExportForm, ClientDataExportForm, MetricExportForm
 
 
 def _build_demographic_map(metric_values, grouping_type, grouping_field, as_of_date):
@@ -478,5 +478,211 @@ def cmt_export_form(request):
     csv_rows = generate_cmt_csv_rows(cmt_data)
     for row in csv_rows:
         writer.writerow(row)
+
+    return response
+
+
+@login_required
+def client_data_export(request):
+    """
+    Export all client data as CSV for data portability and migration.
+
+    GET  — display the export filter form.
+    POST — generate and return a CSV with all client data.
+
+    This export includes:
+    - Core demographics (record ID, name, birth date, status)
+    - Custom field values (optional)
+    - Programme enrolments (optional)
+    - Consent and retention information (optional)
+
+    Admin-only access. All exports are audit logged.
+    """
+    from apps.clients.models import (
+        ClientDetailValue,
+        ClientFile,
+        ClientProgramEnrolment,
+        CustomFieldDefinition,
+    )
+
+    if not request.user.is_admin:
+        return HttpResponseForbidden("You do not have permission to access this page.")
+
+    if request.method != "POST":
+        form = ClientDataExportForm()
+        return render(request, "reports/client_data_export_form.html", {"form": form})
+
+    form = ClientDataExportForm(request.POST)
+    if not form.is_valid():
+        return render(request, "reports/client_data_export_form.html", {"form": form})
+
+    # Get filter options
+    program = form.cleaned_data.get("program")
+    status_filter = form.cleaned_data.get("status")
+    include_custom_fields = form.cleaned_data.get("include_custom_fields", True)
+    include_enrolments = form.cleaned_data.get("include_enrolments", True)
+    include_consent = form.cleaned_data.get("include_consent", True)
+
+    # Build base queryset
+    clients_qs = ClientFile.objects.all()
+
+    # Apply status filter
+    if status_filter:
+        clients_qs = clients_qs.filter(status=status_filter)
+
+    # Apply programme filter
+    if program:
+        enrolled_client_ids = ClientProgramEnrolment.objects.filter(
+            program=program
+        ).values_list("client_file_id", flat=True)
+        clients_qs = clients_qs.filter(pk__in=enrolled_client_ids)
+
+    # Load all clients into memory for decryption
+    # Note: This is required because encrypted fields cannot be queried in SQL.
+    # Acceptable for up to ~2,000 clients per export.
+    clients = list(clients_qs)
+
+    if not clients:
+        return render(
+            request,
+            "reports/client_data_export_form.html",
+            {"form": form, "no_data": True},
+        )
+
+    # Get custom field definitions if needed
+    custom_fields = []
+    if include_custom_fields:
+        custom_fields = list(
+            CustomFieldDefinition.objects.filter(status="active")
+            .select_related("group")
+            .order_by("group__sort_order", "sort_order")
+        )
+
+    # Build CSV response
+    response = HttpResponse(content_type="text/csv")
+    export_date = timezone.now().strftime("%Y-%m-%d")
+    filename = f"client_data_export_{export_date}.csv"
+    if program:
+        safe_name = program.name.replace(" ", "_").replace("/", "-")
+        filename = f"client_data_export_{safe_name}_{export_date}.csv"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+
+    # Summary header rows
+    writer.writerow([f"# Client Data Export"])
+    writer.writerow([f"# Export Date: {export_date}"])
+    writer.writerow([f"# Total Clients: {len(clients)}"])
+    if program:
+        writer.writerow([f"# Programme Filter: {program.name}"])
+    if status_filter:
+        writer.writerow([f"# Status Filter: {status_filter}"])
+    writer.writerow([])
+
+    # Build column headers
+    headers = [
+        "Record ID",
+        "First Name",
+        "Middle Name",
+        "Last Name",
+        "Birth Date",
+        "Status",
+        "Status Reason",
+        "Created",
+        "Last Updated",
+    ]
+
+    if include_consent:
+        headers.extend([
+            "Consent Given",
+            "Consent Type",
+            "Retention Expires",
+            "Erasure Requested",
+        ])
+
+    if include_enrolments:
+        headers.append("Programme Enrolments")
+
+    if include_custom_fields:
+        for field in custom_fields:
+            headers.append(f"{field.group.title}: {field.name}")
+
+    writer.writerow(headers)
+
+    # Preload custom field values and enrolments for efficiency
+    client_ids = [c.pk for c in clients]
+
+    custom_values_by_client = {}
+    if include_custom_fields:
+        all_values = ClientDetailValue.objects.filter(
+            client_file_id__in=client_ids
+        ).select_related("field_def")
+        for cv in all_values:
+            if cv.client_file_id not in custom_values_by_client:
+                custom_values_by_client[cv.client_file_id] = {}
+            custom_values_by_client[cv.client_file_id][cv.field_def_id] = cv.get_value()
+
+    enrolments_by_client = {}
+    if include_enrolments:
+        all_enrolments = ClientProgramEnrolment.objects.filter(
+            client_file_id__in=client_ids
+        ).select_related("program")
+        for enrol in all_enrolments:
+            if enrol.client_file_id not in enrolments_by_client:
+                enrolments_by_client[enrol.client_file_id] = []
+            status_label = "Active" if enrol.status == "enrolled" else "Unenrolled"
+            enrolments_by_client[enrol.client_file_id].append(
+                f"{enrol.program.name} ({status_label})"
+            )
+
+    # Write data rows
+    for client in clients:
+        row = [
+            client.record_id,
+            client.first_name,
+            client.middle_name or "",
+            client.last_name,
+            client.birth_date or "",
+            client.status,
+            client.status_reason or "",
+            client.created_at.strftime("%Y-%m-%d %H:%M") if client.created_at else "",
+            client.updated_at.strftime("%Y-%m-%d %H:%M") if client.updated_at else "",
+        ]
+
+        if include_consent:
+            row.extend([
+                client.consent_given_at.strftime("%Y-%m-%d %H:%M") if client.consent_given_at else "",
+                client.consent_type or "",
+                str(client.retention_expires) if client.retention_expires else "",
+                "Yes" if client.erasure_requested else "No",
+            ])
+
+        if include_enrolments:
+            enrolment_list = enrolments_by_client.get(client.pk, [])
+            row.append("; ".join(enrolment_list))
+
+        if include_custom_fields:
+            client_values = custom_values_by_client.get(client.pk, {})
+            for field in custom_fields:
+                row.append(client_values.get(field.pk, ""))
+
+        writer.writerow(row)
+
+    # Audit log
+    AuditLog.objects.using("audit").create(
+        event_timestamp=timezone.now(),
+        user_id=request.user.pk,
+        user_display=request.user.display_name,
+        action="export",
+        resource_type="client_data",
+        metadata={
+            "total_clients": len(clients),
+            "program_filter": program.name if program else None,
+            "status_filter": status_filter or None,
+            "include_custom_fields": include_custom_fields,
+            "include_enrolments": include_enrolments,
+            "include_consent": include_consent,
+        },
+    )
 
     return response

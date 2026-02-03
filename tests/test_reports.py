@@ -1637,3 +1637,135 @@ class CMTExportViewTests(TestCase):
         self.assertIn("Test Program", content)
         self.assertIn("SERVICE STATISTICS", content)
         self.assertIn("AGE DEMOGRAPHICS", content)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY)
+class ClientDataExportViewTests(TestCase):
+    """Tests for the client data export view."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        # Set up encryption key
+        enc_module.FIELD_ENCRYPTION_KEY = TEST_KEY
+        enc_module._fernet = Fernet(TEST_KEY)
+
+        # Create admin user
+        self.admin_user = User.objects.create_user(
+            username="admin",
+            email="admin@example.com",
+            password="testpass123",
+            is_admin=True,
+        )
+
+        # Create non-admin user
+        self.regular_user = User.objects.create_user(
+            username="regular",
+            email="regular@example.com",
+            password="testpass123",
+            is_admin=False,
+        )
+
+        # Create a program
+        self.program = Program.objects.create(
+            name="Test Program",
+            status="active",
+        )
+
+        # Create a client
+        self.client_file = ClientFile.objects.create(
+            record_id="TEST-001",
+            status="active",
+        )
+        self.client_file.first_name = "Jane"
+        self.client_file.last_name = "Doe"
+        self.client_file.birth_date = "1990-01-15"
+        self.client_file.save()
+
+        # Enrol client in program
+        ClientProgramEnrolment.objects.create(
+            client_file=self.client_file,
+            program=self.program,
+            status="enrolled",
+        )
+
+    def test_admin_can_access_client_data_export(self):
+        """Admin users should be able to access the client data export form."""
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.get("/reports/client-data-export/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Client Data Export")
+
+    def test_nonadmin_cannot_access_client_data_export(self):
+        """Non-admin users should be denied access."""
+        self.client.login(username="regular", password="testpass123")
+        resp = self.client.get("/reports/client-data-export/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_client_data_export_csv_download(self):
+        """Client data export should return a CSV file."""
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.post("/reports/client-data-export/", {
+            "include_custom_fields": True,
+            "include_enrolments": True,
+            "include_consent": True,
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "text/csv")
+        self.assertIn("client_data_export", resp["Content-Disposition"])
+
+    def test_client_data_export_csv_contains_client_data(self):
+        """CSV export should contain the client's data."""
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.post("/reports/client-data-export/", {
+            "include_custom_fields": True,
+            "include_enrolments": True,
+            "include_consent": True,
+        })
+        content = resp.content.decode("utf-8")
+        self.assertIn("TEST-001", content)
+        self.assertIn("Jane", content)
+        self.assertIn("Doe", content)
+        self.assertIn("Test Program", content)
+
+    def test_client_data_export_with_program_filter(self):
+        """Export can be filtered by program."""
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.post("/reports/client-data-export/", {
+            "program": self.program.pk,
+            "include_custom_fields": True,
+            "include_enrolments": True,
+            "include_consent": True,
+        })
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode("utf-8")
+        self.assertIn("TEST-001", content)
+        self.assertIn(f"Programme Filter: {self.program.name}", content)
+
+    def test_client_data_export_with_status_filter(self):
+        """Export can be filtered by client status."""
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.post("/reports/client-data-export/", {
+            "status": "active",
+            "include_custom_fields": True,
+            "include_enrolments": True,
+            "include_consent": True,
+        })
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode("utf-8")
+        self.assertIn("TEST-001", content)
+        self.assertIn("Status Filter: active", content)
+
+    def test_client_data_export_no_clients_shows_message(self):
+        """Export with no matching clients should show a message."""
+        # Delete all clients
+        ClientFile.objects.all().delete()
+
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.post("/reports/client-data-export/", {
+            "include_custom_fields": True,
+            "include_enrolments": True,
+            "include_consent": True,
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "No data found")

@@ -9,9 +9,9 @@ _Nothing flagged._
 ### Pre-Pilot Testing Fixes
 
 - [x] Fix test suite configuration error — (TEST2)
-- [ ] Add CSV export for all client data — (EXP1)
+- [x] Add CSV export for all client data — (EXP1)
 - [ ] Create first-run setup wizard — (SETUP1)
-- [ ] Mobile responsiveness pass — (UI1)
+- [ ] 🔨 Mobile responsiveness pass — (UI1)
 - [ ] Add backup automation examples to docs — (OPS1)
 - [ ] Add client search filters (program, status, date) — (UX19)
 - [ ] Add note auto-save / draft recovery — (UX21)
@@ -84,7 +84,6 @@ These features are intentionally excluded. See technical documentation for ratio
 
 - [ ] PIPEDA/PHIPA consent workflow — block note entry until client consent recorded — (PRIV1)
 - [ ] GDPR toolkit UI — data export, right to erasure, consent management — (GDPR1)
-- [ ] CSV export of all client data for migration to future systems — (EXP1)
 - [ ] Mobile-responsive optimisation pass — (UI1)
 - [ ] First-run setup wizard for new instances — (SETUP1)
 - [ ] Automated backups documentation — (OPS1)
@@ -97,6 +96,7 @@ These features are intentionally excluded. See technical documentation for ratio
 
 ## Recently Done
 
+- [x] Add CSV export for all client data — 2026-02-03 (EXP1)
 - [x] Add consent checkbox to note entry — 2026-02-03 (PRIV2)
 - [x] Iframe embed support for registration forms — 2026-02-03 (REG8)
 - [x] Phase E: Self-service registration complete (REG1–REG7) — 2026-02-03
