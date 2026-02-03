@@ -40,14 +40,14 @@
 
 ## Recommendations
 
-### High Priority (Before Promoting to Agencies)
+### High Priority (Before Promoting to Agencies) — COMPLETE
 
-- [ ] Add "What You'll Need" pre-flight checklist (DOC12)
-- [ ] Add "What just happened?" explanations after key commands (DOC13)
-- [ ] Add screenshots showing expected outputs (DOC14)
-- [ ] Add glossary: terminal, repository, migration, container, etc. (DOC15)
-- [ ] Create "Before You Enter Real Data" checkpoint document (DOC16)
-- [ ] Fix placeholders to be obviously fake: `REPLACE_THIS_WITH_YOUR_PASSWORD` (DOC17)
+- [x] Add "What You'll Need" pre-flight checklist (DOC12)
+- [x] Add "What just happened?" explanations after key commands (DOC13)
+- [x] Add expected output examples showing what success looks like (DOC14)
+- [x] Add glossary: terminal, repository, migration, container, etc. (DOC15)
+- [x] Create "Before You Enter Real Data" checkpoint document (DOC16)
+- [x] Fix placeholders to be obviously fake: `REPLACE_THIS_WITH_YOUR_PASSWORD` (DOC17)
 
 ### Medium Priority (Phase 2)
 

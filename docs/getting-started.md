@@ -123,17 +123,19 @@ Copy each output and paste it into your `.env` file on the appropriate line.
 
 ### Step 4: Set Database Passwords
 
-Edit your `.env` file and set passwords for the databases:
+Edit your `.env` file and replace the placeholder passwords:
 
 ```ini
 POSTGRES_USER=konote
-POSTGRES_PASSWORD=your-secure-password-here
+POSTGRES_PASSWORD=MySecurePassword123    # <-- Replace this!
 POSTGRES_DB=konote
 
 AUDIT_POSTGRES_USER=audit_writer
-AUDIT_POSTGRES_PASSWORD=another-secure-password
+AUDIT_POSTGRES_PASSWORD=AnotherPassword456    # <-- Replace this too!
 AUDIT_POSTGRES_DB=konote_audit
 ```
+
+> **Tip:** Use different passwords for each database. A password manager can generate secure random passwords for you.
 
 ### Step 5: Start the Containers
 
@@ -305,19 +307,21 @@ KoNote uses two databases: one for application data, one for audit logs.
 # Connect as postgres superuser
 psql -U postgres
 
-# Create main database and user
+# Create main database and user (replace MySecurePassword123 with your own password)
 CREATE DATABASE konote;
-CREATE USER konote WITH PASSWORD 'your-password';
+CREATE USER konote WITH PASSWORD 'MySecurePassword123';
 GRANT ALL PRIVILEGES ON DATABASE konote TO konote;
 
-# Create audit database and user
+# Create audit database and user (replace AnotherPassword456 with your own password)
 CREATE DATABASE konote_audit;
-CREATE USER audit_writer WITH PASSWORD 'audit-password';
+CREATE USER audit_writer WITH PASSWORD 'AnotherPassword456';
 GRANT ALL PRIVILEGES ON DATABASE konote_audit TO audit_writer;
 
 # Exit psql
 \q
 ```
+
+> **Remember:** Write down the passwords you choose. You'll need them in Step 8 when configuring your `.env` file.
 
 **Using pgAdmin (graphical):**
 1. Open pgAdmin and connect to your local server
@@ -336,18 +340,18 @@ copy .env.example .env
 
 ### Step 8: Configure Environment Variables
 
-Edit `.env` with your settings:
+Edit `.env` with your settings. Replace each `REPLACE_THIS_...` placeholder:
 
 ```ini
-# Django secret key (generate below)
-SECRET_KEY=paste-your-generated-key-here
+# Django secret key (generate in Step 9)
+SECRET_KEY=REPLACE_THIS_run_command_in_step_9
 
-# PII encryption key (generate below) - CRITICAL
-FIELD_ENCRYPTION_KEY=paste-your-generated-key-here
+# PII encryption key (generate in Step 9) - CRITICAL
+FIELD_ENCRYPTION_KEY=REPLACE_THIS_run_command_in_step_9
 
-# Database connections (adjust passwords to match Step 6)
-DATABASE_URL=postgresql://konote:your-password@localhost:5432/konote
-AUDIT_DATABASE_URL=postgresql://audit_writer:audit-password@localhost:5432/konote_audit
+# Database connections (use passwords from Step 6)
+DATABASE_URL=postgresql://konote:MySecurePassword123@localhost:5432/konote
+AUDIT_DATABASE_URL=postgresql://audit_writer:AnotherPassword456@localhost:5432/konote_audit
 
 # Authentication mode
 AUTH_MODE=local
@@ -355,6 +359,8 @@ AUTH_MODE=local
 # Allowed hosts for local development
 ALLOWED_HOSTS=localhost,127.0.0.1
 ```
+
+> **Important:** The passwords in `DATABASE_URL` must match the passwords you set when creating the databases in Step 6.
 
 ### Step 9: Generate Security Keys
 
@@ -540,10 +546,11 @@ The test suite creates temporary test data (users, programs, clients) that is au
    ```bash
    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
    ```
-2. Add it to your `.env` file:
+2. Add it to your `.env` file (replace the placeholder):
    ```ini
-   FIELD_ENCRYPTION_KEY=your-generated-key-here
+   FIELD_ENCRYPTION_KEY=xK7mP2nQ5rT8vW0yB3dF6hJ9kL4sA1cE7gI0jM2nO=
    ```
+   (Use your actual generated key, not this example!)
 
 ### konote.E001: FIELD_ENCRYPTION_KEY is invalid
 

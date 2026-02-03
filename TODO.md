@@ -41,12 +41,12 @@ See `tasks/documentation-improvement-plan.md` for full rationale.
 
 **Phase C.2: Non-Developer Accessibility** — See `tasks/documentation-expert-review.md`
 
-- [ ] Add "What You'll Need" pre-flight checklist to getting-started.md — (DOC12)
-- [ ] Add "What just happened?" explanations after key generation steps — (DOC13)
-- [ ] Add screenshots showing expected terminal outputs — (DOC14)
-- [ ] Add glossary section: terminal, repository, migration, container — (DOC15)
-- [ ] Create "Before You Enter Real Data" checkpoint document — (DOC16)
-- [ ] Fix placeholders to obviously fake values like REPLACE_THIS — (DOC17)
+- [x] Add "What You'll Need" pre-flight checklist to getting-started.md — (DOC12)
+- [x] Add "What just happened?" explanations after key generation steps — (DOC13)
+- [x] Add expected output examples showing what success looks like — (DOC14)
+- [x] Add glossary section: terminal, repository, migration, container — (DOC15)
+- [x] Create "Before You Enter Real Data" checkpoint document — (DOC16)
+- [x] Fix placeholders to obviously fake values like REPLACE_THIS — (DOC17)
 
 ### Phase E: Self-Service Registration (Medium Priority)
 
@@ -93,6 +93,12 @@ These features are intentionally excluded. See technical documentation for ratio
 
 ## Recently Done
 
+- [x] Add "What You'll Need" pre-flight checklist to getting-started.md — 2026-02-03 (DOC12)
+- [x] Add "What just happened?" explanations after key generation steps — 2026-02-03 (DOC13)
+- [x] Add expected output examples showing what success looks like — 2026-02-03 (DOC14)
+- [x] Add glossary section: terminal, repository, migration, container — 2026-02-03 (DOC15)
+- [x] Create "Before You Enter Real Data" checkpoint document — 2026-02-03 (DOC16)
+- [x] Fix placeholders to obviously fake values like REPLACE_THIS — 2026-02-03 (DOC17)
 - [x] French UI translation — Django i18n setup + ~500 strings — 2026-02-03 (I18N1)
 - [x] Document folder button — link to client folder in SharePoint/Google Drive — 2026-02-03 (DOC5)
 - [x] Terminology override by language — extend model for fr/en terms — 2026-02-03 (I18N2)
