@@ -28,7 +28,8 @@
         <li><strong>Info</strong></li>
         <li><a href="{% url 'plans:plan_view' client_id=client.pk %}">{{ term.plan|default:"Plan" }}</a></li>
         <li><a href="{% url 'notes:note_list' client_id=client.pk %}">{{ term.progress_note|default:"Notes" }}</a></li>
-        <li><a href="#" class="secondary" aria-disabled="true">Analysis (Phase 5)</a></li>
+        <li><a href="{% url 'events:event_list' client_id=client.pk %}">Events</a></li>
+        <li><a href="{% url 'reports:client_analysis' client_id=client.pk %}">Analysis</a></li>
     </ul>
 </nav>
 

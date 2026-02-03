@@ -6,13 +6,7 @@ _Nothing flagged._
 
 ## Active Work
 
-**Phase 5: Visualisation, Events & Audit**
-- [ ] Create Chart.js progress charts (metrics over time) — (VIZ1)
-- [ ] Create event type admin and event CRUD — (EVT1)
-- [ ] Create alerts CRUD — (EVT2)
-- [ ] Create client timeline view (notes + events combined) — (VIZ2)
-- [ ] Create aggregate metrics export (CSV by program + date range for funder reporting) — (RPT1)
-- [ ] Create audit log viewer with filtering and CSV export — (AUD1)
+**Phase 6: Customisation Admin**
 
 **Phase 6: Customisation Admin**
 - [ ] Create terminology overrides admin UI — (CUST1)
@@ -21,6 +15,7 @@ _Nothing flagged._
 - [ ] Create user management admin (create, deactivate, assign roles) — (USR1)
 
 **Phase 7: Hardening & Deployment**
+- [ ] Run seed_event_types management command on first deploy — (SEED1)
 - [ ] Lock down audit DB permissions at deploy time, not after all phases — (SEC1)
 - [ ] Tune CSP and rate limiting for production — (SEC4)
 - [ ] Create encryption key rotation management command — (SEC5)
@@ -44,6 +39,7 @@ _Nothing flagged._
 
 ## Recently Done
 
+- [x] Phase 5: Charts, events, alerts, combined timeline, funder report export, audit log viewer — 2026-02-02 (VIZ1, EVT1, EVT2, VIZ2, RPT1, AUD1)
 - [x] Phase 4: Quick notes, full structured notes, metric recording, templates admin, timeline, cancellation — 2026-02-02 (NOTE1–NOTE5)
 - [x] Phase 3: Plan sections, targets, metrics, templates, apply-to-client, revision history — 2026-02-02 (PLAN1–PLAN6)
 - [x] Phase 2: Program CRUD, role assignment, client CRUD, enrolment, custom fields, search — 2026-02-02 (PROG1–CLI3)

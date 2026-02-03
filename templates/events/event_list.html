@@ -29,7 +29,7 @@
         <li><a href="{% url 'plans:plan_view' client_id=client.pk %}">{{ term.plan|default:"Plan" }}</a></li>
         <li><a href="{% url 'notes:note_list' client_id=client.pk %}">{{ term.progress_note|default:"Notes" }}</a></li>
         <li><strong>Events</strong></li>
-        <li><a href="#" class="secondary" aria-disabled="true">Analysis</a></li>
+        <li><a href="{% url 'reports:client_analysis' client_id=client.pk %}">Analysis</a></li>
     </ul>
 </nav>
 
@@ -59,25 +59,52 @@
 {% endif %}
 {% endfor %}
 
-<!-- Events -->
-{% if events %}
-<div id="events-timeline">
-    {% for event in events %}
-    <article>
-        <header>
-            {% if event.event_type %}
-                <span class="program-dot" style="background-color: {{ event.event_type.colour_hex }}" aria-hidden="true"></span>
-                <span class="badge" style="background-color: {{ event.event_type.colour_hex }}; color: #fff;">{{ event.event_type.name }}</span>
+<!-- Combined Timeline -->
+{% if timeline %}
+<h2>Timeline</h2>
+<div class="timeline">
+    {% for entry in timeline %}
+    <div class="timeline-item">
+        {% if entry.type == "event" %}
+        <div>
+            {% if entry.obj.event_type %}
+                <span class="program-dot" style="background-color: {{ entry.obj.event_type.colour_hex }}" aria-hidden="true"></span>
+                <span class="badge" style="background-color: {{ entry.obj.event_type.colour_hex }}; color: #fff;">{{ entry.obj.event_type.name }}</span>
+            {% else %}
+                <span class="badge badge-neutral">Event</span>
             {% endif %}
-            <strong>{{ event.start_timestamp|date:"Y-m-d H:i" }}</strong>
-            {% if event.end_timestamp %} — {{ event.end_timestamp|date:"Y-m-d H:i" }}{% endif %}
-        </header>
-        {% if event.title %}<h3>{{ event.title }}</h3>{% endif %}
-        {% if event.description %}<p>{{ event.description|truncatechars:200 }}</p>{% endif %}
-    </article>
+            <strong>{{ entry.date|date:"Y-m-d H:i" }}</strong>
+            {% if entry.obj.end_timestamp %} — {{ entry.obj.end_timestamp|date:"Y-m-d H:i" }}{% endif %}
+        </div>
+        {% if entry.obj.title %}<p><strong>{{ entry.obj.title }}</strong></p>{% endif %}
+        {% if entry.obj.description %}<p>{{ entry.obj.description|truncatechars:200 }}</p>{% endif %}
+
+        {% elif entry.type == "note" %}
+        <div>
+            {% if entry.obj.note_type == "quick" %}
+                <span class="badge badge-info">{{ term.quick_note|default:"Quick Note" }}</span>
+            {% else %}
+                <span class="badge badge-success">Full Note</span>
+            {% endif %}
+            {% if entry.obj.status == "cancelled" %}
+                <span class="badge badge-danger">Cancelled</span>
+            {% endif %}
+            <strong>{{ entry.date|date:"Y-m-d" }}</strong>
+            — {{ entry.obj.author.display_name|default:entry.obj.author }}
+            {% if entry.obj.author_program %}
+                <small>({{ entry.obj.author_program.name }})</small>
+            {% endif %}
+        </div>
+        {% if entry.obj.status == "cancelled" %}
+            <p><del>{{ entry.obj.notes_text|truncatechars:200 }}</del></p>
+        {% else %}
+            <p>{{ entry.obj.notes_text|truncatechars:200 }}</p>
+        {% endif %}
+        {% endif %}
+    </div>
     {% endfor %}
 </div>
 {% else %}
-<p class="empty-state">No events recorded yet.</p>
+<p class="empty-state">No events or notes recorded yet. Add events or progress notes to build a timeline.</p>
 {% endif %}
 {% endblock %}

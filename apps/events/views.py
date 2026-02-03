@@ -108,16 +108,39 @@ def event_type_edit(request, type_id):
 
 @login_required
 def event_list(request, client_id):
-    """List events for a client."""
+    """Combined timeline: events + notes for a client, sorted chronologically."""
     client = _get_client_or_403(request, client_id)
     if client is None:
         return HttpResponseForbidden("You do not have access to this client.")
+
     events = Event.objects.filter(client_file=client).select_related("event_type")
     alerts = Alert.objects.filter(client_file=client)
+
+    # Build combined timeline entries
+    from apps.notes.models import ProgressNote
+    notes = ProgressNote.objects.filter(client_file=client).select_related("author", "author_program")
+
+    timeline = []
+    for event in events:
+        timeline.append({
+            "type": "event",
+            "date": event.start_timestamp,
+            "obj": event,
+        })
+    for note in notes:
+        timeline.append({
+            "type": "note",
+            "date": note.effective_date,
+            "obj": note,
+        })
+    # Sort newest first
+    timeline.sort(key=lambda x: x["date"], reverse=True)
+
     return render(request, "events/event_list.html", {
         "client": client,
         "events": events,
         "alerts": alerts,
+        "timeline": timeline,
     })
 
 

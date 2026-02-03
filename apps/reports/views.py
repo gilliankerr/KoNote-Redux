@@ -1,16 +1,19 @@
-"""Report views — aggregate metric CSV export."""
+"""Report views — aggregate metric CSV export and client analysis charts."""
 import csv
+import json
 from datetime import datetime, time
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.db.models import Q
 from django.utils import timezone
 
 from apps.audit.models import AuditLog
-from apps.clients.models import ClientProgramEnrolment
+from apps.clients.models import ClientFile, ClientProgramEnrolment
 from apps.notes.models import MetricValue, ProgressNote
+from apps.plans.models import PlanTarget, PlanTargetMetric
+from apps.programs.models import UserProgramRole
 from .forms import MetricExportForm
 
 
@@ -137,3 +140,84 @@ def export_form(request):
     )
 
     return response
+
+
+def _get_client_or_403(request, client_id):
+    """Return client if user has access, otherwise None."""
+    client = get_object_or_404(ClientFile, pk=client_id)
+    user = request.user
+    if user.is_admin:
+        return client
+    user_program_ids = set(
+        UserProgramRole.objects.filter(user=user, status="active")
+        .values_list("program_id", flat=True)
+    )
+    client_program_ids = set(
+        ClientProgramEnrolment.objects.filter(client_file=client, status="enrolled")
+        .values_list("program_id", flat=True)
+    )
+    if user_program_ids & client_program_ids:
+        return client
+    return None
+
+
+@login_required
+def client_analysis(request, client_id):
+    """Show progress charts for a client's metric data."""
+    client = _get_client_or_403(request, client_id)
+    if client is None:
+        return HttpResponseForbidden("You do not have access to this client.")
+
+    # Get targets with metrics for this client
+    targets = PlanTarget.objects.filter(
+        client_file=client, status="default"
+    ).prefetch_related("metrics")
+
+    chart_data = []
+    for target in targets:
+        ptm_links = PlanTargetMetric.objects.filter(
+            plan_target=target
+        ).select_related("metric_def")
+
+        for ptm in ptm_links:
+            metric_def = ptm.metric_def
+            # Get all recorded values for this metric on this target
+            values = MetricValue.objects.filter(
+                metric_def=metric_def,
+                progress_note_target__plan_target=target,
+                progress_note_target__progress_note__client_file=client,
+                progress_note_target__progress_note__status="default",
+            ).select_related(
+                "progress_note_target__progress_note"
+            ).order_by(
+                "progress_note_target__progress_note__created_at"
+            )
+
+            if not values:
+                continue
+
+            data_points = []
+            for mv in values:
+                note = mv.progress_note_target.progress_note
+                date = note.effective_date.strftime("%Y-%m-%d")
+                try:
+                    numeric_val = float(mv.value)
+                except (ValueError, TypeError):
+                    continue
+                data_points.append({"date": date, "value": numeric_val})
+
+            if data_points:
+                chart_data.append({
+                    "target_name": target.name,
+                    "metric_name": metric_def.name,
+                    "unit": metric_def.unit or "",
+                    "min_value": metric_def.min_value,
+                    "max_value": metric_def.max_value,
+                    "data_points": data_points,
+                })
+
+    return render(request, "reports/analysis.html", {
+        "client": client,
+        "chart_data": chart_data,
+        "chart_data_json": json.dumps(chart_data, default=str),
+    })
