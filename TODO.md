@@ -18,11 +18,44 @@ _All code review items complete._
 - [ ] Add status and program filters to client list page — (UX15)
 - [ ] Auto-dismiss success messages after 3 seconds; keep errors persistent — (UX16)
 
+## Roadmap — Prioritized Extensions
+
+Based on usability review and expert panel analysis. See `tasks/usability-review-results.md` for full rationale.
+
+### Phase A: Market Access (High Priority)
+
+- [ ] French UI translation — Django i18n setup + ~500 strings — (I18N1)
+- [ ] Document Link field on client records — URL + title + document type — (DOC5)
+- [ ] "What KoNote Is and Isn't" documentation page — set scope expectations — (DOC6)
+- [ ] Terminology override by language — extend model for fr/en terms — (I18N2)
+
+### Phase B: Funder Reporting (High Priority)
+
+- [ ] Report aggregation functions — count, avg, min, max by grouping — (RPT3)
+- [ ] Demographic grouping in reports — age range, gender, geography — (RPT4)
+- [ ] Outcome achievement rate calculation — % clients meeting target — (RPT5)
+- [ ] United Way CMT export template — pre-built format — (RPT6)
+- [ ] Fiscal year date range filter — April-March for Canadian nonprofits — (RPT7)
+
+### Phase C: Field Data Collection (Medium Priority)
+
+- [ ] KoBoToolbox import API endpoint — POST /api/field-import/ — (FIELD1)
+- [ ] SharePoint Lists webhook receiver — Power Automate integration — (FIELD2)
+- [ ] Field data import documentation — setup guides for KoBoToolbox/SharePoint — (DOC7)
+
+### Explicitly Out of Scope
+
+These features are intentionally excluded. See technical documentation for rationale.
+
+- ~~Calendar/scheduling~~ → Recommend Calendly, Google Calendar, Microsoft Bookings
+- ~~Full document storage~~ → Recommend Google Drive, SharePoint, Dropbox
+- ~~Offline PWA~~ → Use KoBoToolbox or paper forms for field work
+- ~~Multi-tenancy~~ → Fork required for coalition implementations
+
 ## Parking Lot
 
 - [ ] PIPEDA/PHIPA consent workflow — block note entry until client consent recorded — (PRIV1)
 - [ ] GDPR toolkit UI — data export, right to erasure, consent management — (GDPR1)
-- [ ] French language support (bilingual UI) — (I18N1)
 - [ ] Data import from existing systems (CSV) — (IMP1)
 - [ ] Mobile-responsive optimisation pass — (UI1)
 - [ ] First-run setup wizard for new instances — (SETUP1)
