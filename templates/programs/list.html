@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block title %}{{ term.program_plural|default:"Programs" }} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
@@ -6,14 +7,14 @@
 <hgroup>
     <h1>{{ term.program_plural|default:"Programs" }}</h1>
     {% if is_admin %}
-    <p>Manage organisational {{ term.program_plural|default:"programs" }}.</p>
+    <p>{% blocktrans with programs=term.program_plural|default:"programs" %}Manage organisational {{ programs }}.{% endblocktrans %}</p>
     {% else %}
-    <p>Your assigned {{ term.program_plural|default:"programs" }}.</p>
+    <p>{% blocktrans with programs=term.program_plural|default:"programs" %}Your assigned {{ programs }}.{% endblocktrans %}</p>
     {% endif %}
 </hgroup>
 
 {% if is_admin %}
-<p><a href="{% url 'programs:program_create' %}" role="button">New {{ term.program|default:"Program" }}</a></p>
+<p><a href="{% url 'programs:program_create' %}" role="button">{% blocktrans with program=term.program|default:"Program" %}New {{ program }}{% endblocktrans %}</a></p>
 {% endif %}
 
 {% if program_data %}
@@ -22,10 +23,10 @@
     <thead>
         <tr>
             <th scope="col">{{ term.program|default:"Program" }}</th>
-            <th scope="col">Description</th>
-            <th scope="col">Manager</th>
-            <th scope="col">Status</th>
-            {% if is_admin %}<th scope="col">Staff</th>{% endif %}
+            <th scope="col">{% trans "Description" %}</th>
+            <th scope="col">{% trans "Manager" %}</th>
+            <th scope="col">{% trans "Status" %}</th>
+            {% if is_admin %}<th scope="col">{% trans "Staff" %}</th>{% endif %}
             {% if is_admin %}<th scope="col"></th>{% endif %}
         </tr>
     </thead>
@@ -40,13 +41,13 @@
             <td>{{ item.manager_name|default:"—" }}</td>
             <td>
                 {% if item.program.status == "active" %}
-                    <span class="badge badge-success">Active</span>
+                    <span class="badge badge-success">{% trans "Active" %}</span>
                 {% else %}
-                    <span class="badge badge-neutral">Archived</span>
+                    <span class="badge badge-neutral">{% trans "Archived" %}</span>
                 {% endif %}
             </td>
             {% if is_admin %}<td>{{ item.user_count }}</td>{% endif %}
-            {% if is_admin %}<td><a href="{% url 'programs:program_edit' program_id=item.program.pk %}">Edit</a></td>{% endif %}
+            {% if is_admin %}<td><a href="{% url 'programs:program_edit' program_id=item.program.pk %}">{% trans "Edit" %}</a></td>{% endif %}
         </tr>
         {% endfor %}
     </tbody>
@@ -54,7 +55,7 @@
 </figure>
 {% else %}
 <div class="empty-state">
-    <p>No {{ term.program_plural|default:"programs" }} yet.</p>
+    <p>{% blocktrans with programs=term.program_plural|default:"programs" %}No {{ programs }} yet.{% endblocktrans %}</p>
 </div>
 {% endif %}
 {% endblock %}

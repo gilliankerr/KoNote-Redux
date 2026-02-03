@@ -1,18 +1,19 @@
+{% load i18n %}
 <!-- Partial: Plan tab content -->
 {% if can_edit %}
 <div class="action-bar">
     <a href="{% url 'plans:section_create' client_id=client.pk %}" role="button" class="outline">
-        Add {{ term.section|default:"Section" }}
+        {% blocktrans with section=term.section|default:"Section" %}Add {{ section }}{% endblocktrans %}
     </a>
     <a href="{% url 'plans:template_apply' client_id=client.pk %}" role="button" class="outline secondary">
-        Apply Template
+        {% trans "Apply Template" %}
     </a>
 </div>
 {% endif %}
 
 {% if show_section_form %}
-<article aria-label="Add section form">
-    <header><h3>Add {{ term.section|default:"Section" }}</h3></header>
+<article aria-label="{% trans 'Add section form' %}">
+    <header><h3>{% blocktrans with section=term.section|default:"Section" %}Add {{ section }}{% endblocktrans %}</h3></header>
     <form method="post" action="{% url 'plans:section_create' client_id=client.pk %}">
         {% csrf_token %}
         {% for field in section_form %}
@@ -25,8 +26,8 @@
         </div>
         {% endfor %}
         <div role="group">
-            <button type="submit">Save</button>
-            <a href="{% url 'plans:plan_view' client_id=client.pk %}" role="button" class="outline secondary">Cancel</a>
+            <button type="submit">{% trans "Save" %}</button>
+            <a href="{% url 'plans:plan_view' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Cancel" %}</a>
         </div>
     </form>
 </article>
@@ -42,7 +43,7 @@
 
 {% if inactive_sections %}
 <details>
-    <summary>Completed &amp; deactivated {{ term.section_plural|default:"sections" }} ({{ inactive_sections|length }})</summary>
+    <summary>{% blocktrans with sections=term.section_plural|default:"sections" count=inactive_sections|length %}Completed & deactivated {{ sections }} ({{ count }}){% endblocktrans %}</summary>
     {% for section in inactive_sections %}
     <article class="section-card" id="section-{{ section.pk }}" aria-label="{{ term.section|default:'Section' }}: {{ section.name }}">
         {% include "plans/_section.html" with section=section can_edit=can_edit %}
@@ -53,6 +54,6 @@
 
 {% if not active_sections and not inactive_sections and not show_section_form %}
 <div class="empty-state">
-    <p>No {{ term.section_plural|default:"sections" }} yet.{% if can_edit %} Use the button above to add one, or apply a template.{% endif %}</p>
+    <p>{% blocktrans with sections=term.section_plural|default:"sections" %}No {{ sections }} yet.{% endblocktrans %}{% if can_edit %} {% trans "Use the button above to add one, or apply a template." %}{% endif %}</p>
 </div>
 {% endif %}

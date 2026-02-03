@@ -6,3 +6,7 @@ class AuditConfig(AppConfig):
     name = "apps.audit"
     label = "audit"
     verbose_name = "Audit Log"
+
+    def ready(self):
+        # Import checks module to register Django system checks
+        from . import checks  # noqa: F401

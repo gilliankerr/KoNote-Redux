@@ -135,6 +135,16 @@ class CustomFieldDefinition(models.Model):
     placeholder = models.CharField(max_length=255, default="", blank=True)
     is_required = models.BooleanField(default=False)
     is_sensitive = models.BooleanField(default=False, help_text="Encrypt this field's values.")
+    receptionist_access = models.CharField(
+        max_length=10,
+        default="none",
+        choices=[
+            ("none", "Hidden"),
+            ("view", "View only"),
+            ("edit", "View and edit"),
+        ],
+        help_text="What access receptionists have to this field.",
+    )
     options_json = models.JSONField(default=list, blank=True, help_text="Options for select fields.")
     sort_order = models.IntegerField(default=0)
     status = models.CharField(

@@ -8,7 +8,9 @@ from .models import FeatureToggle, InstanceSetting, TerminologyOverride
 
 @receiver([post_save, post_delete], sender=TerminologyOverride)
 def invalidate_terminology_cache(sender, **kwargs):
-    cache.delete("terminology_overrides")
+    """Invalidate terminology caches for all languages."""
+    cache.delete("terminology_overrides_en")
+    cache.delete("terminology_overrides_fr")
 
 
 @receiver([post_save, post_delete], sender=FeatureToggle)

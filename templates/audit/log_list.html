@@ -1,49 +1,51 @@
 {% extends "base.html" %}
-{% block title %}Audit Log — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% load i18n %}
+
+{% block title %}{% trans "Audit Log" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <div class="container">
     <hgroup>
-        <h1>Audit Log</h1>
-        <p>Review all system activity. Use filters to narrow results.</p>
+        <h1>{% trans "Audit Log" %}</h1>
+        <p>{% trans "Review all system activity. Use filters to narrow results." %}</p>
     </hgroup>
 
     {# ---- Filter form ---- #}
     <form method="get" action="" role="search">
         <div class="grid">
             <label for="date_from">
-                From
+                {% trans "From" %}
                 <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
             </label>
             <label for="date_to">
-                To
+                {% trans "To" %}
                 <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
             </label>
             <label for="user_display">
-                User
-                <input type="text" id="user_display" name="user_display" value="{{ user_display }}" placeholder="Search by name">
+                {% trans "User" %}
+                <input type="text" id="user_display" name="user_display" value="{{ user_display }}" placeholder="{% trans 'Search by name' %}">
             </label>
             <label for="action">
-                Action
+                {% trans "Action" %}
                 <select id="action" name="action">
-                    <option value="">All actions</option>
+                    <option value="">{% trans "All actions" %}</option>
                     {% for value, label in action_choices %}
                     <option value="{{ value }}" {% if action_filter == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </label>
             <label for="resource_type">
-                Resource type
-                <input type="text" id="resource_type" name="resource_type" value="{{ resource_type }}" placeholder="e.g. client, note">
+                {% trans "Resource type" %}
+                <input type="text" id="resource_type" name="resource_type" value="{{ resource_type }}" placeholder="{% trans 'e.g. client, note' %}">
             </label>
         </div>
         <div class="grid">
             <div>
-                <button type="submit">Filter</button>
-                <a href="{% url 'audit:audit_log_list' %}" role="button" class="secondary outline" style="margin-left:0.5rem;">Clear</a>
+                <button type="submit">{% trans "Filter" %}</button>
+                <a href="{% url 'audit:audit_log_list' %}" role="button" class="secondary outline" style="margin-left:0.5rem;">{% trans "Clear" %}</a>
             </div>
             <div style="text-align:right;">
-                <a href="{% url 'audit:audit_log_export' %}{% if filter_query %}?{{ filter_query }}{% endif %}" role="button" class="contrast outline">Export CSV</a>
+                <a href="{% url 'audit:audit_log_export' %}{% if filter_query %}?{{ filter_query }}{% endif %}" role="button" class="contrast outline">{% trans "Export CSV" %}</a>
             </div>
         </div>
     </form>
@@ -54,12 +56,12 @@
         <table role="grid">
             <thead>
                 <tr>
-                    <th scope="col">Timestamp</th>
-                    <th scope="col">User</th>
-                    <th scope="col">IP Address</th>
-                    <th scope="col">Action</th>
-                    <th scope="col">Resource Type</th>
-                    <th scope="col">Resource ID</th>
+                    <th scope="col">{% trans "Timestamp" %}</th>
+                    <th scope="col">{% trans "User" %}</th>
+                    <th scope="col">{% trans "IP Address" %}</th>
+                    <th scope="col">{% trans "Action" %}</th>
+                    <th scope="col">{% trans "Resource Type" %}</th>
+                    <th scope="col">{% trans "Resource ID" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -83,21 +85,21 @@
 
     {# ---- Pagination ---- #}
     {% if page.has_previous or page.has_next %}
-    <nav aria-label="Pagination">
+    <nav aria-label="{% trans 'Pagination' %}">
         <ul>
             {% if page.has_previous %}
-            <li><a href="?page={{ page.previous_page_number }}&{{ filter_query }}">Previous</a></li>
+            <li><a href="?page={{ page.previous_page_number }}&{{ filter_query }}">{% trans "Previous" %}</a></li>
             {% endif %}
-            <li>Page {{ page.number }} of {{ page.paginator.num_pages }}</li>
+            <li>{% blocktrans with current=page.number total=page.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}</li>
             {% if page.has_next %}
-            <li><a href="?page={{ page.next_page_number }}&{{ filter_query }}">Next</a></li>
+            <li><a href="?page={{ page.next_page_number }}&{{ filter_query }}">{% trans "Next" %}</a></li>
             {% endif %}
         </ul>
     </nav>
     {% endif %}
 
     {% else %}
-    <p>No audit log entries found. Try adjusting your filters.</p>
+    <p>{% trans "No audit log entries found. Try adjusting your filters." %}</p>
     {% endif %}
 </div>
 {% endblock %}

@@ -1,11 +1,16 @@
-"""United Way CMT (Community Monitoring Tool) export functionality.
+"""Funder Report Template export functionality.
 
-Generates funder reports formatted for United Way Canada's CMT requirements:
+Generates standardised funder reports with common nonprofit reporting fields:
 - Organisation and programme information
 - Reporting period (fiscal year)
 - Service statistics (unique clients, total contacts)
 - Demographic breakdowns (age groups, custom fields)
 - Outcome achievement rates
+
+IMPORTANT: This is a draft template. Organisations should verify this format
+matches their specific funder's requirements before submission. Different funders
+(United Way chapters, government agencies, foundations) may require different
+formats, fields, or calculations.
 
 Canadian spelling conventions used throughout (programme, organisation, colour).
 """
@@ -328,7 +333,8 @@ def generate_cmt_csv_rows(cmt_data: dict[str, Any]) -> list[list[str]]:
     rows = []
 
     # Header section
-    rows.append(["UNITED WAY CMT EXPORT"])
+    rows.append(["FUNDER REPORT TEMPLATE"])
+    rows.append(["DRAFT — Verify this format matches your funder's requirements before submission"])
     rows.append([f"Generated: {cmt_data['generated_at'].strftime('%Y-%m-%d %H:%M')}"])
     rows.append([])
 

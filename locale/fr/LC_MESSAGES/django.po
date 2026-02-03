@@ -1,0 +1,837 @@
+# French translations for KoNote Web
+# Copyright (C) 2024
+# This file is distributed under the same license as the KoNote Web package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: KoNote Web 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: 2024-01-01 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: templates/base.html
+msgid "Skip to main content"
+msgstr "Passer au contenu principal"
+
+msgid "Reports"
+msgstr "Rapports"
+
+msgid "Admin"
+msgstr "Administration"
+
+msgid "Templates"
+msgstr "Modeles"
+
+msgid "Event Types"
+msgstr "Types d'evenements"
+
+msgid "Settings"
+msgstr "Parametres"
+
+msgid "Invites"
+msgstr "Invitations"
+
+msgid "Audit Log"
+msgstr "Journal d'audit"
+
+msgid "Sign Out"
+msgstr "Deconnexion"
+
+msgid "Select language"
+msgstr "Choisir la langue"
+
+msgid "Secure Client Outcome Management"
+msgstr "Gestion securisee des resultats clients"
+
+#: templates/auth/login.html
+msgid "Sign In"
+msgstr "Connexion"
+
+msgid "Username"
+msgstr "Nom d'utilisateur"
+
+msgid "Password"
+msgstr "Mot de passe"
+
+msgid "Click below to sign in with your organisation's Microsoft account."
+msgstr "Cliquez ci-dessous pour vous connecter avec le compte Microsoft de votre organisation."
+
+msgid "Sign in with Microsoft"
+msgstr "Se connecter avec Microsoft"
+
+msgid "Try the Demo"
+msgstr "Essayer la demo"
+
+msgid "Sign in instantly as a demo user to explore the system"
+msgstr "Connectez-vous instantanement en tant qu'utilisateur demo pour explorer le systeme"
+
+msgid "Receptionist"
+msgstr "Receptionniste"
+
+msgid "Counsellor"
+msgstr "Conseiller"
+
+msgid "Manager"
+msgstr "Gestionnaire"
+
+msgid "Administrator"
+msgstr "Administrateur"
+
+#: templates/clients/home.html
+msgid "Home"
+msgstr "Accueil"
+
+msgid "Client Outcome Management"
+msgstr "Gestion des resultats clients"
+
+msgid "Name or ID..."
+msgstr "Nom ou ID..."
+
+msgid "View All"
+msgstr "Voir tout"
+
+msgid "Active Alerts"
+msgstr "Alertes actives"
+
+msgid "requiring action"
+msgstr "necessitant une action"
+
+msgid "Needs Attention"
+msgstr "Attention requise"
+
+msgid "no notes in 30 days"
+msgstr "aucune note depuis 30 jours"
+
+msgid "Notes Today"
+msgstr "Notes aujourd'hui"
+
+msgid "recorded"
+msgstr "enregistrees"
+
+msgid "Priority Items"
+msgstr "Elements prioritaires"
+
+msgid "Alerts"
+msgstr "Alertes"
+
+msgid "No Recent Notes"
+msgstr "Pas de notes recentes"
+
+msgid "30+ days without notes"
+msgstr "Plus de 30 jours sans notes"
+
+msgid "All caught up! No items need attention."
+msgstr "Tout est a jour! Aucun element ne necessite d'attention."
+
+msgid "Recently Viewed"
+msgstr "Vus recemment"
+
+msgid "Quick links"
+msgstr "Liens rapides"
+
+msgid "Quick links:"
+msgstr "Liens rapides :"
+
+#: templates/clients/list.html
+msgid "Filters"
+msgstr "Filtres"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "All statuses"
+msgstr "Tous les statuts"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Inactive"
+msgstr "Inactif"
+
+msgid "Discharged"
+msgstr "Conge"
+
+msgid "Clear filters"
+msgstr "Effacer les filtres"
+
+#: templates/clients/form.html
+msgid "First Name"
+msgstr "Prenom"
+
+msgid "Last Name"
+msgstr "Nom de famille"
+
+msgid "Middle Name"
+msgstr "Deuxieme prenom"
+
+msgid "Date of Birth"
+msgstr "Date de naissance"
+
+msgid "Record ID"
+msgstr "ID du dossier"
+
+msgid "Save Changes"
+msgstr "Enregistrer les modifications"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+msgid "required"
+msgstr "requis"
+
+#: templates/clients/_client_layout.html
+msgid "ID:"
+msgstr "ID :"
+
+msgid "Search Documents"
+msgstr "Rechercher des documents"
+
+msgid "Open Documents Folder"
+msgstr "Ouvrir le dossier de documents"
+
+msgid "Client tabs"
+msgstr "Onglets du dossier"
+
+msgid "Info"
+msgstr "Info"
+
+msgid "Events"
+msgstr "Evenements"
+
+msgid "Analysis"
+msgstr "Analyse"
+
+#: templates/clients/_tab_info.html
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "Back to List"
+msgstr "Retour a la liste"
+
+msgid "Export PDF"
+msgstr "Exporter en PDF"
+
+msgid "Basic Information"
+msgstr "Informations de base"
+
+#: templates/clients/_client_list_table.html
+msgid "Name"
+msgstr "Nom"
+
+msgid "Pagination"
+msgstr "Pagination"
+
+msgid "Previous"
+msgstr "Precedent"
+
+msgid "Next"
+msgstr "Suivant"
+
+msgid "Create the first one"
+msgstr "Creer le premier"
+
+#: templates/admin_settings/dashboard.html
+msgid "Manage your instance configuration."
+msgstr "Gerez la configuration de votre instance."
+
+msgid "Terminology"
+msgstr "Terminologie"
+
+msgid "Customise the words used throughout the system (e.g. rename \"Client\" to \"Participant\")."
+msgstr "Personnalisez les mots utilises dans le systeme (par ex. renommer \"Client\" en \"Participant\")."
+
+msgid "Manage Terminology"
+msgstr "Gerer la terminologie"
+
+msgid "Features"
+msgstr "Fonctionnalites"
+
+msgid "Turn modules on or off for your organisation."
+msgstr "Activez ou desactivez les modules pour votre organisation."
+
+msgid "Manage Features"
+msgstr "Gerer les fonctionnalites"
+
+msgid "Instance Settings"
+msgstr "Parametres d'instance"
+
+msgid "Branding, date format, and session timeout."
+msgstr "Image de marque, format de date et delai d'expiration de session."
+
+msgid "Manage Settings"
+msgstr "Gerer les parametres"
+
+msgid "Users"
+msgstr "Utilisateurs"
+
+msgid "Create, edit, and deactivate user accounts."
+msgstr "Creer, modifier et desactiver des comptes utilisateurs."
+
+msgid "Manage Users"
+msgstr "Gerer les utilisateurs"
+
+#: templates/admin_settings/terminology.html
+msgid "Customise the words used throughout the system. Changes take effect immediately."
+msgstr "Personnalisez les mots utilises dans le systeme. Les modifications prennent effet immediatement."
+
+msgid "Term"
+msgstr "Terme"
+
+msgid "Default"
+msgstr "Par defaut"
+
+msgid "Your Label"
+msgstr "Votre libelle"
+
+msgid "Reset"
+msgstr "Reinitialiser"
+
+msgid "Back"
+msgstr "Retour"
+
+#: templates/admin_settings/features.html
+msgid "Enable or disable modules for your organisation."
+msgstr "Activez ou desactivez les modules pour votre organisation."
+
+msgid "Feature"
+msgstr "Fonctionnalite"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Enabled"
+msgstr "Active"
+
+msgid "Disabled"
+msgstr "Desactive"
+
+msgid "Disable"
+msgstr "Desactiver"
+
+msgid "Enable"
+msgstr "Activer"
+
+#: templates/admin_settings/instance_settings.html
+msgid "Configure branding, date format, and session behaviour."
+msgstr "Configurez l'image de marque, le format de date et le comportement de session."
+
+msgid "Branding & Display"
+msgstr "Image de marque et affichage"
+
+msgid "Document Storage"
+msgstr "Stockage de documents"
+
+msgid "Connect to an external document storage system (SharePoint or Google Drive) to show a \"Open Documents Folder\" button on client records."
+msgstr "Connectez-vous a un systeme de stockage de documents externe (SharePoint ou Google Drive) pour afficher un bouton \"Ouvrir le dossier de documents\" sur les dossiers clients."
+
+msgid "Test with sample Record ID: REC-2024-001"
+msgstr "Tester avec l'ID de dossier exemple : REC-2024-001"
+
+#: templates/auth_app/user_list.html
+msgid "Manage user accounts and roles."
+msgstr "Gerez les comptes utilisateurs et les roles."
+
+msgid "New User"
+msgstr "Nouvel utilisateur"
+
+msgid "Role"
+msgstr "Role"
+
+msgid "Last Login"
+msgstr "Derniere connexion"
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "Staff"
+msgstr "Personnel"
+
+msgid "Never"
+msgstr "Jamais"
+
+msgid "Deactivate"
+msgstr "Desactiver"
+
+msgid "No users found."
+msgstr "Aucun utilisateur trouve."
+
+msgid "Back to Settings"
+msgstr "Retour aux parametres"
+
+#: templates/auth_app/user_form.html
+msgid "Create User"
+msgstr "Creer un utilisateur"
+
+#: templates/auth_app/invite_list.html
+msgid "Manage invite links for new users"
+msgstr "Gerez les liens d'invitation pour les nouveaux utilisateurs"
+
+msgid "New Invite"
+msgstr "Nouvelle invitation"
+
+msgid "Created"
+msgstr "Cree"
+
+msgid "Expires"
+msgstr "Expire"
+
+msgid "Link"
+msgstr "Lien"
+
+msgid "by"
+msgstr "par"
+
+msgid "Expired"
+msgstr "Expire"
+
+msgid "Pending"
+msgstr "En attente"
+
+msgid "Invite link"
+msgstr "Lien d'invitation"
+
+msgid "No invites yet. Create one to get started."
+msgstr "Aucune invitation pour le moment. Creez-en une pour commencer."
+
+#: templates/auth_app/invite_form.html
+msgid "Create Invite"
+msgstr "Creer une invitation"
+
+msgid "Generate a link for a new user to create their account"
+msgstr "Generez un lien pour qu'un nouvel utilisateur cree son compte"
+
+msgid "Assign to Programs"
+msgstr "Assigner aux programmes"
+
+msgid "Link expires in (days)"
+msgstr "Le lien expire dans (jours)"
+
+#: templates/auth_app/invite_accept.html
+msgid "Create Your Account"
+msgstr "Creer votre compte"
+
+msgid "Create your account"
+msgstr "Creer votre compte"
+
+msgid "Please fix the errors below."
+msgstr "Veuillez corriger les erreurs ci-dessous."
+
+msgid "Your Name"
+msgstr "Votre nom"
+
+msgid "e.g. Jane Smith"
+msgstr "par ex. Marie Dupont"
+
+msgid "Choose a username"
+msgstr "Choisissez un nom d'utilisateur"
+
+msgid "Email (optional)"
+msgstr "Courriel (facultatif)"
+
+msgid "Minimum 8 characters."
+msgstr "Minimum 8 caracteres."
+
+msgid "Confirm Password"
+msgstr "Confirmer le mot de passe"
+
+msgid "Create Account"
+msgstr "Creer le compte"
+
+#: templates/auth_app/invite_expired.html
+msgid "Invite Unavailable"
+msgstr "Invitation non disponible"
+
+msgid "Go to Sign In"
+msgstr "Aller a la connexion"
+
+#: templates/notes/_tab_notes.html
+msgid "Filter notes"
+msgstr "Filtrer les notes"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "All types"
+msgstr "Tous les types"
+
+msgid "Quick notes"
+msgstr "Notes rapides"
+
+msgid "Full notes"
+msgstr "Notes completes"
+
+msgid "Author"
+msgstr "Auteur"
+
+msgid "All staff"
+msgstr "Tout le personnel"
+
+msgid "My notes only"
+msgstr "Mes notes seulement"
+
+msgid "From date"
+msgstr "Date de debut"
+
+msgid "To date"
+msgstr "Date de fin"
+
+msgid "Apply filters"
+msgstr "Appliquer les filtres"
+
+msgid "Clear"
+msgstr "Effacer"
+
+msgid "Full"
+msgstr "Complete"
+
+msgid "Cancelled"
+msgstr "Annulee"
+
+msgid "(unknown)"
+msgstr "(inconnu)"
+
+msgid "Reason:"
+msgstr "Raison :"
+
+msgid "View details"
+msgstr "Voir les details"
+
+msgid "Notes pagination"
+msgstr "Pagination des notes"
+
+msgid "Add the first note"
+msgstr "Ajouter la premiere note"
+
+#: templates/notes/note_form.html
+msgid "Template"
+msgstr "Modele"
+
+msgid "Session Date"
+msgstr "Date de session"
+
+msgid "Summary (optional)"
+msgstr "Resume (facultatif)"
+
+msgid "Create a plan"
+msgstr "Creer un plan"
+
+msgid "first."
+msgstr "d'abord."
+
+#: templates/notes/cancel_form.html
+msgid "Note content:"
+msgstr "Contenu de la note :"
+
+msgid "Summary:"
+msgstr "Resume :"
+
+msgid "Cancel This Note"
+msgstr "Annuler cette note"
+
+msgid "Go Back"
+msgstr "Retour"
+
+#: templates/notes/_note_detail.html
+msgid "(unknown author)"
+msgstr "(auteur inconnu)"
+
+msgid "Template:"
+msgstr "Modele :"
+
+msgid "Cancellation reason:"
+msgstr "Raison de l'annulation :"
+
+msgid "Value"
+msgstr "Valeur"
+
+msgid "Summary"
+msgstr "Resume"
+
+msgid "Cancel this note"
+msgstr "Annuler cette note"
+
+msgid "Collapse"
+msgstr "Reduire"
+
+#: templates/events/_tab_events.html
+msgid "New Event"
+msgstr "Nouvel evenement"
+
+msgid "New Alert"
+msgstr "Nouvelle alerte"
+
+msgid "alert"
+msgstr "alerte"
+
+msgid "Alert"
+msgstr "Alerte"
+
+msgid "Cancel Alert"
+msgstr "Annuler l'alerte"
+
+msgid "cancelled alert"
+msgstr "alerte annulee"
+
+msgid "Timeline"
+msgstr "Chronologie"
+
+msgid "Event"
+msgstr "Evenement"
+
+msgid "All day event"
+msgstr "Evenement de toute la journee"
+
+msgid "All Day"
+msgstr "Toute la journee"
+
+msgid "Full Note"
+msgstr "Note complete"
+
+msgid "No events or notes recorded yet. Add events or progress notes to build a timeline."
+msgstr "Aucun evenement ou note enregistre pour le moment. Ajoutez des evenements ou des notes de suivi pour construire une chronologie."
+
+#: templates/events/event_form.html
+msgid "New"
+msgstr "Nouveau"
+
+msgid "Start Date & Time"
+msgstr "Date et heure de debut"
+
+msgid "End Date & Time"
+msgstr "Date et heure de fin"
+
+msgid "Create Event"
+msgstr "Creer l'evenement"
+
+#: templates/events/event_type_list.html
+msgid "Manage event categories for client timelines."
+msgstr "Gerez les categories d'evenements pour les chronologies des clients."
+
+msgid "New Event Type"
+msgstr "Nouveau type d'evenement"
+
+msgid "Archived"
+msgstr "Archive"
+
+msgid "No event types yet. Create one to get started."
+msgstr "Aucun type d'evenement pour le moment. Creez-en un pour commencer."
+
+#: templates/programs/list.html
+msgid "Assigned Staff"
+msgstr "Personnel assigne"
+
+msgid "User"
+msgstr "Utilisateur"
+
+msgid "Program Manager"
+msgstr "Gestionnaire de programme"
+
+msgid "Removed"
+msgstr "Supprime"
+
+msgid "Remove"
+msgstr "Supprimer"
+
+msgid "No staff assigned yet."
+msgstr "Aucun personnel assigne pour le moment."
+
+msgid "Add"
+msgstr "Ajouter"
+
+msgid "Select user"
+msgstr "Selectionner un utilisateur"
+
+msgid "Choose a user..."
+msgstr "Choisir un utilisateur..."
+
+msgid "Select role"
+msgstr "Selectionner un role"
+
+#: templates/programs/no_access.html
+msgid "If you need access, please contact your administrator."
+msgstr "Si vous avez besoin d'acces, veuillez contacter votre administrateur."
+
+#: templates/plans/_tab_plan.html
+msgid "Apply Template"
+msgstr "Appliquer un modele"
+
+msgid "Add section form"
+msgstr "Formulaire d'ajout de section"
+
+msgid "Save"
+msgstr "Enregistrer"
+
+msgid "Use the button above to add one, or apply a template."
+msgstr "Utilisez le bouton ci-dessus pour en ajouter un, ou appliquez un modele."
+
+#: templates/plans/_section.html
+msgid "Completed"
+msgstr "Termine"
+
+msgid "Deactivated"
+msgstr "Desactive"
+
+msgid "Change the status of this section? This may affect related targets."
+msgstr "Modifier le statut de cette section ? Cela peut affecter les cibles associees."
+
+msgid "Actions"
+msgstr "Actions"
+
+#: templates/plans/_target.html
+msgid "None"
+msgstr "Aucun"
+
+msgid "Change the status of this target?"
+msgstr "Modifier le statut de cette cible ?"
+
+msgid "History"
+msgstr "Historique"
+
+#: templates/plans/target_form.html
+msgid "Add"
+msgstr "Ajouter"
+
+#: templates/plans/template_list.html
+msgid "Create Template"
+msgstr "Creer un modele"
+
+msgid "templates"
+msgstr "modeles"
+
+#: templates/plans/metric_library.html
+msgid "Library"
+msgstr "Bibliotheque"
+
+msgid "Import from CSV"
+msgstr "Importer depuis CSV"
+
+msgid "Unit"
+msgstr "Unite"
+
+msgid "Range"
+msgstr "Plage"
+
+msgid "to"
+msgstr "a"
+
+msgid "Yes"
+msgstr "Oui"
+
+msgid "Custom"
+msgstr "Personnalise"
+
+#: templates/reports/_tab_analysis.html
+msgid "Export as PDF"
+msgstr "Exporter en PDF"
+
+msgid "Minimum"
+msgstr "Minimum"
+
+msgid "Maximum"
+msgstr "Maximum"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "No metric data recorded yet. Record metrics through progress notes to see charts here."
+msgstr "Aucune donnee de mesure enregistree pour le moment. Enregistrez des mesures via les notes de suivi pour voir les graphiques ici."
+
+#: templates/reports/export_form.html
+msgid "Funder Report Export"
+msgstr "Exportation du rapport pour les bailleurs de fonds"
+
+msgid "Generate a report of aggregate metric data for a programme and date range."
+msgstr "Generez un rapport des donnees de mesure agregees pour un programme et une plage de dates."
+
+msgid "No results"
+msgstr "Aucun resultat"
+
+msgid "No data found."
+msgstr "Aucune donnee trouvee."
+
+msgid "There are no metric values matching the selected programme, metrics, and date range. Try adjusting your filters."
+msgstr "Il n'y a aucune valeur de mesure correspondant au programme, aux mesures et a la plage de dates selectionnes. Essayez d'ajuster vos filtres."
+
+msgid "Form errors"
+msgstr "Erreurs de formulaire"
+
+msgid "Select all"
+msgstr "Tout selectionner"
+
+msgid "Deselect all"
+msgstr "Tout deselectionner"
+
+msgid "Generate Report"
+msgstr "Generer le rapport"
+
+msgid "Additional Options"
+msgstr "Options supplementaires"
+
+#: templates/audit/log_list.html
+msgid "Review all system activity. Use filters to narrow results."
+msgstr "Consultez toute l'activite du systeme. Utilisez les filtres pour affiner les resultats."
+
+msgid "From"
+msgstr "De"
+
+msgid "To"
+msgstr "A"
+
+msgid "Search by name"
+msgstr "Rechercher par nom"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "All actions"
+msgstr "Toutes les actions"
+
+msgid "Resource type"
+msgstr "Type de ressource"
+
+msgid "e.g. client, note"
+msgstr "par ex. client, note"
+
+msgid "Filter"
+msgstr "Filtrer"
+
+msgid "Export CSV"
+msgstr "Exporter en CSV"
+
+msgid "Timestamp"
+msgstr "Horodatage"
+
+msgid "IP Address"
+msgstr "Adresse IP"
+
+msgid "Resource ID"
+msgstr "ID de ressource"
+
+msgid "No audit log entries found. Try adjusting your filters."
+msgstr "Aucune entree de journal d'audit trouvee. Essayez d'ajuster vos filtres."
+
+#: templates/403.html
+msgid "Access Denied"
+msgstr "Acces refuse"
+
+msgid "You don't have permission to access this page."
+msgstr "Vous n'avez pas la permission d'acceder a cette page."
+
+msgid "What you can do"
+msgstr "Ce que vous pouvez faire"
+
+msgid "Check that you're signed in with the correct account"
+msgstr "Verifiez que vous etes connecte avec le bon compte"
+
+msgid "Contact your administrator if you believe you should have access"
+msgstr "Contactez votre administrateur si vous pensez devoir avoir acces"
+
+msgid "Return to a page you have access to using the links below"
+msgstr "Retournez a une page a laquelle vous avez acces en utilisant les liens ci-dessous"

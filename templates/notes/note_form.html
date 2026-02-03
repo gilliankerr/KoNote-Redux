@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}New {{ term.progress_note|default:"Progress Note" }} — {{ client.first_name }} {{ client.last_name }}{% endblock %}
+{% block title %}{% blocktrans with note=term.progress_note|default:"Progress Note" %}New {{ note }}{% endblocktrans %} — {{ client.first_name }} {{ client.last_name }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>New {{ term.progress_note|default:"Progress Note" }}</h1>
+    <h1>{% blocktrans with note=term.progress_note|default:"Progress Note" %}New {{ note }}{% endblocktrans %}</h1>
     <p>{{ client.first_name }} {{ client.last_name }}</p>
 </hgroup>
 
@@ -12,12 +13,12 @@
     {% csrf_token %}
 
     <!-- Template (determines note structure) -->
-    <label for="{{ form.template.id_for_label }}">Template</label>
+    <label for="{{ form.template.id_for_label }}">{% trans "Template" %}</label>
     {{ form.template }}
     {% if form.template.errors %}<small class="error" role="alert">{{ form.template.errors.0 }}</small>{% endif %}
 
     <!-- Session date — pre-filled with today -->
-    <label for="{{ form.session_date.id_for_label }}">Session Date</label>
+    <label for="{{ form.session_date.id_for_label }}">{% trans "Session Date" %}</label>
     {{ form.session_date }}
     <small>{{ form.session_date.help_text }}</small>
     {% if form.session_date.errors %}<small class="error" role="alert">{{ form.session_date.errors.0 }}</small>{% endif %}
@@ -25,8 +26,8 @@
     <!-- Target selection — staff pick which targets they worked on -->
     {% if target_forms %}
     <fieldset>
-        <legend>Which {{ term.target_plural|default:"targets" }} did you work on?</legend>
-        <small>Tick the {{ term.target_plural|default:"targets" }} you want to record against. Only selected ones will appear below.</small>
+        <legend>{% blocktrans with targets=term.target_plural|default:"targets" %}Which {{ targets }} did you work on?{% endblocktrans %}</legend>
+        <small>{% blocktrans with targets=term.target_plural|default:"targets" %}Tick the {{ targets }} you want to record against. Only selected ones will appear below.{% endblocktrans %}</small>
         {% for tf in target_forms %}
         <label>
             <input type="checkbox" class="target-selector" data-target-id="{{ tf.target.pk }}">
@@ -48,7 +49,7 @@
         <!-- Hidden target ID -->
         {{ tf.note_form.target_id }}
 
-        <label for="{{ tf.note_form.notes.id_for_label }}">Notes for this {{ term.target|default:"target" }}</label>
+        <label for="{{ tf.note_form.notes.id_for_label }}">{% blocktrans with target=term.target|default:"target" %}Notes for this {{ target }}{% endblocktrans %}</label>
         {{ tf.note_form.notes }}
         {% if tf.note_form.notes.errors %}<small class="error" role="alert">{{ tf.note_form.notes.errors.0 }}</small>{% endif %}
 
@@ -65,17 +66,17 @@
     </details>
     {% endfor %}
     {% else %}
-    <p class="empty-state">No active {{ term.target_plural|default:"targets" }} found. <a href="{% url 'plans:plan_view' client_id=client.pk %}">Create a plan</a> first.</p>
+    <p class="empty-state">{% blocktrans with targets=term.target_plural|default:"targets" %}No active {{ targets }} found.{% endblocktrans %} <a href="{% url 'plans:plan_view' client_id=client.pk %}">{% trans "Create a plan" %}</a> {% trans "first." %}</p>
     {% endif %}
 
     <!-- Summary -->
-    <label for="{{ form.summary.id_for_label }}">Summary (optional)</label>
+    <label for="{{ form.summary.id_for_label }}">{% trans "Summary (optional)" %}</label>
     {{ form.summary }}
     {% if form.summary.errors %}<small class="error" role="alert">{{ form.summary.errors.0 }}</small>{% endif %}
 
     <div role="group">
-        <button type="submit">Save {{ term.progress_note|default:"Note" }}</button>
-        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">Cancel</a>
+        <button type="submit">{% blocktrans with note=term.progress_note|default:"Note" %}Save {{ note }}{% endblocktrans %}</button>
+        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Cancel" %}</a>
     </div>
 </form>
 {% endblock %}

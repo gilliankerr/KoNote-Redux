@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "apps.admin_settings",
     "apps.audit",
     "apps.reports",
+    "apps.registration",
 ]
 
 MIDDLEWARE = [

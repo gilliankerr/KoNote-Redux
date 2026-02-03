@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Access Denied — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% trans "Access Denied" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <article class="error-page">
     <header>
-        <h1>Access Denied</h1>
+        <h1>{% trans "Access Denied" %}</h1>
     </header>
 
     <div class="error-content">
@@ -13,26 +14,26 @@
             {% if exception %}
             {{ exception }}
             {% else %}
-            You don't have permission to access this page.
+            {% trans "You don't have permission to access this page." %}
             {% endif %}
         </p>
 
         <div class="error-help">
-            <h2>What you can do</h2>
+            <h2>{% trans "What you can do" %}</h2>
             <ul>
-                <li>Check that you're signed in with the correct account</li>
-                <li>Contact your administrator if you believe you should have access</li>
-                <li>Return to a page you have access to using the links below</li>
+                <li>{% trans "Check that you're signed in with the correct account" %}</li>
+                <li>{% trans "Contact your administrator if you believe you should have access" %}</li>
+                <li>{% trans "Return to a page you have access to using the links below" %}</li>
             </ul>
         </div>
     </div>
 
     <footer class="error-actions">
         <a href="javascript:history.back()" role="button" class="outline">
-            &larr; Go Back
+            &larr; {% trans "Go Back" %}
         </a>
         <a href="/" role="button">
-            Home
+            {% trans "Home" %}
         </a>
     </footer>
 </article>

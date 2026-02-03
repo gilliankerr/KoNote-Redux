@@ -1,10 +1,11 @@
+{% load i18n %}
 {% if results %}
 <table role="grid" class="client-table">
     <thead>
         <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Record ID</th>
-            <th scope="col">Status</th>
+            <th scope="col">{% trans "Name" %}</th>
+            <th scope="col">{% trans "Record ID" %}</th>
+            <th scope="col">{% trans "Status" %}</th>
             <th scope="col">{{ term.program_plural|default:"Programs" }}</th>
         </tr>
     </thead>
@@ -15,11 +16,11 @@
             <td>{{ item.client.record_id|default:"—" }}</td>
             <td>
                 {% if item.client.status == "active" %}
-                    <span class="badge badge-success">Active</span>
+                    <span class="badge badge-success">{% trans "Active" %}</span>
                 {% elif item.client.status == "inactive" %}
-                    <span class="badge badge-warning">Inactive</span>
+                    <span class="badge badge-warning">{% trans "Inactive" %}</span>
                 {% else %}
-                    <span class="badge badge-neutral">Discharged</span>
+                    <span class="badge badge-neutral">{% trans "Discharged" %}</span>
                 {% endif %}
             </td>
             <td>
@@ -33,6 +34,6 @@
 </table>
 {% elif query %}
 <div class="empty-state">
-    <p>No {{ term.client_plural|default:"clients" }} match "{{ query }}".</p>
+    <p>{% blocktrans with clients=term.client_plural|default:"clients" %}No {{ clients }} match "{{ query }}".{% endblocktrans %}</p>
 </div>
 {% endif %}

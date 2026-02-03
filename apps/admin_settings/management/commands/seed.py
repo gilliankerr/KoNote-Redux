@@ -18,6 +18,7 @@ class Command(BaseCommand):
         self._seed_feature_toggles()
         self._seed_instance_settings()
         self._seed_event_types()
+        self._seed_intake_fields()
         if settings.DEMO_MODE:
             self._seed_demo_data()
         self.stdout.write(self.style.SUCCESS("Seed data loaded successfully."))
@@ -27,6 +28,12 @@ class Command(BaseCommand):
         from django.core.management import call_command
 
         call_command("seed_event_types", stdout=self.stdout)
+
+    def _seed_intake_fields(self):
+        """Seed default custom fields for client intake forms."""
+        from django.core.management import call_command
+
+        call_command("seed_intake_fields", stdout=self.stdout)
 
     def _seed_metrics(self):
         from apps.plans.models import MetricDefinition

@@ -33,11 +33,89 @@
     <dd>{{ date_from }} to {{ date_to }}</dd>
     <dt>Metrics Included</dt>
     <dd>{% for m in metrics %}{{ m.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+    {% if grouping_label %}
+    <dt>Grouped By</dt>
+    <dd>{{ grouping_label }}</dd>
+    {% endif %}
 </dl>
+
+{% if achievement_summary %}
+<!-- Achievement Rate Summary -->
+<h2>Outcome Achievement Rates</h2>
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="number">{{ achievement_summary.overall_rate }}%</div>
+        <div class="label">Overall Achievement Rate</div>
+    </div>
+    <div class="summary-card">
+        <div class="number">{{ achievement_summary.clients_met_any_target }} / {{ achievement_summary.total_clients }}</div>
+        <div class="label">Clients Met Target</div>
+    </div>
+</div>
+
+{% if achievement_summary.by_metric %}
+<h3>Achievement by Metric</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Metric</th>
+            <th>Target Value</th>
+            <th>Clients with Data</th>
+            <th>Clients Met Target</th>
+            <th>Achievement Rate</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for metric in achievement_summary.by_metric %}
+        <tr>
+            <td>{{ metric.metric_name }}</td>
+            <td>{% if metric.has_target %}{{ metric.target_value }}{% else %}<em>No target defined</em>{% endif %}</td>
+            <td>{{ metric.total_clients }}</td>
+            <td>{% if metric.has_target %}{{ metric.clients_met_target }}{% else %}—{% endif %}</td>
+            <td>{% if metric.has_target %}{{ metric.achievement_rate }}%{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endif %}
 
 <!-- Data Table -->
 <div class="page-break"></div>
 <h2>Metric Data</h2>
+
+{% if grouped_rows %}
+{# Display data grouped by demographic #}
+{% for group_name, group_rows in grouped_rows.items %}
+<h3>{{ grouping_label }}: {{ group_name }}</h3>
+<p class="group-summary">{{ group_rows|length }} data point{{ group_rows|length|pluralize }}</p>
+<table>
+    <thead>
+        <tr>
+            <th>Client Record ID</th>
+            <th>Metric Name</th>
+            <th>Value</th>
+            <th>Date</th>
+            <th>Author</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in group_rows %}
+        <tr>
+            <td>{{ row.record_id }}</td>
+            <td>{{ row.metric_name }}</td>
+            <td>{{ row.value }}</td>
+            <td>{{ row.date }}</td>
+            <td>{{ row.author }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if not forloop.last %}<div class="page-break"></div>{% endif %}
+{% endfor %}
+
+{% else %}
+{# Display ungrouped data #}
 <table>
     <thead>
         <tr>
@@ -60,4 +138,5 @@
         {% endfor %}
     </tbody>
 </table>
+{% endif %}
 {% endblock %}

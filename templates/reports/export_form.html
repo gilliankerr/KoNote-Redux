@@ -1,16 +1,17 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Funder Report Export — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% trans "Funder Report Export" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>Funder Report Export</h1>
-    <p>Generate a report of aggregate metric data for a programme and date range.</p>
+    <h1>{% trans "Funder Report Export" %}</h1>
+    <p>{% trans "Generate a report of aggregate metric data for a programme and date range." %}</p>
 </hgroup>
 
 {% if no_data %}
-<article aria-label="No results">
-    <p><strong>No data found.</strong> There are no metric values matching the selected programme, metrics, and date range. Try adjusting your filters.</p>
+<article aria-label="{% trans 'No results' %}">
+    <p><strong>{% trans "No data found." %}</strong> {% trans "There are no metric values matching the selected programme, metrics, and date range. Try adjusting your filters." %}</p>
 </article>
 {% endif %}
 
@@ -18,7 +19,7 @@
     {% csrf_token %}
 
     {% if form.non_field_errors %}
-    <article class="pico-background-red-100" aria-label="Form errors" role="alert">
+    <article class="pico-background-red-100" aria-label="{% trans 'Form errors' %}" role="alert">
         {% for error in form.non_field_errors %}
         <p>{{ error }}</p>
         {% endfor %}
@@ -33,6 +34,18 @@
     {% if form.program.errors %}
     <small class="error" role="alert">{{ form.program.errors.0 }}</small>
     {% endif %}
+
+    {# Fiscal year quick-select #}
+    <label for="{{ form.fiscal_year.id_for_label }}">
+        {{ form.fiscal_year.label }}
+        {{ form.fiscal_year }}
+        {% if form.fiscal_year.help_text %}
+        <small>{{ form.fiscal_year.help_text }}</small>
+        {% endif %}
+        {% if form.fiscal_year.errors %}
+        <small class="error" role="alert">{{ form.fiscal_year.errors.0 }}</small>
+        {% endif %}
+    </label>
 
     {# Date range #}
     <div class="grid">
@@ -52,6 +65,18 @@
         </label>
     </div>
 
+    {# Demographic grouping #}
+    <label for="{{ form.group_by.id_for_label }}">
+        {{ form.group_by.label }}
+        {{ form.group_by }}
+        {% if form.group_by.help_text %}
+        <small>{{ form.group_by.help_text }}</small>
+        {% endif %}
+        {% if form.group_by.errors %}
+        <small class="error" role="alert">{{ form.group_by.errors.0 }}</small>
+        {% endif %}
+    </label>
+
     {# Export format #}
     <fieldset>
         <legend>{{ form.format.label }}</legend>
@@ -70,9 +95,9 @@
         <small class="error" role="alert">{{ form.metrics.errors.0 }}</small>
         {% endif %}
         <div style="margin-bottom: 0.5rem;">
-            <a href="#" id="select-all-metrics" class="secondary">Select all</a>
+            <a href="#" id="select-all-metrics" class="secondary">{% trans "Select all" %}</a>
             &nbsp;|&nbsp;
-            <a href="#" id="deselect-all-metrics" class="secondary">Deselect all</a>
+            <a href="#" id="deselect-all-metrics" class="secondary">{% trans "Deselect all" %}</a>
         </div>
         {% for checkbox in form.metrics %}
         <label>
@@ -82,6 +107,76 @@
         {% endfor %}
     </fieldset>
 
-    <button type="submit">Generate Report</button>
+    {# Achievement rate option #}
+    <fieldset>
+        <legend>{% trans "Additional Options" %}</legend>
+        <label>
+            {{ form.include_achievement_rate }}
+            {{ form.include_achievement_rate.label }}
+            {% if form.include_achievement_rate.help_text %}
+            <small>{{ form.include_achievement_rate.help_text }}</small>
+            {% endif %}
+        </label>
+    </fieldset>
+
+    <button type="submit">{% trans "Generate Report" %}</button>
 </form>
+
+<script>
+/**
+ * Fiscal year auto-fill functionality.
+ * When a fiscal year is selected, automatically populate the date fields.
+ * Canadian fiscal year: April 1 to March 31.
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const fiscalYearSelect = document.getElementById('id_fiscal_year');
+    const dateFromInput = document.getElementById('id_date_from');
+    const dateToInput = document.getElementById('id_date_to');
+
+    if (!fiscalYearSelect || !dateFromInput || !dateToInput) return;
+
+    fiscalYearSelect.addEventListener('change', function() {
+        const selectedYear = this.value;
+        if (!selectedYear) {
+            // Blank selection — clear dates to allow manual entry
+            dateFromInput.value = '';
+            dateToInput.value = '';
+            return;
+        }
+
+        // Calculate fiscal year dates (April 1 to March 31)
+        const startYear = parseInt(selectedYear, 10);
+        const endYear = startYear + 1;
+
+        // Format as YYYY-MM-DD for date inputs
+        const dateFrom = startYear + '-04-01';
+        const dateTo = endYear + '-03-31';
+
+        dateFromInput.value = dateFrom;
+        dateToInput.value = dateTo;
+    });
+
+    // Select all / deselect all for metrics (existing functionality)
+    const selectAllLink = document.getElementById('select-all-metrics');
+    const deselectAllLink = document.getElementById('deselect-all-metrics');
+
+    if (selectAllLink) {
+        selectAllLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('input[name="metrics"]').forEach(function(cb) {
+                cb.checked = true;
+            });
+        });
+    }
+
+    if (deselectAllLink) {
+        deselectAllLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('input[name="metrics"]').forEach(function(cb) {
+                cb.checked = false;
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

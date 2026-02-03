@@ -1,28 +1,29 @@
+{% load i18n %}
 <!-- HTMX partial: expanded view of a single note -->
 <header>
     <div>
         {% if note.note_type == "quick" %}
             <span class="badge badge-info">{{ term.quick_note|default:"Quick" }}</span>
         {% else %}
-            <span class="badge badge-success">Full</span>
+            <span class="badge badge-success">{% trans "Full" %}</span>
         {% endif %}
         {% if note.status == "cancelled" %}
-            <span class="badge badge-danger">Cancelled</span>
+            <span class="badge badge-danger">{% trans "Cancelled" %}</span>
         {% endif %}
         <strong>{{ note.effective_date|date:"Y-m-d" }}</strong>
-        — {% if note.author %}{{ note.author.display_name|default:note.author }}{% else %}(unknown author){% endif %}
+        — {% if note.author %}{{ note.author.display_name|default:note.author }}{% else %}{% trans "(unknown author)" %}{% endif %}
         {% if note.author_program %}
             <small>({{ note.author_program.name }})</small>
         {% endif %}
         {% if note.template %}
-            <small>| Template: {{ note.template.name }}</small>
+            <small>| {% trans "Template:" %} {{ note.template.name }}</small>
         {% endif %}
     </div>
 </header>
 
 {% if note.status == "cancelled" %}
     <p><del>{{ note.notes_text }}</del></p>
-    {% if note.status_reason %}<p><small>Cancellation reason: {{ note.status_reason }}</small></p>{% endif %}
+    {% if note.status_reason %}<p><small>{% trans "Cancellation reason:" %} {{ note.status_reason }}</small></p>{% endif %}
 {% else %}
     {% if note.notes_text %}
         <p>{{ note.notes_text }}</p>
@@ -36,7 +37,7 @@
         {% if entry.notes %}<p>{{ entry.notes }}</p>{% endif %}
         {% if entry.metric_values.all %}
         <table>
-            <thead><tr><th>{{ term.metric|default:"Metric" }}</th><th>Value</th></tr></thead>
+            <thead><tr><th>{{ term.metric|default:"Metric" }}</th><th>{% trans "Value" %}</th></tr></thead>
             <tbody>
             {% for mv in entry.metric_values.all %}
             {% if mv.metric_def %}
@@ -55,18 +56,18 @@
     {% endif %}
 
     {% if note.summary %}
-        <h4>Summary</h4>
+        <h4>{% trans "Summary" %}</h4>
         <p>{{ note.summary }}</p>
     {% endif %}
 {% endif %}
 
 <footer>
     {% if note.status != "cancelled" %}
-    <a href="{% url 'notes:note_cancel' note_id=note.pk %}" class="secondary">Cancel this note</a>
+    <a href="{% url 'notes:note_cancel' note_id=note.pk %}" class="secondary">{% trans "Cancel this note" %}</a>
     {% endif %}
     <a href="#"
        hx-get="{% url 'notes:note_summary' note_id=note.pk %}"
        hx-target="#note-{{ note.pk }}"
        hx-swap="innerHTML"
-       class="secondary">Collapse</a>
+       class="secondary">{% trans "Collapse" %}</a>
 </footer>

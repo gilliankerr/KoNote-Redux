@@ -1,41 +1,42 @@
+{% load i18n %}
 <!-- Partial: Notes tab content -->
 <div class="action-bar">
     <a href="{% url 'notes:quick_note_create' client_id=client.pk %}" role="button">{{ term.quick_note|default:"Quick Note" }}</a>
-    <a href="{% url 'notes:note_create' client_id=client.pk %}" role="button" class="outline">Full {{ term.progress_note|default:"Note" }}</a>
+    <a href="{% url 'notes:note_create' client_id=client.pk %}" role="button" class="outline">{% blocktrans with note=term.progress_note|default:"Note" %}Full {{ note }}{% endblocktrans %}</a>
 </div>
 
 <!-- Filters (open by default, collapsible for power users) -->
 <details open class="filter-bar">
-    <summary>Filter notes</summary>
+    <summary>{% trans "Filter notes" %}</summary>
     <form method="get" action="{% url 'notes:note_list' client_id=client.pk %}">
         <div class="grid">
             <label>
-                Type
+                {% trans "Type" %}
                 <select name="type">
-                    <option value="">All types</option>
-                    <option value="quick" {% if filter_type == "quick" %}selected{% endif %}>Quick notes</option>
-                    <option value="full" {% if filter_type == "full" %}selected{% endif %}>Full notes</option>
+                    <option value="">{% trans "All types" %}</option>
+                    <option value="quick" {% if filter_type == "quick" %}selected{% endif %}>{% trans "Quick notes" %}</option>
+                    <option value="full" {% if filter_type == "full" %}selected{% endif %}>{% trans "Full notes" %}</option>
                 </select>
             </label>
             <label>
-                Author
+                {% trans "Author" %}
                 <select name="author">
-                    <option value="">All staff</option>
-                    <option value="mine" {% if filter_author == "mine" %}selected{% endif %}>My notes only</option>
+                    <option value="">{% trans "All staff" %}</option>
+                    <option value="mine" {% if filter_author == "mine" %}selected{% endif %}>{% trans "My notes only" %}</option>
                 </select>
             </label>
             <label>
-                From date
+                {% trans "From date" %}
                 <input type="date" name="date_from" value="{{ filter_date_from }}">
             </label>
             <label>
-                To date
+                {% trans "To date" %}
                 <input type="date" name="date_to" value="{{ filter_date_to }}">
             </label>
         </div>
         <div role="group">
-            <button type="submit" class="outline">Apply filters</button>
-            <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">Clear</a>
+            <button type="submit" class="outline">{% trans "Apply filters" %}</button>
+            <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Clear" %}</a>
         </div>
     </form>
 </details>
@@ -48,17 +49,17 @@
             {% if note.note_type == "quick" %}
                 <span class="badge badge-info">{{ term.quick_note|default:"Quick" }}</span>
             {% else %}
-                <span class="badge badge-success">Full</span>
+                <span class="badge badge-success">{% trans "Full" %}</span>
             {% endif %}
             {% if note.status == "cancelled" %}
-                <span class="badge badge-danger">Cancelled</span>
+                <span class="badge badge-danger">{% trans "Cancelled" %}</span>
             {% endif %}
             <strong>{{ note.effective_date|date:"Y-m-d" }}</strong>
-            <span class="note-author">{% if note.author %}{{ note.author.display_name|default:note.author }}{% else %}(unknown){% endif %}{% if note.author_program %} ({{ note.author_program.name }}){% endif %}</span>
+            <span class="note-author">{% if note.author %}{{ note.author.display_name|default:note.author }}{% else %}{% trans "(unknown)" %}{% endif %}{% if note.author_program %} ({{ note.author_program.name }}){% endif %}</span>
         </div>
         {% if note.status == "cancelled" %}
             <p class="note-row-text"><del>{{ note.notes_text|truncatechars:200 }}</del></p>
-            {% if note.status_reason %}<p class="text-sm secondary">Reason: {{ note.status_reason }}</p>{% endif %}
+            {% if note.status_reason %}<p class="text-sm secondary">{% trans "Reason:" %} {{ note.status_reason }}</p>{% endif %}
         {% else %}
             <p class="note-row-text">{{ note.notes_text|truncatechars:200 }}</p>
         {% endif %}
@@ -67,31 +68,31 @@
                hx-get="{% url 'notes:note_detail' note_id=note.pk %}"
                hx-target="#note-{{ note.pk }}"
                hx-swap="innerHTML"
-               hx-indicator="#loading-bar">View details</a>
+               hx-indicator="#loading-bar">{% trans "View details" %}</a>
         </div>
     </div>
     {% endfor %}
 </div>
 
 {% if page.has_other_pages %}
-<nav class="pagination" aria-label="Notes pagination">
+<nav class="pagination" aria-label="{% trans 'Notes pagination' %}">
     {% if page.has_previous %}
-    <a href="?page={{ page.previous_page_number }}&type={{ filter_type }}&author={{ filter_author }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}">Previous</a>
+    <a href="?page={{ page.previous_page_number }}&type={{ filter_type }}&author={{ filter_author }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}">{% trans "Previous" %}</a>
     {% else %}
-    <span class="secondary">Previous</span>
+    <span class="secondary">{% trans "Previous" %}</span>
     {% endif %}
-    Page {{ page.number }} of {{ page.paginator.num_pages }}
+    {% blocktrans with current=page.number total=page.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}
     {% if page.has_next %}
-    <a href="?page={{ page.next_page_number }}&type={{ filter_type }}&author={{ filter_author }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}">Next</a>
+    <a href="?page={{ page.next_page_number }}&type={{ filter_type }}&author={{ filter_author }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}">{% trans "Next" %}</a>
     {% else %}
-    <span class="secondary">Next</span>
+    <span class="secondary">{% trans "Next" %}</span>
     {% endif %}
 </nav>
 {% endif %}
 
 {% else %}
 <div class="empty-state">
-    <p>No {{ term.progress_note|default:"notes" }} recorded yet.</p>
-    <a href="{% url 'notes:quick_note_create' client_id=client.pk %}" role="button">Add the first note</a>
+    <p>{% blocktrans with notes=term.progress_note|default:"notes" %}No {{ notes }} recorded yet.{% endblocktrans %}</p>
+    <a href="{% url 'notes:quick_note_create' client_id=client.pk %}" role="button">{% trans "Add the first note" %}</a>
 </div>
 {% endif %}

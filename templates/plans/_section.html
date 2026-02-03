@@ -1,13 +1,14 @@
+{% load i18n %}
 <header>
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
         <h3 style="margin: 0;" id="section-heading-{{ section.pk }}">
             {{ section.name }}
             {% if section.status == "default" %}
-                <span class="badge badge-success">Active</span>
+                <span class="badge badge-success">{% trans "Active" %}</span>
             {% elif section.status == "completed" %}
-                <span class="badge badge-info">Completed</span>
+                <span class="badge badge-info">{% trans "Completed" %}</span>
             {% else %}
-                <span class="badge badge-neutral">Deactivated</span>
+                <span class="badge badge-neutral">{% trans "Deactivated" %}</span>
             {% endif %}
         </h3>
         {% if can_edit %}
@@ -16,16 +17,16 @@
                     hx-get="{% url 'plans:section_edit' section_id=section.pk %}"
                     hx-target="#section-{{ section.pk }}"
                     hx-swap="innerHTML"
-                    aria-label="Edit {{ section.name }}">
-                Edit
+                    aria-label="{% blocktrans with name=section.name %}Edit {{ name }}{% endblocktrans %}">
+                {% trans "Edit" %}
             </button>
             <button class="outline small secondary"
                     hx-get="{% url 'plans:section_status' section_id=section.pk %}"
                     hx-target="#section-{{ section.pk }}"
                     hx-swap="innerHTML"
-                    hx-confirm="Change the status of this section? This may affect related targets."
-                    aria-label="Change status of {{ section.name }}">
-                Status
+                    hx-confirm="{% trans 'Change the status of this section? This may affect related targets.' %}"
+                    aria-label="{% blocktrans with name=section.name %}Change status of {{ name }}{% endblocktrans %}">
+                {% trans "Status" %}
             </button>
         </div>
         {% endif %}
@@ -44,9 +45,9 @@
     <thead>
         <tr>
             <th scope="col">{{ term.target|default:"Target" }}</th>
-            <th scope="col">Status</th>
-            <th scope="col">Metrics</th>
-            {% if can_edit %}<th scope="col">Actions</th>{% endif %}
+            <th scope="col">{% trans "Status" %}</th>
+            <th scope="col">{{ term.metric_plural|default:"Metrics" }}</th>
+            {% if can_edit %}<th scope="col">{% trans "Actions" %}</th>{% endif %}
         </tr>
     </thead>
     <tbody>
@@ -58,13 +59,13 @@
     </tbody>
 </table>
 {% else %}
-<p><em>No {{ term.target_plural|default:"targets" }} in this {{ term.section|default:"section" }}.</em></p>
+<p><em>{% blocktrans with targets=term.target_plural|default:"targets" section=term.section|default:"section" %}No {{ targets }} in this {{ section }}.{% endblocktrans %}</em></p>
 {% endif %}
 
 {% if can_edit %}
 <footer>
     <a href="{% url 'plans:target_create' section_id=section.pk %}" role="button" class="outline small">
-        Add {{ term.target|default:"Target" }}
+        {% blocktrans with target=term.target|default:"Target" %}Add {{ target }}{% endblocktrans %}
     </a>
 </footer>
 {% endif %}

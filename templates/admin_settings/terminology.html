@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Terminology — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% trans "Terminology" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>Terminology</h1>
-    <p>Customise the words used throughout the system. Changes take effect immediately.</p>
+    <h1>{% trans "Terminology" %}</h1>
+    <p>{% trans "Customise the words used throughout the system. Changes take effect immediately." %}</p>
 </hgroup>
 
 <form method="post">
@@ -15,22 +16,41 @@
     <table role="grid">
         <thead>
             <tr>
-                <th scope="col">Term</th>
-                <th scope="col">Default</th>
-                <th scope="col">Your Label</th>
+                <th scope="col">{% trans "Term" %}</th>
+                <th scope="col">{% trans "English" %}</th>
+                <th scope="col">{% trans "Français" %}</th>
                 <th scope="col"></th>
             </tr>
         </thead>
         <tbody>
             {% for row in term_rows %}
             <tr>
-                <td><strong>{{ row.key }}</strong></td>
-                <td>{{ row.default }}</td>
-                <td><input type="text" name="{{ row.key }}" value="{{ row.current }}" maxlength="255"></td>
+                <td>
+                    <strong>{{ row.key }}</strong>
+                    <br>
+                    <small class="secondary">{% trans "Default:" %} {{ row.default_en }} / {{ row.default_fr }}</small>
+                </td>
+                <td>
+                    <input type="text"
+                           name="{{ row.key }}"
+                           value="{{ row.current_en }}"
+                           maxlength="255"
+                           placeholder="{{ row.default_en }}"
+                           aria-label="{% trans 'English term for' %} {{ row.key }}">
+                </td>
+                <td>
+                    <input type="text"
+                           name="{{ row.key }}_fr"
+                           value="{{ row.current_fr }}"
+                           maxlength="255"
+                           placeholder="{{ row.default_fr }}"
+                           aria-label="{% trans 'French term for' %} {{ row.key }}">
+                    <small class="secondary">{% trans "Leave blank to use English" %}</small>
+                </td>
                 <td>
                     {% if row.is_overridden %}
-                    <a href="#" onclick="this.closest('tr').querySelector('input').value='{{ row.default }}'; return false;"
-                       class="secondary" style="font-size:0.875rem;">Reset</a>
+                    <a href="#" onclick="resetRow(this, '{{ row.default_en }}', '{{ row.default_fr }}'); return false;"
+                       class="secondary" style="font-size:0.875rem;">{% trans "Reset" %}</a>
                     {% endif %}
                 </td>
             </tr>
@@ -40,8 +60,19 @@
     </figure>
 
     <div role="group">
-        <button type="submit">Save Changes</button>
-        <a href="{% url 'admin_settings:dashboard' %}" role="button" class="outline">Back</a>
+        <button type="submit">{% trans "Save Changes" %}</button>
+        <a href="{% url 'admin_settings:dashboard' %}" role="button" class="outline">{% trans "Back" %}</a>
     </div>
 </form>
+
+<script>
+function resetRow(link, defaultEn, defaultFr) {
+    const row = link.closest('tr');
+    const inputs = row.querySelectorAll('input[type="text"]');
+    if (inputs.length >= 2) {
+        inputs[0].value = defaultEn;
+        inputs[1].value = '';  // Clear French to use default
+    }
+}
+</script>
 {% endblock %}

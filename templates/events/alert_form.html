@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}New Alert — {{ client.first_name }} {{ client.last_name }}{% endblock %}
+{% block title %}{% trans "New Alert" %} — {{ client.first_name }} {{ client.last_name }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>New Alert for {{ client.first_name }} {{ client.last_name }}</h1>
+    <h1>{% blocktrans with first=client.first_name last=client.last_name %}New Alert for {{ first }} {{ last }}{% endblocktrans %}</h1>
 </hgroup>
 
 <form method="post">
@@ -13,7 +14,7 @@
     {% for field in form %}
     <label for="{{ field.id_for_label }}">
         {{ field.label }}
-        {% if field.field.required %}<abbr title="required">*</abbr>{% endif %}
+        {% if field.field.required %}<abbr title="{% trans 'required' %}">*</abbr>{% endif %}
     </label>
     {{ field }}
     {% if field.errors %}
@@ -22,8 +23,8 @@
     {% endfor %}
 
     <div role="group">
-        <button type="submit">Create Alert</button>
-        <a href="{% url 'events:event_list' client_id=client.pk %}" role="button" class="outline">Cancel</a>
+        <button type="submit">{% trans "Create Alert" %}</button>
+        <a href="{% url 'events:event_list' client_id=client.pk %}" role="button" class="outline">{% trans "Cancel" %}</a>
     </div>
 </form>
 {% endblock %}

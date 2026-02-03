@@ -8,6 +8,8 @@ from konote.error_views import permission_denied_view
 handler403 = permission_denied_view
 
 urlpatterns = [
+    # Internationalization - language switching
+    path("i18n/", include("django.conf.urls.i18n")),
     path("auth/", include("apps.auth_app.urls")),
     path("clients/", include("apps.clients.urls")),
     path("programs/", include("apps.programs.urls")),

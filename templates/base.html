@@ -1,5 +1,6 @@
+{% load i18n %}
 <!DOCTYPE html>
-<html lang="en-CA">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,7 +19,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
+    <a href="#main-content" class="visually-hidden-focusable">{% trans "Skip to main content" %}</a>
 
     <!-- Loading bar — shown during HTMX requests -->
     <div id="loading-bar" class="loading-bar htmx-indicator"></div>
@@ -38,17 +39,17 @@
             <li><a href="/programs/"{% if nav_active == "programs" %} class="nav-active"{% endif %}>{{ term.program_plural|default:"Programs" }}</a></li>
             {% endif %}
             {% if user.is_admin %}
-            <li><a href="/reports/export/"{% if nav_active == "reports" %} class="nav-active"{% endif %}>Reports</a></li>
+            <li><a href="/reports/export/"{% if nav_active == "reports" %} class="nav-active"{% endif %}>{% trans "Reports" %}</a></li>
             <li>
                 <details class="dropdown" role="list">
-                    <summary aria-haspopup="listbox"{% if nav_active == "admin" %} class="nav-active"{% endif %}>Admin</summary>
+                    <summary aria-haspopup="listbox"{% if nav_active == "admin" %} class="nav-active"{% endif %}>{% trans "Admin" %}</summary>
                     <ul role="listbox">
                         <li><a href="/plans/admin/metrics/">{{ term.metric_plural|default:"Metrics" }}</a></li>
-                        <li><a href="/admin/templates/">Templates</a></li>
-                        <li><a href="/events/admin/types/">Event Types</a></li>
-                        <li><a href="/admin/settings/">Settings</a></li>
-                        <li><a href="/auth/invites/">Invites</a></li>
-                        <li><a href="/admin/audit/">Audit Log</a></li>
+                        <li><a href="/admin/templates/">{% trans "Templates" %}</a></li>
+                        <li><a href="/events/admin/types/">{% trans "Event Types" %}</a></li>
+                        <li><a href="/admin/settings/">{% trans "Settings" %}</a></li>
+                        <li><a href="/auth/invites/">{% trans "Invites" %}</a></li>
+                        <li><a href="/admin/audit/">{% trans "Audit Log" %}</a></li>
                     </ul>
                 </details>
             </li>
@@ -57,9 +58,23 @@
                 <details class="dropdown" role="list" dir="rtl">
                     <summary aria-haspopup="listbox">{{ user.display_name }}</summary>
                     <ul role="listbox">
-                        <li><a href="/auth/logout/">Sign Out</a></li>
+                        <li><a href="/auth/logout/">{% trans "Sign Out" %}</a></li>
                     </ul>
                 </details>
+            </li>
+            <li>
+                <!-- Language switcher -->
+                <form action="{% url 'set_language' %}" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <select name="language" onchange="this.form.submit()" aria-label="{% trans 'Select language' %}" style="padding: 0.25rem 0.5rem; min-width: auto;">
+                        {% get_current_language as LANGUAGE_CODE %}
+                        {% get_available_languages as LANGUAGES %}
+                        {% for lang_code, lang_name in LANGUAGES %}
+                        <option value="{{ lang_code }}"{% if lang_code == LANGUAGE_CODE %} selected{% endif %}>{{ lang_name }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
             </li>
         </ul>
     </nav>
@@ -84,7 +99,7 @@
     </div>
 
     <footer class="container">
-        <small>{{ site.product_name|default:"KoNote" }} &mdash; Secure Client Outcome Management</small>
+        <small>{{ site.product_name|default:"KoNote" }} &mdash; {% trans "Secure Client Outcome Management" %}</small>
     </footer>
 
     <!-- HTMX — dynamic interactions without a JS framework -->

@@ -3,31 +3,53 @@ from django.db import models
 
 
 # Default terminology — keys must match template usage
+# Format: { key: (English, French) }
 DEFAULT_TERMS = {
-    "client": "Client",
-    "client_plural": "Clients",
-    "file": "File",
-    "plan": "Plan",
-    "section": "Section",
-    "target": "Target",
-    "target_plural": "Targets",
-    "metric": "Metric",
-    "metric_plural": "Metrics",
-    "progress_note": "Progress Note",
-    "progress_note_plural": "Progress Notes",
-    "quick_note": "Quick Note",
-    "event": "Event",
-    "program": "Program",
-    "program_plural": "Programs",
-    "alert": "Alert",
+    "client": ("Client", "Client"),
+    "client_plural": ("Clients", "Clients"),
+    "file": ("File", "Dossier"),
+    "plan": ("Plan", "Plan"),
+    "section": ("Section", "Section"),
+    "target": ("Target", "Objectif"),
+    "target_plural": ("Targets", "Objectifs"),
+    "metric": ("Metric", "Indicateur"),
+    "metric_plural": ("Metrics", "Indicateurs"),
+    "progress_note": ("Progress Note", "Note de suivi"),
+    "progress_note_plural": ("Progress Notes", "Notes de suivi"),
+    "quick_note": ("Quick Note", "Note rapide"),
+    "event": ("Event", "Événement"),
+    "program": ("Program", "Programme"),
+    "program_plural": ("Programs", "Programmes"),
+    "alert": ("Alert", "Alerte"),
 }
 
 
+def get_default_terms_for_language(lang="en"):
+    """Return default terms for a specific language.
+
+    Args:
+        lang: Language code ('en' or 'fr'). Defaults to 'en'.
+
+    Returns:
+        Dict of term_key -> display_value for the specified language.
+    """
+    index = 1 if lang.startswith("fr") else 0
+    return {key: values[index] for key, values in DEFAULT_TERMS.items()}
+
+
 class TerminologyOverride(models.Model):
-    """Stores custom terminology for this instance."""
+    """Stores custom terminology for this instance.
+
+    Supports both English and French overrides. If a French override is not
+    provided, the English override (or default) is used as a fallback.
+    """
 
     term_key = models.CharField(max_length=100, unique=True)
-    display_value = models.CharField(max_length=255)
+    display_value = models.CharField(max_length=255)  # English
+    display_value_fr = models.CharField(
+        max_length=255, blank=True, default="",
+        help_text="French translation. Leave blank to use English value.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -38,11 +60,30 @@ class TerminologyOverride(models.Model):
         return f"{self.term_key} → {self.display_value}"
 
     @classmethod
-    def get_all_terms(cls):
-        """Return merged dict of defaults + overrides."""
-        terms = dict(DEFAULT_TERMS)
-        overrides = dict(cls.objects.values_list("term_key", "display_value"))
-        terms.update(overrides)
+    def get_all_terms(cls, lang="en"):
+        """Return merged dict of defaults + overrides for a language.
+
+        Args:
+            lang: Language code ('en' or 'fr'). Defaults to 'en'.
+
+        Returns:
+            Dict of term_key -> display_value for the specified language.
+            Falls back to English if French translation is empty.
+        """
+        # Start with defaults for the requested language
+        terms = get_default_terms_for_language(lang)
+
+        # Get all overrides
+        overrides = cls.objects.all()
+
+        for override in overrides:
+            if lang.startswith("fr") and override.display_value_fr:
+                # Use French override if available
+                terms[override.term_key] = override.display_value_fr
+            elif override.display_value:
+                # Use English override (or as fallback for French)
+                terms[override.term_key] = override.display_value
+
         return terms
 
 

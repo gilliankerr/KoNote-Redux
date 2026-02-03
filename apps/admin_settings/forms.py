@@ -12,29 +12,59 @@ class FeatureToggleForm(forms.Form):
 
 
 class TerminologyForm(forms.Form):
-    """Dynamic form with one field per terminology key."""
+    """Dynamic form with fields for English and French terminology.
+
+    Each term has two fields:
+    - {key}: English term (required)
+    - {key}_fr: French term (optional, falls back to English)
+    """
 
     def __init__(self, *args, **kwargs):
-        current_terms = kwargs.pop("current_terms", {})
+        current_terms_en = kwargs.pop("current_terms_en", {})
+        current_terms_fr = kwargs.pop("current_terms_fr", {})
         super().__init__(*args, **kwargs)
-        for key, default in DEFAULT_TERMS.items():
+
+        for key, defaults in DEFAULT_TERMS.items():
+            default_en, default_fr = defaults
+
+            # English field
             self.fields[key] = forms.CharField(
                 max_length=255,
-                initial=current_terms.get(key, default),
+                initial=current_terms_en.get(key, default_en),
                 label=key.replace("_", " ").title(),
-                help_text=f"Default: {default}",
+                help_text=f"Default: {default_en}",
+            )
+
+            # French field
+            self.fields[f"{key}_fr"] = forms.CharField(
+                max_length=255,
+                required=False,
+                initial=current_terms_fr.get(key, ""),
+                label=key.replace("_", " ").title() + " (FR)",
+                help_text=f"Default: {default_fr}. Leave blank to use English.",
             )
 
     def save(self):
         """Create/update/delete overrides based on form data."""
-        for key, default in DEFAULT_TERMS.items():
-            value = self.cleaned_data[key].strip()
-            if value == default:
+        for key, defaults in DEFAULT_TERMS.items():
+            default_en, default_fr = defaults
+            value_en = self.cleaned_data[key].strip()
+            value_fr = self.cleaned_data.get(f"{key}_fr", "").strip()
+
+            # Check if we need an override (either EN or FR differs from default)
+            en_is_default = value_en == default_en
+            fr_is_default = value_fr == "" or value_fr == default_fr
+
+            if en_is_default and fr_is_default:
                 # No override needed — delete if one exists
                 TerminologyOverride.objects.filter(term_key=key).delete()
             else:
                 TerminologyOverride.objects.update_or_create(
-                    term_key=key, defaults={"display_value": value}
+                    term_key=key,
+                    defaults={
+                        "display_value": value_en,
+                        "display_value_fr": value_fr,
+                    },
                 )
 
 

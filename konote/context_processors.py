@@ -1,15 +1,26 @@
 """Template context processors for terminology, features, and settings."""
 from django.core.cache import cache
+from django.utils.translation import get_language
 
 
 def terminology(request):
-    """Inject terminology overrides into all templates."""
+    """Inject terminology overrides into all templates.
+
+    Detects the current language from the request and returns terms
+    in that language. Falls back to English if French translation
+    is not available.
+    """
     from apps.admin_settings.models import TerminologyOverride
 
-    terms = cache.get("terminology_overrides")
+    # Get current language (returns 'en', 'fr', etc.)
+    lang = get_language() or "en"
+    lang_prefix = "fr" if lang.startswith("fr") else "en"
+    cache_key = f"terminology_overrides_{lang_prefix}"
+
+    terms = cache.get(cache_key)
     if terms is None:
-        terms = TerminologyOverride.get_all_terms()
-        cache.set("terminology_overrides", terms, 300)  # 5 min cache
+        terms = TerminologyOverride.get_all_terms(lang=lang_prefix)
+        cache.set(cache_key, terms, 300)  # 5 min cache
     return {"term": terms}
 
 

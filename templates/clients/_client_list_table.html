@@ -1,11 +1,12 @@
+{% load i18n %}
 {% if page.object_list %}
 <figure>
 <table role="grid" class="client-table">
     <thead>
         <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Record ID</th>
-            <th scope="col">Status</th>
+            <th scope="col">{% trans "Name" %}</th>
+            <th scope="col">{% trans "Record ID" %}</th>
+            <th scope="col">{% trans "Status" %}</th>
             <th scope="col">{{ term.program_plural|default:"Programs" }}</th>
         </tr>
     </thead>
@@ -16,11 +17,11 @@
             <td>{{ item.client.record_id|default:"—" }}</td>
             <td>
                 {% if item.client.status == "active" %}
-                    <span class="badge badge-success">Active</span>
+                    <span class="badge badge-success">{% trans "Active" %}</span>
                 {% elif item.client.status == "inactive" %}
-                    <span class="badge badge-warning">Inactive</span>
+                    <span class="badge badge-warning">{% trans "Inactive" %}</span>
                 {% else %}
-                    <span class="badge badge-neutral">Discharged</span>
+                    <span class="badge badge-neutral">{% trans "Discharged" %}</span>
                 {% endif %}
             </td>
             <td>
@@ -35,21 +36,21 @@
 </figure>
 
 {% if page.has_other_pages %}
-<nav class="pagination" aria-label="Pagination">
+<nav class="pagination" aria-label="{% trans 'Pagination' %}">
     {% if page.has_previous %}
     <a href="?page={{ page.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}"
        hx-get="{% url 'clients:client_list' %}?page={{ page.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}"
        hx-target="#client-list-container"
        hx-indicator="#loading-bar"
-       hx-push-url="true">Previous</a>
+       hx-push-url="true">{% trans "Previous" %}</a>
     {% endif %}
-    Page {{ page.number }} of {{ page.paginator.num_pages }}
+    {% blocktrans with current=page.number total=page.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}
     {% if page.has_next %}
     <a href="?page={{ page.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}"
        hx-get="{% url 'clients:client_list' %}?page={{ page.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}"
        hx-target="#client-list-container"
        hx-indicator="#loading-bar"
-       hx-push-url="true">Next</a>
+       hx-push-url="true">{% trans "Next" %}</a>
     {% endif %}
 </nav>
 {% endif %}
@@ -57,11 +58,11 @@
 {% else %}
 <div class="empty-state">
     {% if status_filter or program_filter %}
-    <p>No {{ term.client_plural|default:"clients" }} match the selected filters.</p>
-    <a href="{% url 'clients:client_list' %}" role="button">Clear filters</a>
+    <p>{% blocktrans with clients=term.client_plural|default:"clients" %}No {{ clients }} match the selected filters.{% endblocktrans %}</p>
+    <a href="{% url 'clients:client_list' %}" role="button">{% trans "Clear filters" %}</a>
     {% else %}
-    <p>No {{ term.client|default:"client" }} files yet.</p>
-    <a href="{% url 'clients:client_create' %}" role="button">Create the first one</a>
+    <p>{% blocktrans with client=term.client|default:"client" %}No {{ client }} files yet.{% endblocktrans %}</p>
+    <a href="{% url 'clients:client_create' %}" role="button">{% trans "Create the first one" %}</a>
     {% endif %}
 </div>
 {% endif %}

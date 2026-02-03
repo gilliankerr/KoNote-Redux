@@ -1,20 +1,31 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "United Way CMT Export" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% trans "Funder Report Template" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>{% trans "United Way CMT Export" %}</h1>
-    <p>{% trans "Generate a funder report formatted for United Way Canada's Community Monitoring Tool (CMT)." %}</p>
+    <h1>{% trans "Funder Report Template" %}</h1>
+    <p>{% trans "Generate a standardised funder report with service statistics, demographics, and outcomes." %}</p>
 </hgroup>
 
-<article aria-label="{% trans 'About CMT Reports' %}">
-    <h3>{% trans "What's included in a CMT report?" %}</h3>
+<article class="pico-background-yellow-50" aria-label="{% trans 'Draft Template Notice' %}" role="alert" style="border-left: 4px solid var(--pico-color-yellow-500); padding: 1rem; margin-bottom: 1.5rem;">
+    <strong>{% trans "⚠️ Draft Template — Customise for Your Funder" %}</strong>
+    <p style="margin-bottom: 0;">
+        {% blocktrans %}
+        This is a generic funder report template. Before submitting to your funder, verify it matches
+        their specific reporting requirements. Different funders (United Way chapters, government agencies,
+        foundations) may require different formats, fields, or calculations.
+        {% endblocktrans %}
+    </p>
+</article>
+
+<article aria-label="{% trans 'About Funder Reports' %}">
+    <h3>{% trans "What's included in this report?" %}</h3>
     <ul>
         <li>{% trans "Organisation and programme information" %}</li>
         <li>{% trans "Service statistics (total individuals served, new clients, total contacts)" %}</li>
-        <li>{% trans "Age demographics using United Way's standard categories" %}</li>
+        <li>{% trans "Age demographics using common nonprofit categories" %}</li>
         <li>{% trans "Outcome achievement rates for all metrics with defined targets" %}</li>
     </ul>
 </article>
@@ -62,27 +73,27 @@
         {% endfor %}
     </fieldset>
 
-    <button type="submit">{% trans "Generate CMT Report" %}</button>
+    <button type="submit">{% trans "Generate Funder Report" %}</button>
 </form>
 
 <details>
-    <summary>{% trans "About United Way CMT Reports" %}</summary>
+    <summary>{% trans "About This Report Template" %}</summary>
     <p>
         {% blocktrans %}
-        The Community Monitoring Tool (CMT) is United Way Canada's standardised
-        reporting framework. Many Canadian nonprofits receiving United Way funding
-        are required to submit CMT data as part of their reporting obligations.
+        This is a draft funder report template based on common Canadian nonprofit
+        reporting requirements. It includes service statistics, demographics, and
+        outcome achievement rates that many funders request.
         {% endblocktrans %}
     </p>
     <p>
         {% blocktrans %}
-        This export generates a report with the standard CMT sections. You can
-        download it as a CSV file (for spreadsheet use) or as a PDF (for printing
-        or sharing with funders).
+        <strong>Important:</strong> Your funder may require different formats, additional fields,
+        or specific calculations. Always verify this template matches your funder's actual
+        reporting template before submission. You may need to adjust or supplement this data.
         {% endblocktrans %}
     </p>
-    <h4>{% trans "CMT Age Categories" %}</h4>
-    <p>{% trans "United Way uses these standard age groupings:" %}</p>
+    <h4>{% trans "Default Age Categories" %}</h4>
+    <p>{% trans "This template uses these common age groupings (adjust if your funder requires different categories):" %}</p>
     <ul>
         <li>{% trans "Child (0-12)" %}</li>
         <li>{% trans "Youth (13-17)" %}</li>

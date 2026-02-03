@@ -1248,7 +1248,7 @@ class MetricExportFormGroupByTests(TestCase):
 
 
 # =============================================================================
-# United Way CMT Export Tests (RPT6)
+# Funder Report Template Tests (RPT6)
 # =============================================================================
 
 
@@ -1558,7 +1558,7 @@ class GenerateCMTCSVRowsTests(TestCase):
         # Flatten rows to a single string for easier searching
         flat_text = " ".join(" ".join(str(cell) for cell in row) for row in rows)
 
-        self.assertIn("UNITED WAY CMT EXPORT", flat_text)
+        self.assertIn("FUNDER REPORT TEMPLATE", flat_text)
         self.assertIn("ORGANISATION INFORMATION", flat_text)
         self.assertIn("SERVICE STATISTICS", flat_text)
         self.assertIn("AGE DEMOGRAPHICS", flat_text)
@@ -1590,7 +1590,7 @@ class CMTExportViewTests(TestCase):
         self.client.login(username="admin", password="testpass123")
         resp = self.client.get("/reports/cmt-export/")
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "United Way CMT Export")
+        self.assertContains(resp, "Funder Report Template")
 
     def test_nonadmin_cannot_access_cmt_export(self):
         """Non-admin users should not be able to access CMT export."""
@@ -1633,7 +1633,7 @@ class CMTExportViewTests(TestCase):
             "format": "csv",
         })
         content = resp.content.decode("utf-8")
-        self.assertIn("UNITED WAY CMT EXPORT", content)
+        self.assertIn("FUNDER REPORT TEMPLATE", content)
         self.assertIn("Test Program", content)
         self.assertIn("SERVICE STATISTICS", content)
         self.assertIn("AGE DEMOGRAPHICS", content)

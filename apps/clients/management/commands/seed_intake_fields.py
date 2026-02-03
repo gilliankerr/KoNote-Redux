@@ -1,0 +1,474 @@
+"""
+Seed default intake custom fields for Canadian nonprofit community services.
+
+These fields represent what most Canadian nonprofits would expect on a client
+intake form, based on:
+- PIPEDA privacy requirements (consent, purpose limitation)
+- AODA accessibility requirements (accommodation needs)
+- Common funder demographics (United Way, Trillium, municipal funders)
+- Practical service delivery needs (contact, emergency, baseline status)
+
+Field groups are organized for two use cases:
+1. Clinical/counselling services (groups 10-70)
+2. Youth/recreation programs (groups 80-90) — optional additions
+
+All demographic fields are optional with "Prefer not to answer" options.
+Agencies can customize, archive, or add fields after seeding.
+
+Run with: python manage.py seed_intake_fields
+"""
+from django.core.management.base import BaseCommand
+
+from apps.clients.models import CustomFieldDefinition, CustomFieldGroup
+
+
+# Field groups and their fields
+# Format: (group_title, sort_order, fields_list)
+# Each field: (name, input_type, is_required, is_sensitive, receptionist_access, placeholder, options)
+#
+# receptionist_access values:
+#   "edit" — receptionist can view and edit (contact info, emergency, admin fields)
+#   "view" — receptionist can view but not edit (clinical context)
+#   "none" — hidden from receptionists (demographics, baseline, consent)
+#
+# Workflow guidance (from expert panel):
+# - Stage 1 (first contact): Contact + Emergency + Referral Source — anyone can enter
+# - Stage 2 (intake appointment): Reason for services + Consent — staff with client
+# - Stage 3 (as trust builds): Demographics + Baseline — staff with client, optional
+#
+# For self-service registration (youth/recreation):
+# - Participant or parent fills out: Contact, Emergency, Guardian, Health, Consents
+# - Staff reviews and approves submission
+
+INTAKE_FIELD_GROUPS = [
+    # =========================================================================
+    # CORE INTAKE FIELDS (Clinical and General Services)
+    # =========================================================================
+
+    # -------------------------------------------------------------------------
+    # Contact Information — RECEPTIONIST: EDIT
+    # Stage 1: First contact (receptionist, client online, or self-service)
+    # -------------------------------------------------------------------------
+    (
+        "Contact Information",
+        10,
+        [
+            ("Preferred Name", "text", False, False, "edit", "Name the client prefers to be called", []),
+            ("Primary Phone", "text", True, True, "edit", "(416) 555-0123", []),
+            ("Secondary Phone", "text", False, True, "edit", "", []),
+            ("Email", "text", False, True, "edit", "email@example.com", []),
+            ("Mailing Address", "textarea", False, True, "edit", "Street address, city, postal code", []),
+            ("Postal Code", "text", False, False, "edit", "A1A 1A1", []),
+            ("Preferred Contact Method", "select", False, False, "edit", "", [
+                "Phone call",
+                "Text message",
+                "Email",
+                "In person",
+                "Prefer not to answer",
+            ]),
+            ("Best Time to Contact", "select", False, False, "edit", "", [
+                "Morning (9am-12pm)",
+                "Afternoon (12pm-5pm)",
+                "Evening (5pm-8pm)",
+                "Any time",
+                "Prefer not to answer",
+            ]),
+            ("Preferred Language of Service", "select", False, False, "edit", "", [
+                "English",
+                "French",
+                "Other",
+                "Prefer not to answer",
+            ]),
+        ],
+    ),
+    # -------------------------------------------------------------------------
+    # Emergency Contact — RECEPTIONIST: EDIT
+    # Stage 1: First contact (critical for safety)
+    # -------------------------------------------------------------------------
+    (
+        "Emergency Contact",
+        20,
+        [
+            ("Emergency Contact Name", "text", True, True, "edit", "Full name", []),
+            ("Emergency Contact Relationship", "select", False, False, "edit", "", [
+                "Parent/Guardian",
+                "Spouse/Partner",
+                "Sibling",
+                "Other family member",
+                "Friend",
+                "Case worker",
+                "Other",
+            ]),
+            ("Emergency Contact Phone", "text", True, True, "edit", "(416) 555-0123", []),
+        ],
+    ),
+    # -------------------------------------------------------------------------
+    # Referral & Service Information — PARTIAL ACCESS
+    # Referral source/agency: receptionist can edit (administrative)
+    # Reason for services, barriers, goals: view only (clinical context)
+    # -------------------------------------------------------------------------
+    (
+        "Referral & Service Information",
+        30,
+        [
+            # Administrative fields — receptionist can edit
+            ("Referral Source", "select", False, False, "edit", "", [
+                "Self-referral",
+                "Family/Friend",
+                "Community agency",
+                "Hospital/Health provider",
+                "School/Education",
+                "Social services (OW/ODSP)",
+                "Justice system",
+                "Shelter/Housing provider",
+                "Online search",
+                "Other",
+            ]),
+            ("Referring Agency Name", "text", False, False, "edit", "If referred by an agency", []),
+            # Clinical fields — receptionist can view but not edit
+            ("Primary Reason for Seeking Services", "textarea", False, False, "view", "What brings you to our program?", []),
+            ("Barriers to Accessing Services", "select", False, False, "view", "", [
+                "Transportation",
+                "Childcare",
+                "Work schedule",
+                "Language",
+                "Physical accessibility",
+                "Technology access",
+                "None identified",
+                "Prefer not to answer",
+            ]),
+            ("Goals or Desired Outcomes", "textarea", False, False, "view", "What are you hoping to achieve?", []),
+        ],
+    ),
+    # -------------------------------------------------------------------------
+    # Accessibility & Accommodation (AODA) — RECEPTIONIST: EDIT
+    # Stage 1: First contact (so staff can prepare accessible space)
+    # -------------------------------------------------------------------------
+    (
+        "Accessibility & Accommodation",
+        40,
+        [
+            ("Accommodation Needs", "textarea", False, False, "edit", "Any accommodations we should be aware of", []),
+            ("Preferred Communication Format", "select", False, False, "edit", "", [
+                "Standard print",
+                "Large print",
+                "Audio",
+                "Electronic/Digital",
+                "Sign language interpreter",
+                "Other",
+                "Prefer not to answer",
+            ]),
+        ],
+    ),
+    # -------------------------------------------------------------------------
+    # Demographics (for funder equity reporting) — RECEPTIONIST: NONE
+    # Stage 3: As trust builds (optional, staff explains equity purpose)
+    # All fields optional with "Prefer not to answer"
+    # -------------------------------------------------------------------------
+    (
+        "Demographics",
+        50,
+        [
+            ("Gender Identity", "select", False, False, "none", "", [
+                "Woman",
+                "Man",
+                "Non-binary",
+                "Two-Spirit",
+                "Gender diverse",
+                "Prefer to self-describe",
+                "Prefer not to answer",
+            ]),
+            ("Indigenous Identity", "select", False, False, "none", "", [
+                "First Nations",
+                "Métis",
+                "Inuit",
+                "Non-Indigenous",
+                "Prefer not to answer",
+            ]),
+            ("Racial/Ethnic Background", "select", False, False, "none", "", [
+                "Black",
+                "East Asian",
+                "South Asian",
+                "Southeast Asian",
+                "Middle Eastern",
+                "Latin American",
+                "White",
+                "Mixed/Multiple backgrounds",
+                "Prefer to self-describe",
+                "Prefer not to answer",
+            ]),
+            ("Immigration/Citizenship Status", "select", False, False, "none", "", [
+                "Canadian citizen (born in Canada)",
+                "Canadian citizen (naturalized)",
+                "Permanent resident",
+                "Refugee/Protected person",
+                "Temporary resident (work/study permit)",
+                "No status",
+                "Prefer not to answer",
+            ]),
+            ("Primary Language Spoken at Home", "text", False, False, "none", "", []),
+            ("Disability Status", "select", False, False, "none", "", [
+                "Yes - physical",
+                "Yes - sensory (vision, hearing)",
+                "Yes - cognitive/developmental",
+                "Yes - mental health",
+                "Yes - multiple",
+                "No",
+                "Prefer not to answer",
+            ]),
+        ],
+    ),
+    # -------------------------------------------------------------------------
+    # Baseline Status (for outcome measurement) — RECEPTIONIST: NONE
+    # Stage 3: As trust builds (staff collects during early sessions)
+    # -------------------------------------------------------------------------
+    (
+        "Baseline Status",
+        60,
+        [
+            ("Employment Status", "select", False, False, "none", "", [
+                "Employed full-time",
+                "Employed part-time",
+                "Self-employed",
+                "Unemployed - looking for work",
+                "Unemployed - not looking",
+                "Student",
+                "Retired",
+                "Unable to work",
+                "Prefer not to answer",
+            ]),
+            ("Highest Education Completed", "select", False, False, "none", "", [
+                "Less than high school",
+                "Some high school",
+                "High school diploma/GED",
+                "Some college/university",
+                "College diploma/certificate",
+                "Bachelor's degree",
+                "Graduate degree",
+                "Prefer not to answer",
+            ]),
+            ("Primary Income Source", "select", False, False, "none", "", [
+                "Employment",
+                "Ontario Works (OW)",
+                "Ontario Disability Support Program (ODSP)",
+                "Employment Insurance (EI)",
+                "Canada Pension Plan (CPP)",
+                "Old Age Security (OAS)",
+                "Family/Partner support",
+                "No income",
+                "Other",
+                "Prefer not to answer",
+            ]),
+            ("Household Income Range", "select", False, False, "none", "", [
+                "Under $20,000",
+                "$20,000 - $39,999",
+                "$40,000 - $59,999",
+                "$60,000 - $79,999",
+                "$80,000 or more",
+                "Don't know",
+                "Prefer not to answer",
+            ]),
+            ("Housing Situation", "select", False, False, "none", "", [
+                "Own home",
+                "Rent - market rate",
+                "Rent - subsidized housing",
+                "Living with family/friends",
+                "Rooming house",
+                "Shelter/Transitional housing",
+                "Homeless/No fixed address",
+                "Other",
+                "Prefer not to answer",
+            ]),
+            ("Household Composition", "select", False, False, "none", "", [
+                "Living alone",
+                "With spouse/partner",
+                "With spouse/partner and children",
+                "Single parent with children",
+                "With parents/family",
+                "With roommates",
+                "Group living/Shared housing",
+                "Prefer not to answer",
+            ]),
+        ],
+    ),
+    # -------------------------------------------------------------------------
+    # Consent & Permissions — RECEPTIONIST: NONE (requires explanation)
+    # Stage 2: Intake appointment
+    # -------------------------------------------------------------------------
+    (
+        "Consent & Permissions",
+        70,
+        [
+            ("Information Sharing Consent", "select", False, False, "none", "", [
+                "Yes - may share with partner agencies",
+                "No - do not share",
+                "Case-by-case basis",
+            ]),
+            ("Consent for Follow-up Contact", "select", False, False, "none", "", [
+                "Yes - may contact for follow-up surveys",
+                "No - do not contact after discharge",
+            ]),
+            ("Secondary Contact for Follow-up", "text", False, True, "none", "Name and phone if client unreachable", []),
+        ],
+    ),
+
+    # =========================================================================
+    # YOUTH/RECREATION PROGRAM FIELDS (Optional — archive if not needed)
+    # For sports, after-school, camps, enrichment programs
+    # Designed for self-service registration by parents/guardians
+    # =========================================================================
+
+    # -------------------------------------------------------------------------
+    # Parent/Guardian Information — RECEPTIONIST: EDIT
+    # For youth programs: primary contact is usually the parent, not the child
+    # -------------------------------------------------------------------------
+    (
+        "Parent/Guardian Information",
+        80,
+        [
+            ("Parent/Guardian Name", "text", False, True, "edit", "Full name of primary parent/guardian", []),
+            ("Relationship to Participant", "select", False, False, "edit", "", [
+                "Mother",
+                "Father",
+                "Stepparent",
+                "Grandparent",
+                "Foster parent",
+                "Legal guardian",
+                "Other family member",
+                "Other",
+            ]),
+            ("Parent/Guardian Phone", "text", False, True, "edit", "(416) 555-0123", []),
+            ("Parent/Guardian Email", "text", False, True, "edit", "email@example.com", []),
+            ("Secondary Parent/Guardian Name", "text", False, True, "edit", "", []),
+            ("Secondary Parent/Guardian Phone", "text", False, True, "edit", "", []),
+            ("Custody/Access Notes", "textarea", False, True, "view", "Any custody arrangements staff should know about", []),
+        ],
+    ),
+    # -------------------------------------------------------------------------
+    # Health & Safety — RECEPTIONIST: EDIT (for emergencies)
+    # Medical info staff need to keep participants safe
+    # -------------------------------------------------------------------------
+    (
+        "Health & Safety",
+        85,
+        [
+            ("Allergies", "textarea", False, True, "edit", "Food, medication, environmental allergies", []),
+            ("Medical Conditions", "textarea", False, True, "edit", "Conditions that may affect participation", []),
+            ("Medications", "textarea", False, True, "view", "Current medications (staff use only)", []),
+            ("Dietary Restrictions", "select", False, False, "edit", "", [
+                "None",
+                "Vegetarian",
+                "Vegan",
+                "Halal",
+                "Kosher",
+                "Gluten-free",
+                "Nut-free environment required",
+                "Other",
+            ]),
+            ("Health Card Number", "text", False, True, "view", "Ontario Health Card (for emergencies)", []),
+            ("Family Doctor/Clinic", "text", False, True, "edit", "Name and phone number", []),
+            ("Special Instructions", "textarea", False, False, "edit", "Anything else staff should know", []),
+        ],
+    ),
+    # -------------------------------------------------------------------------
+    # Program Consents — RECEPTIONIST: EDIT
+    # Waivers and permissions for youth/recreation programs
+    # -------------------------------------------------------------------------
+    (
+        "Program Consents",
+        90,
+        [
+            ("Photo/Video Consent", "select", False, False, "edit", "", [
+                "Yes - may use photos/videos for promotion",
+                "Yes - internal use only (not social media)",
+                "No - do not photograph or record",
+            ]),
+            ("Participation Waiver", "select", False, False, "edit", "", [
+                "I acknowledge the risks and agree to participate",
+                "Not yet agreed",
+            ]),
+            ("Pickup Authorization", "textarea", False, True, "edit", "Names of people authorized to pick up (besides parent/guardian)", []),
+            ("Transportation Consent", "select", False, False, "edit", "", [
+                "May travel independently (walk, bike, transit)",
+                "Must be picked up by authorized person",
+                "May travel in program vehicles",
+            ]),
+            ("Field Trip Consent", "select", False, False, "edit", "", [
+                "Yes - may participate in off-site activities",
+                "No - on-site activities only",
+                "Contact me for each trip",
+            ]),
+            ("Sunscreen/Bug Spray Consent", "select", False, False, "edit", "", [
+                "Yes - staff may apply provided products",
+                "Will provide own products",
+                "No - do not apply",
+            ]),
+        ],
+    ),
+]
+
+
+class Command(BaseCommand):
+    help = "Seed default intake custom fields for Canadian nonprofit community services."
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Seed fields even if custom field groups already exist.",
+        )
+
+    def handle(self, *args, **options):
+        # Check if custom fields already exist
+        existing_groups = CustomFieldGroup.objects.count()
+        if existing_groups > 0 and not options["force"]:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  {existing_groups} custom field group(s) already exist. "
+                    "Use --force to add default fields anyway."
+                )
+            )
+            return
+
+        groups_created = 0
+        fields_created = 0
+
+        for group_title, group_sort_order, fields in INTAKE_FIELD_GROUPS:
+            # Create or get the group
+            group, was_group_created = CustomFieldGroup.objects.get_or_create(
+                title=group_title,
+                defaults={"sort_order": group_sort_order, "status": "active"},
+            )
+            if was_group_created:
+                groups_created += 1
+
+            # Create fields within the group
+            for field_idx, field_data in enumerate(fields):
+                (
+                    name, input_type, is_required, is_sensitive,
+                    receptionist_access, placeholder, options
+                ) = field_data
+
+                _, was_field_created = CustomFieldDefinition.objects.get_or_create(
+                    group=group,
+                    name=name,
+                    defaults={
+                        "input_type": input_type,
+                        "is_required": is_required,
+                        "is_sensitive": is_sensitive,
+                        "receptionist_access": receptionist_access,
+                        "placeholder": placeholder,
+                        "options_json": options if options else [],
+                        "sort_order": field_idx * 10,
+                        "status": "active",
+                    },
+                )
+                if was_field_created:
+                    fields_created += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"  Intake fields: {groups_created} groups and {fields_created} fields created."
+            )
+        )
+        self.stdout.write("  Tip: Archive field groups you don't need (e.g., Youth fields for adult services).")

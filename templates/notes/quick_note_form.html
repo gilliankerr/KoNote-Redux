@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Quick {{ term.progress_note|default:"Note" }} — {{ client.first_name }} {{ client.last_name }}{% endblock %}
+{% block title %}{% blocktrans with note=term.progress_note|default:"Note" %}Quick {{ note }}{% endblocktrans %} — {{ client.first_name }} {{ client.last_name }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>Quick {{ term.progress_note|default:"Note" }}</h1>
+    <h1>{% blocktrans with note=term.progress_note|default:"Note" %}Quick {{ note }}{% endblocktrans %}</h1>
     <p>{{ client.first_name }} {{ client.last_name }}</p>
 </hgroup>
 
@@ -17,8 +18,8 @@
     {% endif %}
 
     <div role="group">
-        <button type="submit">Save {{ term.quick_note|default:"Quick Note" }}</button>
-        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">Cancel</a>
+        <button type="submit">{% blocktrans with note=term.quick_note|default:"Quick Note" %}Save {{ note }}{% endblocktrans %}</button>
+        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Cancel" %}</a>
     </div>
 </form>
 {% endblock %}

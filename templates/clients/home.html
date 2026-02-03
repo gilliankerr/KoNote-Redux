@@ -1,36 +1,37 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Home — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% trans "Home" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <!-- Organization header -->
 <header class="org-header">
     <div class="org-brand">
         <h1 class="org-name">{{ org_name }}</h1>
-        <p class="org-tagline">Client Outcome Management</p>
+        <p class="org-tagline">{% trans "Client Outcome Management" %}</p>
     </div>
     <div class="org-welcome">
-        Welcome back, <strong>{{ user.first_name|default:user.display_name }}</strong>
+        {% blocktrans with name=user.first_name|default:user.display_name %}Welcome back, <strong>{{ name }}</strong>{% endblocktrans %}
     </div>
 </header>
 
 <!-- Search and actions bar -->
 <div class="search-bar">
     <div class="search-input-wrapper">
-        <label for="client-search" class="search-label">Search {{ term.client_plural|default:"clients" }}</label>
+        <label for="client-search" class="search-label">{% blocktrans with clients=term.client_plural|default:"clients" %}Search {{ clients }}{% endblocktrans %}</label>
         <input type="search"
                id="client-search"
                name="q"
-               placeholder="Name or ID..."
-               aria-label="Search {{ term.client_plural|default:'clients' }}"
+               placeholder="{% trans 'Name or ID...' %}"
+               aria-label="{% blocktrans with clients=term.client_plural|default:'clients' %}Search {{ clients }}{% endblocktrans %}"
                hx-get="{% url 'clients:client_search' %}"
                hx-trigger="input changed delay:300ms"
                hx-target="#search-results"
                hx-indicator="#loading-bar">
     </div>
     <div class="search-actions" role="group">
-        <a href="{% url 'clients:client_create' %}" role="button">+ New {{ term.client|default:"Client" }}</a>
-        <a href="{% url 'clients:client_list' %}" role="button" class="outline">View All</a>
+        <a href="{% url 'clients:client_create' %}" role="button">+ {% blocktrans with client=term.client|default:"Client" %}New {{ client }}{% endblocktrans %}</a>
+        <a href="{% url 'clients:client_list' %}" role="button" class="outline">{% trans "View All" %}</a>
     </div>
 </div>
 
@@ -42,24 +43,24 @@
 <!-- Stats row -->
 <div class="stats-row">
     <dl class="stat-card">
-        <dt>Active {{ term.client_plural|default:"Clients" }}</dt>
+        <dt>{% blocktrans with clients=term.client_plural|default:"Clients" %}Active {{ clients }}{% endblocktrans %}</dt>
         <dd class="stat-value">{{ active_count }}</dd>
-        <dd class="stat-subtext">of {{ total_count }} total</dd>
+        <dd class="stat-subtext">{% blocktrans with total=total_count %}of {{ total }} total{% endblocktrans %}</dd>
     </dl>
     <dl class="stat-card{% if alert_count > 0 %} stat-card-alert{% endif %}">
-        <dt>{% if alert_count > 0 %}<span class="stat-icon" aria-hidden="true">&#9888;</span> {% endif %}Active Alerts</dt>
+        <dt>{% if alert_count > 0 %}<span class="stat-icon" aria-hidden="true">&#9888;</span> {% endif %}{% trans "Active Alerts" %}</dt>
         <dd class="stat-value">{{ alert_count }}</dd>
-        <dd class="stat-subtext">requiring action</dd>
+        <dd class="stat-subtext">{% trans "requiring action" %}</dd>
     </dl>
     <dl class="stat-card{% if needs_attention_count > 0 %} stat-card-warning{% endif %}">
-        <dt>Needs Attention</dt>
+        <dt>{% trans "Needs Attention" %}</dt>
         <dd class="stat-value">{{ needs_attention_count }}</dd>
-        <dd class="stat-subtext">no notes in 30 days</dd>
+        <dd class="stat-subtext">{% trans "no notes in 30 days" %}</dd>
     </dl>
     <dl class="stat-card">
-        <dt>Notes Today</dt>
+        <dt>{% trans "Notes Today" %}</dt>
         <dd class="stat-value">{{ notes_today_count }}</dd>
-        <dd class="stat-subtext">recorded</dd>
+        <dd class="stat-subtext">{% trans "recorded" %}</dd>
     </dl>
 </div>
 
@@ -68,14 +69,14 @@
     <!-- Priority items (alerts + needs attention) -->
     <article>
         <header class="card-header">
-            <span>Priority Items</span>
+            <span>{% trans "Priority Items" %}</span>
             {% if alert_count > 0 or needs_attention_count > 0 %}
             <span class="badge badge-warning">{{ alert_count|add:needs_attention_count }}</span>
             {% endif %}
         </header>
         {% if active_alerts %}
         <div class="priority-section">
-            <h4 class="priority-label"><span class="stat-icon" aria-hidden="true">&#9888;</span> Alerts</h4>
+            <h4 class="priority-label"><span class="stat-icon" aria-hidden="true">&#9888;</span> {% trans "Alerts" %}</h4>
             <ul class="card-list">
                 {% for alert in active_alerts %}
                 <li class="priority-item priority-alert">
@@ -91,26 +92,26 @@
         {% endif %}
         {% if needs_attention %}
         <div class="priority-section">
-            <h4 class="priority-label">No Recent Notes</h4>
+            <h4 class="priority-label">{% trans "No Recent Notes" %}</h4>
             <ul class="card-list">
                 {% for item in needs_attention %}
                 <li class="priority-item">
                     <a href="{% url 'clients:client_detail' client_id=item.client.pk %}">{{ item.name }}</a>
-                    <span class="priority-detail secondary">30+ days without notes</span>
+                    <span class="priority-detail secondary">{% trans "30+ days without notes" %}</span>
                 </li>
                 {% endfor %}
             </ul>
         </div>
         {% endif %}
         {% if not active_alerts and not needs_attention %}
-        <p class="empty-message"><em>All caught up! No items need attention.</em></p>
+        <p class="empty-message"><em>{% trans "All caught up! No items need attention." %}</em></p>
         {% endif %}
     </article>
 
     <!-- Recent activity -->
     <article>
         <header class="card-header">
-            <span>Recently Viewed</span>
+            <span>{% trans "Recently Viewed" %}</span>
         </header>
         {% if recent_clients %}
         <ul class="card-list">
@@ -121,21 +122,21 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="empty-message"><em>No recent {{ term.client_plural|default:"clients" }} yet. Start by searching above.</em></p>
+        <p class="empty-message"><em>{% blocktrans with clients=term.client_plural|default:"clients" %}No recent {{ clients }} yet. Start by searching above.{% endblocktrans %}</em></p>
         {% endif %}
     </article>
 </div>
 
 <!-- Quick links (if features enabled) -->
 {% if features.programs or user.is_admin %}
-<nav class="quick-links" aria-label="Quick links">
-    <span class="quick-links-label">Quick links:</span>
+<nav class="quick-links" aria-label="{% trans 'Quick links' %}">
+    <span class="quick-links-label">{% trans "Quick links:" %}</span>
     {% if features.programs %}
     <a href="/programs/">{{ term.program_plural|default:"Programs" }}</a>
     {% endif %}
     {% if user.is_admin %}
-    <a href="/reports/export/">Reports</a>
-    <a href="/admin/settings/">Settings</a>
+    <a href="/reports/export/">{% trans "Reports" %}</a>
+    <a href="/admin/settings/">{% trans "Settings" %}</a>
     {% endif %}
 </nav>
 {% endif %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block title %}{{ program.name }} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
@@ -13,14 +14,14 @@
 
 <div role="group">
     {% if is_admin %}
-    <a href="{% url 'programs:program_edit' program_id=program.pk %}" role="button" class="outline">Edit {{ term.program|default:"Program" }}</a>
+    <a href="{% url 'programs:program_edit' program_id=program.pk %}" role="button" class="outline">{% blocktrans with program=term.program|default:"Program" %}Edit {{ program }}{% endblocktrans %}</a>
     {% endif %}
-    <a href="{% url 'programs:program_list' %}" role="button" class="outline secondary">Back to List</a>
+    <a href="{% url 'programs:program_list' %}" role="button" class="outline secondary">{% trans "Back to List" %}</a>
 </div>
 
 <hr>
 
-<h2>Assigned Staff</h2>
+<h2>{% trans "Assigned Staff" %}</h2>
 
 {% if is_admin %}
 <form hx-post="{% url 'programs:program_add_role' program_id=program.pk %}"
@@ -28,18 +29,18 @@
       hx-swap="innerHTML">
     {% csrf_token %}
     <fieldset role="group">
-        <select name="user" aria-label="Select user" required>
-            <option value="">Choose a user…</option>
+        <select name="user" aria-label="{% trans 'Select user' %}" required>
+            <option value="">{% trans "Choose a user..." %}</option>
             {% for option in role_form.user.field.queryset %}
             <option value="{{ option.pk }}">{{ option.display_name }}</option>
             {% endfor %}
         </select>
-        <select name="role" aria-label="Select role" required>
+        <select name="role" aria-label="{% trans 'Select role' %}" required>
             {% for value, label in role_form.role.field.choices %}
             <option value="{{ value }}">{{ label }}</option>
             {% endfor %}
         </select>
-        <button type="submit">Add</button>
+        <button type="submit">{% trans "Add" %}</button>
     </fieldset>
 </form>
 {% endif %}

@@ -1,33 +1,34 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Create Invite — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% trans "Create Invite" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>Create Invite</h1>
-    <p>Generate a link for a new user to create their account</p>
+    <h1>{% trans "Create Invite" %}</h1>
+    <p>{% trans "Generate a link for a new user to create their account" %}</p>
 </hgroup>
 
 <article>
     <form method="post">
         {% csrf_token %}
 
-        <label for="id_role">Role</label>
+        <label for="id_role">{% trans "Role" %}</label>
         {{ form.role }}
         {% if form.role.errors %}<small class="error" role="alert">{{ form.role.errors.0 }}</small>{% endif %}
 
         <fieldset id="programs-fieldset">
-            <legend>Assign to Programs</legend>
+            <legend>{% trans "Assign to Programs" %}</legend>
             <small>{{ form.programs.help_text }}</small>
             {{ form.programs }}
             {% if form.programs.errors %}<small class="error" role="alert">{{ form.programs.errors.0 }}</small>{% endif %}
         </fieldset>
 
-        <label for="id_expires_days">Link expires in (days)</label>
+        <label for="id_expires_days">{% trans "Link expires in (days)" %}</label>
         {{ form.expires_days }}
         {% if form.expires_days.errors %}<small class="error" role="alert">{{ form.expires_days.errors.0 }}</small>{% endif %}
 
-        <button type="submit">Create Invite</button>
+        <button type="submit">{% trans "Create Invite" %}</button>
     </form>
 </article>
 

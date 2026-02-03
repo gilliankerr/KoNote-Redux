@@ -1,29 +1,30 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}{{ term.plan|default:"Plan" }} Templates — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{{ term.plan|default:"Plan" }} {% trans "Templates" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>{{ term.plan|default:"Plan" }} Templates</h1>
-    <p>Reusable structures that can be applied to {{ term.client_plural|default:"clients" }}.</p>
+    <h1>{{ term.plan|default:"Plan" }} {% trans "Templates" %}</h1>
+    <p>{% blocktrans with clients=term.client_plural|default:"clients" %}Reusable structures that can be applied to {{ clients }}.{% endblocktrans %}</p>
 </hgroup>
 
 <p>
     <a href="{% url 'plan_templates:template_create' %}" role="button">
-        Create Template
+        {% trans "Create Template" %}
     </a>
 </p>
 
 {% if templates %}
 <figure>
-<table role="grid" aria-label="{{ term.plan|default:'Plan' }} templates">
+<table role="grid" aria-label="{{ term.plan|default:'Plan' }} {% trans 'templates' %}">
     <thead>
         <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Description</th>
+            <th scope="col">{% trans "Name" %}</th>
+            <th scope="col">{% trans "Description" %}</th>
             <th scope="col">{{ term.section_plural|default:"Sections" }}</th>
-            <th scope="col">Status</th>
-            <th scope="col">Actions</th>
+            <th scope="col">{% trans "Status" %}</th>
+            <th scope="col">{% trans "Actions" %}</th>
         </tr>
     </thead>
     <tbody>
@@ -34,13 +35,13 @@
             <td>{{ tmpl.sections.count }}</td>
             <td>
                 {% if tmpl.status == "active" %}
-                    <span class="badge badge-success">Active</span>
+                    <span class="badge badge-success">{% trans "Active" %}</span>
                 {% else %}
-                    <span class="badge badge-neutral">Archived</span>
+                    <span class="badge badge-neutral">{% trans "Archived" %}</span>
                 {% endif %}
             </td>
             <td>
-                <a href="{% url 'plan_templates:template_edit' template_id=tmpl.pk %}">Edit</a>
+                <a href="{% url 'plan_templates:template_edit' template_id=tmpl.pk %}">{% trans "Edit" %}</a>
             </td>
         </tr>
         {% endfor %}
@@ -48,6 +49,6 @@
 </table>
 </figure>
 {% else %}
-<p>No templates yet. Create one to get started.</p>
+<p>{% trans "No templates yet. Create one to get started." %}</p>
 {% endif %}
 {% endblock %}

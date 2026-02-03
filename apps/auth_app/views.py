@@ -1,10 +1,54 @@
 """Authentication views — Azure AD SSO and local login."""
+import logging
+
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
+
+logger = logging.getLogger(__name__)
+
+# Account lockout settings
+LOCKOUT_THRESHOLD = 5  # Failed attempts before lockout
+LOCKOUT_DURATION = 900  # 15 minutes in seconds
+FAILED_ATTEMPT_WINDOW = 900  # Track attempts for 15 minutes
+
+
+def _get_client_ip(request):
+    """Get client IP, respecting X-Forwarded-For from reverse proxy."""
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "")
+
+
+def _get_lockout_key(ip):
+    """Return cache key for tracking failed attempts by IP."""
+    return f"login_attempts:{ip}"
+
+
+def _is_locked_out(ip):
+    """Check if an IP address is currently locked out."""
+    key = _get_lockout_key(ip)
+    attempts = cache.get(key, 0)
+    return attempts >= LOCKOUT_THRESHOLD
+
+
+def _record_failed_attempt(ip):
+    """Increment failed login counter for an IP address."""
+    key = _get_lockout_key(ip)
+    attempts = cache.get(key, 0)
+    cache.set(key, attempts + 1, FAILED_ATTEMPT_WINDOW)
+    return attempts + 1
+
+
+def _clear_failed_attempts(ip):
+    """Clear failed login counter on successful login."""
+    key = _get_lockout_key(ip)
+    cache.delete(key)
 
 
 def login_view(request):
@@ -19,12 +63,21 @@ def login_view(request):
 
 @ratelimit(key="ip", rate="5/m", method="POST", block=True)
 def _local_login(request):
-    """Username/password login with rate limiting."""
+    """Username/password login with rate limiting and account lockout."""
     from apps.auth_app.forms import LoginForm
     from apps.auth_app.models import User
 
+    client_ip = _get_client_ip(request)
     error = None
-    if request.method == "POST":
+    locked_out = False
+
+    # Check for lockout before processing login attempt
+    if _is_locked_out(client_ip):
+        locked_out = True
+        error = "Too many failed login attempts. Please try again in 15 minutes."
+        _audit_failed_login(request, "(locked out)", "account_locked")
+
+    if request.method == "POST" and not locked_out:
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data["username"].strip()
@@ -32,18 +85,29 @@ def _local_login(request):
             try:
                 user = User.objects.get(username=username, is_active=True)
                 if user.check_password(password):
+                    # Successful login — clear lockout counter
+                    _clear_failed_attempts(client_ip)
                     login(request, user)
                     user.last_login_at = timezone.now()
                     user.save(update_fields=["last_login_at"])
-                    # Log to audit
                     _audit_login(request, user)
                     return redirect("/")
                 else:
+                    attempts = _record_failed_attempt(client_ip)
                     _audit_failed_login(request, username, "invalid_password")
-                    error = "Invalid username or password."
+                    if attempts >= LOCKOUT_THRESHOLD:
+                        error = "Too many failed login attempts. Please try again in 15 minutes."
+                    else:
+                        remaining = LOCKOUT_THRESHOLD - attempts
+                        error = f"Invalid username or password. {remaining} attempt{'s' if remaining != 1 else ''} remaining."
             except User.DoesNotExist:
+                attempts = _record_failed_attempt(client_ip)
                 _audit_failed_login(request, username, "user_not_found")
-                error = "Invalid username or password."
+                if attempts >= LOCKOUT_THRESHOLD:
+                    error = "Too many failed login attempts. Please try again in 15 minutes."
+                else:
+                    remaining = LOCKOUT_THRESHOLD - attempts
+                    error = f"Invalid username or password. {remaining} attempt{'s' if remaining != 1 else ''} remaining."
         else:
             error = "Please enter both username and password."
     else:
@@ -167,12 +231,12 @@ def _audit_login(request, user):
             event_timestamp=timezone.now(),
             user_id=user.id,
             user_display=user.get_display_name(),
-            ip_address=request.META.get("REMOTE_ADDR", ""),
+            ip_address=_get_client_ip(request),
             action="login",
             resource_type="session",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("Audit logging failed for login (user=%s): %s", user.username, e)
 
 
 def _audit_failed_login(request, attempted_username, reason):
@@ -184,13 +248,13 @@ def _audit_failed_login(request, attempted_username, reason):
             event_timestamp=timezone.now(),
             user_id=None,
             user_display=f"[failed: {attempted_username}]",
-            ip_address=request.META.get("REMOTE_ADDR", ""),
+            ip_address=_get_client_ip(request),
             action="login_failed",
             resource_type="session",
             metadata={"reason": reason},
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("Audit logging failed for failed login (user=%s): %s", attempted_username, e)
 
 
 def _audit_logout(request):
@@ -202,9 +266,9 @@ def _audit_logout(request):
             event_timestamp=timezone.now(),
             user_id=request.user.id,
             user_display=request.user.get_display_name(),
-            ip_address=request.META.get("REMOTE_ADDR", ""),
+            ip_address=_get_client_ip(request),
             action="logout",
             resource_type="session",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("Audit logging failed for logout (user=%s): %s", request.user.username, e)

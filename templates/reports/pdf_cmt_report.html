@@ -1,6 +1,6 @@
 {% extends "reports/pdf_base.html" %}
 
-{% block title %}United Way CMT Report — {{ cmt_data.programme_name }}{% endblock %}
+{% block title %}Funder Report — {{ cmt_data.programme_name }}{% endblock %}
 
 {% block styles %}
 {{ block.super }}
@@ -90,12 +90,15 @@
 {% block content %}
 <!-- Cover Page -->
 <div class="pdf-cover">
-    <h1>United Way CMT Report</h1>
+    <h1>Funder Report</h1>
     <div class="subtitle">{{ cmt_data.programme_name }}</div>
     <div class="meta">
         {{ cmt_data.organisation_name }}<br>
         {{ cmt_data.reporting_period }}<br><br>
         Generated {{ cmt_data.generated_at|date:"Y-m-d" }} by {{ generated_by }}
+    </div>
+    <div style="margin-top: 1cm; padding: 0.5cm; background-color: #fef3c7; border-radius: 4px; font-size: 10pt;">
+        <strong>Draft Template:</strong> Verify this format matches your funder's requirements before submission.
     </div>
 </div>
 
@@ -229,7 +232,8 @@
 {% endif %}
 
 <div class="footer-note">
-    This report was generated using KoNote's United Way CMT Export feature.
+    <strong>Draft Template:</strong> This report was generated using KoNote's Funder Report Template.
+    Verify this format matches your funder's specific requirements before submission.
     Data reflects client outcomes recorded during the {{ cmt_data.reporting_period }} reporting period.
 </div>
 {% endblock %}

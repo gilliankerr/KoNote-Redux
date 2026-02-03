@@ -1,0 +1,64 @@
+"""Utility functions for the reports app — fiscal year calculations."""
+from datetime import date
+from typing import List, Tuple
+
+
+def get_fiscal_year_range(year: int) -> Tuple[date, date]:
+    """
+    Return the date range for a Canadian fiscal year.
+
+    Canadian nonprofits typically use April 1 to March 31 fiscal years.
+    For example, FY 2025-26 runs from April 1, 2025 to March 31, 2026.
+
+    Args:
+        year: The starting year of the fiscal year (e.g., 2025 for FY 2025-26)
+
+    Returns:
+        Tuple of (date_from, date_to) representing the fiscal year bounds
+    """
+    date_from = date(year, 4, 1)  # April 1 of starting year
+    date_to = date(year + 1, 3, 31)  # March 31 of following year
+    return (date_from, date_to)
+
+
+def get_current_fiscal_year() -> int:
+    """
+    Return the starting year of the current fiscal year based on today's date.
+
+    If today is between January and March, we're still in the previous
+    calendar year's fiscal year. Otherwise, we're in the current calendar
+    year's fiscal year.
+
+    Returns:
+        The starting year of the current fiscal year (e.g., 2025 for FY 2025-26)
+    """
+    today = date.today()
+    # If we're in January-March, fiscal year started the previous calendar year
+    if today.month < 4:
+        return today.year - 1
+    return today.year
+
+
+def get_fiscal_year_choices(num_years: int = 5) -> List[Tuple[str, str]]:
+    """
+    Return a list of fiscal year choices for a dropdown field.
+
+    Generates choices for the current fiscal year plus previous years,
+    going back the specified number of years.
+
+    Args:
+        num_years: Number of fiscal years to include (default 5)
+
+    Returns:
+        List of tuples (value, label) for use in a Django ChoiceField.
+        The value is the starting year as a string (e.g., "2025").
+        The label is formatted as "FY 2025-26".
+    """
+    current_fy = get_current_fiscal_year()
+    choices = []
+    for i in range(num_years):
+        fy_start = current_fy - i
+        fy_end_short = str(fy_start + 1)[-2:]  # Last two digits of end year
+        label = f"FY {fy_start}-{fy_end_short}"
+        choices.append((str(fy_start), label))
+    return choices

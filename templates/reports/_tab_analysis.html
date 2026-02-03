@@ -1,6 +1,7 @@
+{% load i18n %}
 <!-- Partial: Analysis tab content -->
 <div role="group" style="margin-bottom: 1rem;">
-    <a href="{% url 'reports:client_progress_pdf' client_id=client.pk %}" role="button" class="outline">Export as PDF</a>
+    <a href="{% url 'reports:client_progress_pdf' client_id=client.pk %}" role="button" class="outline">{% trans "Export as PDF" %}</a>
 </div>
 
 {% if chart_data %}
@@ -8,7 +9,7 @@
     <section>
         <h3>{{ chart.target_name }} — {{ chart.metric_name }}</h3>
         <div class="chart-container" style="position: relative; height: 300px;">
-            <canvas id="chart-{{ forloop.counter }}" aria-label="Line chart showing {{ chart.metric_name }} over time for {{ chart.target_name }}" role="img"></canvas>
+            <canvas id="chart-{{ forloop.counter }}" aria-label="{% blocktrans with metric=chart.metric_name target=chart.target_name %}Line chart showing {{ metric }} over time for {{ target }}{% endblocktrans %}" role="img"></canvas>
         </div>
     </section>
     {% endfor %}
@@ -28,7 +29,7 @@ chartData.forEach(function(chart, index) {
     }];
     if (chart.min_value !== null) {
         datasets.push({
-            label: 'Minimum (' + chart.min_value + ')',
+            label: '{% trans "Minimum" %}' + ' (' + chart.min_value + ')',
             data: Array(chart.data_points.length).fill(chart.min_value),
             borderColor: 'rgba(239, 68, 68, 0.5)',
             borderDash: [5, 5],
@@ -38,7 +39,7 @@ chartData.forEach(function(chart, index) {
     }
     if (chart.max_value !== null) {
         datasets.push({
-            label: 'Maximum (' + chart.max_value + ')',
+            label: '{% trans "Maximum" %}' + ' (' + chart.max_value + ')',
             data: Array(chart.data_points.length).fill(chart.max_value),
             borderColor: 'rgba(34, 197, 94, 0.5)',
             borderDash: [5, 5],
@@ -57,13 +58,13 @@ chartData.forEach(function(chart, index) {
             maintainAspectRatio: false,
             plugins: { legend: { position: 'bottom' } },
             scales: {
-                y: { beginAtZero: false, title: { display: true, text: chart.unit || 'Value' } },
-                x: { title: { display: true, text: 'Date' } },
+                y: { beginAtZero: false, title: { display: true, text: chart.unit || '{% trans "Value" %}' } },
+                x: { title: { display: true, text: '{% trans "Date" %}' } },
             },
         },
     });
 });
 </script>
 {% else %}
-    <p class="empty-state">No metric data recorded yet. Record metrics through progress notes to see charts here.</p>
+    <p class="empty-state">{% trans "No metric data recorded yet. Record metrics through progress notes to see charts here." %}</p>
 {% endif %}

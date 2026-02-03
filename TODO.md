@@ -20,9 +20,7 @@ Based on usability review and expert panel analysis. See `tasks/usability-review
 
 ### Phase A: Market Access (High Priority)
 
-- [ ] 🔨 French UI translation — Django i18n setup + ~500 strings — (I18N1)
-- [ ] 🔨 Document folder button — link to client folder in SharePoint/Google Drive — (DOC5) — see `tasks/document-access-plan.md`
-- [ ] Terminology override by language — extend model for fr/en terms — (I18N2)
+_All Phase A tasks complete._
 
 ### Phase B: Funder Reporting (High Priority)
 
@@ -54,13 +52,13 @@ See `tasks/documentation-improvement-plan.md` for full rationale.
 
 Public sign-up forms for programs — parents register kids for sports, adults sign up for classes. See `tasks/self-service-registration-design.md` for full design.
 
-- [ ] RegistrationLink model — shareable form config per program — (REG1)
-- [ ] Public registration form view — mobile-friendly, no login required — (REG2)
-- [ ] RegistrationSubmission model — pending entries awaiting review — (REG3)
-- [ ] Submission review UI — approve/reject/merge duplicates — (REG4)
-- [ ] Auto-approve option — skip staff review for low-risk programs — (REG5)
-- [ ] Duplicate detection — match by email/phone, flag for merge — (REG6)
-- [ ] Capacity limits and deadlines — close registration when full or past date — (REG7)
+- [ ] 🔨 RegistrationLink model — shareable form config per program — (REG1)
+- [ ] 🔨 Public registration form view — mobile-friendly, no login required — (REG2)
+- [ ] 🔨 RegistrationSubmission model — pending entries awaiting review — (REG3)
+- [ ] 🔨 Submission review UI — approve/reject/merge duplicates — (REG4)
+- [ ] 🔨 Auto-approve option — skip staff review for low-risk programs — (REG5)
+- [ ] 🔨 Duplicate detection — match by email/phone, flag for merge — (REG6)
+- [ ] 🔨 Capacity limits and deadlines — close registration when full or past date — (REG7)
 
 ### Planned Extensions (Build When Requested)
 
@@ -95,6 +93,9 @@ These features are intentionally excluded. See technical documentation for ratio
 
 ## Recently Done
 
+- [x] French UI translation — Django i18n setup + ~500 strings — 2026-02-03 (I18N1)
+- [x] Document folder button — link to client folder in SharePoint/Google Drive — 2026-02-03 (DOC5)
+- [x] Terminology override by language — extend model for fr/en terms — 2026-02-03 (I18N2)
 - [x] Create getting-started.md — complete local dev setup with Docker option — 2026-02-03 (DOC8)
 - [x] Create security-operations.md — security tests, audit logs, key rotation — 2026-02-03 (DOC9)
 - [x] Enhance README Quick Start — add key generation commands — 2026-02-03 (DOC10)

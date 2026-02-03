@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}{% if editing %}Edit{% else %}New{% endif %} {{ term.program|default:"Program" }} — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% if editing %}{% trans "Edit" %}{% else %}{% trans "New" %}{% endif %} {{ term.program|default:"Program" }} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>{% if editing %}Edit {{ program.name }}{% else %}New {{ term.program|default:"Program" }}{% endif %}</h1>
+    <h1>{% if editing %}{% blocktrans with name=program.name %}Edit {{ name }}{% endblocktrans %}{% else %}{% blocktrans with program=term.program|default:"Program" %}New {{ program }}{% endblocktrans %}{% endif %}</h1>
 </hgroup>
 
 <form method="post">
@@ -13,7 +14,7 @@
     {% for field in form %}
     <label for="{{ field.id_for_label }}">
         {{ field.label }}
-        {% if field.field.required %}<abbr title="required">*</abbr>{% endif %}
+        {% if field.field.required %}<abbr title="{% trans 'required' %}">*</abbr>{% endif %}
     </label>
     {{ field }}
     {% if field.errors %}
@@ -22,8 +23,8 @@
     {% endfor %}
 
     <div role="group">
-        <button type="submit">{% if editing %}Save Changes{% else %}Create {{ term.program|default:"Program" }}{% endif %}</button>
-        <a href="{% url 'programs:program_list' %}" role="button" class="outline">Cancel</a>
+        <button type="submit">{% if editing %}{% trans "Save Changes" %}{% else %}{% blocktrans with program=term.program|default:"Program" %}Create {{ program }}{% endblocktrans %}{% endif %}</button>
+        <a href="{% url 'programs:program_list' %}" role="button" class="outline">{% trans "Cancel" %}</a>
     </div>
 </form>
 {% endblock %}

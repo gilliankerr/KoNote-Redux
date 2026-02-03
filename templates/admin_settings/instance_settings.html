@@ -1,23 +1,24 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Instance Settings — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% trans "Instance Settings" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>Instance Settings</h1>
-    <p>Configure branding, date format, and session behaviour.</p>
+    <h1>{% trans "Instance Settings" %}</h1>
+    <p>{% trans "Configure branding, date format, and session behaviour." %}</p>
 </hgroup>
 
 <form method="post">
     {% csrf_token %}
 
     <fieldset>
-        <legend>Branding &amp; Display</legend>
+        <legend>{% trans "Branding & Display" %}</legend>
         {% for field in form %}
             {% if field.name == "product_name" or field.name == "support_email" or field.name == "logo_url" or field.name == "date_format" or field.name == "session_timeout_minutes" %}
             <label for="{{ field.id_for_label }}">
                 {{ field.label }}
-                {% if field.field.required %}<abbr title="required">*</abbr>{% endif %}
+                {% if field.field.required %}<abbr title="{% trans 'required' %}">*</abbr>{% endif %}
             </label>
             {{ field }}
             {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
@@ -29,14 +30,14 @@
     </fieldset>
 
     <fieldset>
-        <legend>Document Storage</legend>
-        <p><small>Connect to an external document storage system (SharePoint or Google Drive) to show a "Open Documents Folder" button on client records.</small></p>
+        <legend>{% trans "Document Storage" %}</legend>
+        <p><small>{% trans 'Connect to an external document storage system (SharePoint or Google Drive) to show a "Open Documents Folder" button on client records.' %}</small></p>
 
         {% for field in form %}
             {% if field.name == "document_storage_provider" or field.name == "document_storage_url_template" %}
             <label for="{{ field.id_for_label }}">
                 {{ field.label }}
-                {% if field.field.required %}<abbr title="required">*</abbr>{% endif %}
+                {% if field.field.required %}<abbr title="{% trans 'required' %}">*</abbr>{% endif %}
             </label>
             {{ field }}
             {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
@@ -54,14 +55,14 @@
                role="button"
                class="outline secondary"
                style="display: none;">
-                Test with sample Record ID: REC-2024-001
+                {% trans "Test with sample Record ID: REC-2024-001" %}
             </a>
         </div>
     </fieldset>
 
     <div role="group">
-        <button type="submit">Save Changes</button>
-        <a href="{% url 'admin_settings:dashboard' %}" role="button" class="outline">Back</a>
+        <button type="submit">{% trans "Save Changes" %}</button>
+        <a href="{% url 'admin_settings:dashboard' %}" role="button" class="outline">{% trans "Back" %}</a>
     </div>
 </form>
 

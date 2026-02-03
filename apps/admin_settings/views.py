@@ -31,22 +31,45 @@ def dashboard(request):
 @login_required
 @admin_required
 def terminology(request):
+    # Build lookup of current overrides from database
+    overrides = {
+        obj.term_key: obj
+        for obj in TerminologyOverride.objects.all()
+    }
+
     if request.method == "POST":
-        current_terms = TerminologyOverride.get_all_terms()
-        form = TerminologyForm(request.POST, current_terms=current_terms)
+        # Build current terms dicts for form initialisation
+        current_terms_en = {}
+        current_terms_fr = {}
+        for key, defaults in DEFAULT_TERMS.items():
+            default_en, _ = defaults
+            if key in overrides:
+                current_terms_en[key] = overrides[key].display_value
+                current_terms_fr[key] = overrides[key].display_value_fr
+            else:
+                current_terms_en[key] = default_en
+
+        form = TerminologyForm(
+            request.POST,
+            current_terms_en=current_terms_en,
+            current_terms_fr=current_terms_fr,
+        )
         if form.is_valid():
             form.save()
             messages.success(request, "Terminology updated.")
             return redirect("admin_settings:terminology")
 
-    # Build table data: key, default, current value, is_overridden
-    overrides = dict(TerminologyOverride.objects.values_list("term_key", "display_value"))
+    # Build table data: key, defaults, current values, is_overridden
     term_rows = []
-    for key, default in DEFAULT_TERMS.items():
+    for key, defaults in DEFAULT_TERMS.items():
+        default_en, default_fr = defaults
+        override = overrides.get(key)
         term_rows.append({
             "key": key,
-            "default": default,
-            "current": overrides.get(key, default),
+            "default_en": default_en,
+            "default_fr": default_fr,
+            "current_en": override.display_value if override else default_en,
+            "current_fr": override.display_value_fr if override else "",
             "is_overridden": key in overrides,
         })
 

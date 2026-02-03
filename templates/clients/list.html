@@ -1,22 +1,23 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block title %}{{ term.client_plural|default:"Clients" }} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <h1>{{ term.client_plural|default:"Clients" }}</h1>
-    <p>All {{ term.client|default:"client" }} files you have access to.</p>
+    <p>{% blocktrans with client=term.client|default:"client" %}All {{ client }} files you have access to.{% endblocktrans %}</p>
 </div>
 
-<p><a href="{% url 'clients:client_create' %}" role="button">New {{ term.client|default:"Client" }}</a></p>
+<p><a href="{% url 'clients:client_create' %}" role="button">{% blocktrans with client=term.client|default:"Client" %}New {{ client }}{% endblocktrans %}</a></p>
 
 <!-- Filter bar -->
 <details class="filter-bar" open>
-    <summary>Filters</summary>
+    <summary>{% trans "Filters" %}</summary>
     <form id="client-filters" role="search">
         <div class="filter-row">
             <div class="filter-field">
-                <label for="filter-status">Status</label>
+                <label for="filter-status">{% trans "Status" %}</label>
                 <select id="filter-status"
                         name="status"
                         hx-get="{% url 'clients:client_list' %}"
@@ -24,10 +25,10 @@
                         hx-include="#client-filters"
                         hx-indicator="#loading-bar"
                         hx-push-url="true">
-                    <option value="">All statuses</option>
-                    <option value="active"{% if status_filter == "active" %} selected{% endif %}>Active</option>
-                    <option value="inactive"{% if status_filter == "inactive" %} selected{% endif %}>Inactive</option>
-                    <option value="discharged"{% if status_filter == "discharged" %} selected{% endif %}>Discharged</option>
+                    <option value="">{% trans "All statuses" %}</option>
+                    <option value="active"{% if status_filter == "active" %} selected{% endif %}>{% trans "Active" %}</option>
+                    <option value="inactive"{% if status_filter == "inactive" %} selected{% endif %}>{% trans "Inactive" %}</option>
+                    <option value="discharged"{% if status_filter == "discharged" %} selected{% endif %}>{% trans "Discharged" %}</option>
                 </select>
             </div>
             {% if features.programs and accessible_programs %}
@@ -40,7 +41,7 @@
                         hx-include="#client-filters"
                         hx-indicator="#loading-bar"
                         hx-push-url="true">
-                    <option value="">All {{ term.program_plural|default:"programs" }}</option>
+                    <option value="">{% blocktrans with programs=term.program_plural|default:"programs" %}All {{ programs }}{% endblocktrans %}</option>
                     {% for prog in accessible_programs %}
                     <option value="{{ prog.pk }}"{% if program_filter == prog.pk|stringformat:"d" %} selected{% endif %}>{{ prog.name }}</option>
                     {% endfor %}
@@ -48,7 +49,7 @@
             </div>
             {% endif %}
             <div class="filter-actions">
-                <a href="{% url 'clients:client_list' %}" class="secondary" role="button">Clear filters</a>
+                <a href="{% url 'clients:client_list' %}" class="secondary" role="button">{% trans "Clear filters" %}</a>
             </div>
         </div>
     </form>

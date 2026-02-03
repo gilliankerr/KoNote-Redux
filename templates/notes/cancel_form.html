@@ -1,17 +1,18 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Cancel {{ term.progress_note|default:"Note" }}{% endblock %}
+{% block title %}{% blocktrans with note=term.progress_note|default:"Note" %}Cancel {{ note }}{% endblocktrans %}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>Cancel {{ term.progress_note|default:"Note" }}</h1>
+    <h1>{% blocktrans with note=term.progress_note|default:"Note" %}Cancel {{ note }}{% endblocktrans %}</h1>
     <p>{{ client.first_name }} {{ client.last_name }} — {{ note.effective_date|date:"Y-m-d" }}</p>
 </hgroup>
 
 <article>
-    <p><strong>Note content:</strong></p>
+    <p><strong>{% trans "Note content:" %}</strong></p>
     <p>{{ note.notes_text|truncatechars:300 }}</p>
-    {% if note.summary %}<p><strong>Summary:</strong> {{ note.summary|truncatechars:200 }}</p>{% endif %}
+    {% if note.summary %}<p><strong>{% trans "Summary:" %}</strong> {{ note.summary|truncatechars:200 }}</p>{% endif %}
 </article>
 
 <form method="post">
@@ -21,8 +22,8 @@
     {% if form.status_reason.errors %}<small class="error" role="alert">{{ form.status_reason.errors.0 }}</small>{% endif %}
 
     <div role="group">
-        <button type="submit" class="contrast">Cancel This Note</button>
-        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">Go Back</a>
+        <button type="submit" class="contrast">{% trans "Cancel This Note" %}</button>
+        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Go Back" %}</a>
     </div>
 </form>
 {% endblock %}

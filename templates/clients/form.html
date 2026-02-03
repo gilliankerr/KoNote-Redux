@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}{% if editing %}Edit {{ term.client|default:"Client" }}{% else %}New {{ term.client|default:"Client" }}{% endif %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{% if editing %}{% blocktrans with client=term.client|default:"Client" %}Edit {{ client }}{% endblocktrans %}{% else %}{% blocktrans with client=term.client|default:"Client" %}New {{ client }}{% endblocktrans %}{% endif %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>{% if editing %}Edit {{ client.first_name }} {{ client.last_name }}{% else %}New {{ term.client|default:"Client" }}{% endif %}</h1>
+    <h1>{% if editing %}{% blocktrans with first=client.first_name last=client.last_name %}Edit {{ first }} {{ last }}{% endblocktrans %}{% else %}{% blocktrans with client=term.client|default:"Client" %}New {{ client }}{% endblocktrans %}{% endif %}</h1>
 </hgroup>
 
 <form method="post">
@@ -12,12 +13,12 @@
 
     <div class="grid">
         <div>
-            <label for="id_first_name">First Name <abbr title="required">*</abbr></label>
+            <label for="id_first_name">{% trans "First Name" %} <abbr title="{% trans 'required' %}">*</abbr></label>
             <input type="text" name="first_name" id="id_first_name" value="{{ form.first_name.value|default:'' }}" required>
             {% if form.first_name.errors %}<small class="badge badge-danger">{{ form.first_name.errors.0 }}</small>{% endif %}
         </div>
         <div>
-            <label for="id_last_name">Last Name <abbr title="required">*</abbr></label>
+            <label for="id_last_name">{% trans "Last Name" %} <abbr title="{% trans 'required' %}">*</abbr></label>
             <input type="text" name="last_name" id="id_last_name" value="{{ form.last_name.value|default:'' }}" required>
             {% if form.last_name.errors %}<small class="badge badge-danger">{{ form.last_name.errors.0 }}</small>{% endif %}
         </div>
@@ -25,22 +26,22 @@
 
     <div class="grid">
         <div>
-            <label for="id_middle_name">Middle Name</label>
+            <label for="id_middle_name">{% trans "Middle Name" %}</label>
             <input type="text" name="middle_name" id="id_middle_name" value="{{ form.middle_name.value|default:'' }}">
         </div>
         <div>
-            <label for="id_birth_date">Date of Birth</label>
+            <label for="id_birth_date">{% trans "Date of Birth" %}</label>
             <input type="date" name="birth_date" id="id_birth_date" value="{{ form.birth_date.value|default:'' }}">
         </div>
     </div>
 
     <div class="grid">
         <div>
-            <label for="id_record_id">Record ID</label>
+            <label for="id_record_id">{% trans "Record ID" %}</label>
             <input type="text" name="record_id" id="id_record_id" value="{{ form.record_id.value|default:'' }}">
         </div>
         <div>
-            <label for="id_status">Status</label>
+            <label for="id_status">{% trans "Status" %}</label>
             <select name="status" id="id_status">
                 {% for value, label in form.status.field.choices %}
                 <option value="{{ value }}" {% if form.status.value == value %}selected{% endif %}>{{ label }}</option>
@@ -64,11 +65,11 @@
     {% endif %}
 
     <div role="group">
-        <button type="submit">{% if editing %}Save Changes{% else %}Create {{ term.client|default:"Client" }}{% endif %}</button>
+        <button type="submit">{% if editing %}{% trans "Save Changes" %}{% else %}{% blocktrans with client=term.client|default:"Client" %}Create {{ client }}{% endblocktrans %}{% endif %}</button>
         {% if editing %}
-        <a href="{% url 'clients:client_detail' client_id=client.pk %}" role="button" class="outline">Cancel</a>
+        <a href="{% url 'clients:client_detail' client_id=client.pk %}" role="button" class="outline">{% trans "Cancel" %}</a>
         {% else %}
-        <a href="{% url 'clients:client_list' %}" role="button" class="outline">Cancel</a>
+        <a href="{% url 'clients:client_list' %}" role="button" class="outline">{% trans "Cancel" %}</a>
         {% endif %}
     </div>
 </form>
