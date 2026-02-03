@@ -53,3 +53,15 @@ def user_roles(request):
         "has_program_roles": has_roles,
         "is_admin_only": request.user.is_admin and not has_roles,
     }
+
+
+def document_storage(request):
+    """Inject document storage configuration into all templates.
+
+    Provides:
+    - document_storage.provider: 'none', 'sharepoint', or 'google_drive'
+    - document_storage.provider_display: Human-readable provider name
+    - document_storage.is_configured: Boolean for quick template checks
+    """
+    from apps.clients.helpers import get_document_storage_info
+    return {"document_storage": get_document_storage_info()}

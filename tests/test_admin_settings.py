@@ -196,3 +196,194 @@ class UserManagementTest(TestCase):
         self.client.login(username="staff", password="testpass123")
         resp = self.client.get("/auth/users/")
         self.assertEqual(resp.status_code, 403)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY)
+class DocumentStorageSettingsTest(TestCase):
+    """Tests for document storage configuration (DOC5)."""
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.client = Client()
+        self.admin = User.objects.create_user(
+            username="admin", password="testpass123", is_admin=True
+        )
+
+    def test_admin_can_save_document_storage_settings(self):
+        """Admin can configure SharePoint document storage."""
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.post("/admin/settings/instance/", {
+            "product_name": "TestApp",
+            "date_format": "Y-m-d",
+            "session_timeout_minutes": "30",
+            "document_storage_provider": "sharepoint",
+            "document_storage_url_template": "https://contoso.sharepoint.com/sites/KoNote/Clients/{record_id}/",
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            InstanceSetting.get("document_storage_provider"),
+            "sharepoint",
+        )
+        self.assertEqual(
+            InstanceSetting.get("document_storage_url_template"),
+            "https://contoso.sharepoint.com/sites/KoNote/Clients/{record_id}/",
+        )
+
+    def test_admin_can_configure_google_drive(self):
+        """Admin can configure Google Drive document storage."""
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.post("/admin/settings/instance/", {
+            "product_name": "TestApp",
+            "date_format": "Y-m-d",
+            "session_timeout_minutes": "30",
+            "document_storage_provider": "google_drive",
+            "document_storage_url_template": "https://drive.google.com/drive/search?q={record_id}",
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            InstanceSetting.get("document_storage_provider"),
+            "google_drive",
+        )
+
+    def test_admin_can_disable_document_storage(self):
+        """Admin can disable document storage by setting provider to 'none'."""
+        self.client.login(username="admin", password="testpass123")
+        # First enable
+        InstanceSetting.objects.create(
+            setting_key="document_storage_provider", setting_value="sharepoint"
+        )
+        # Then disable
+        resp = self.client.post("/admin/settings/instance/", {
+            "product_name": "TestApp",
+            "date_format": "Y-m-d",
+            "session_timeout_minutes": "30",
+            "document_storage_provider": "none",
+            "document_storage_url_template": "",
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            InstanceSetting.get("document_storage_provider"),
+            "none",
+        )
+
+
+@override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY)
+class DocumentFolderUrlHelperTest(TestCase):
+    """Tests for get_document_folder_url() helper function."""
+
+    def setUp(self):
+        enc_module._fernet = None
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_returns_none_when_not_configured(self):
+        """Returns None when document storage is not configured."""
+        from apps.clients.helpers import get_document_folder_url
+        from apps.clients.models import ClientFile
+
+        client = ClientFile.objects.create()
+        client.first_name = "Jane"
+        client.last_name = "Doe"
+        client.record_id = "REC-2024-001"
+        client.save()
+
+        url = get_document_folder_url(client)
+        self.assertIsNone(url)
+
+    def test_returns_none_when_provider_is_none(self):
+        """Returns None when provider is explicitly 'none'."""
+        from apps.clients.helpers import get_document_folder_url
+        from apps.clients.models import ClientFile
+        from django.core.cache import cache
+
+        InstanceSetting.objects.create(
+            setting_key="document_storage_provider", setting_value="none"
+        )
+        cache.clear()
+
+        client = ClientFile.objects.create()
+        client.first_name = "Jane"
+        client.last_name = "Doe"
+        client.record_id = "REC-2024-001"
+        client.save()
+
+        url = get_document_folder_url(client)
+        self.assertIsNone(url)
+
+    def test_returns_url_with_record_id_substituted(self):
+        """Returns URL with {record_id} replaced by client's record ID."""
+        from apps.clients.helpers import get_document_folder_url
+        from apps.clients.models import ClientFile
+        from django.core.cache import cache
+
+        InstanceSetting.objects.create(
+            setting_key="document_storage_provider", setting_value="sharepoint"
+        )
+        InstanceSetting.objects.create(
+            setting_key="document_storage_url_template",
+            setting_value="https://contoso.sharepoint.com/sites/KoNote/Clients/{record_id}/",
+        )
+        cache.clear()
+
+        client = ClientFile.objects.create()
+        client.first_name = "Jane"
+        client.last_name = "Doe"
+        client.record_id = "REC-2024-042"
+        client.save()
+
+        url = get_document_folder_url(client)
+        self.assertEqual(
+            url,
+            "https://contoso.sharepoint.com/sites/KoNote/Clients/REC-2024-042/",
+        )
+
+    def test_returns_none_when_client_has_no_record_id(self):
+        """Returns None when client has no record ID."""
+        from apps.clients.helpers import get_document_folder_url
+        from apps.clients.models import ClientFile
+        from django.core.cache import cache
+
+        InstanceSetting.objects.create(
+            setting_key="document_storage_provider", setting_value="sharepoint"
+        )
+        InstanceSetting.objects.create(
+            setting_key="document_storage_url_template",
+            setting_value="https://contoso.sharepoint.com/sites/KoNote/Clients/{record_id}/",
+        )
+        cache.clear()
+
+        client = ClientFile.objects.create()
+        client.first_name = "Jane"
+        client.last_name = "Doe"
+        client.record_id = ""  # No record ID
+        client.save()
+
+        url = get_document_folder_url(client)
+        self.assertIsNone(url)
+
+    def test_google_drive_search_url(self):
+        """Google Drive URL uses search with record_id query."""
+        from apps.clients.helpers import get_document_folder_url
+        from apps.clients.models import ClientFile
+        from django.core.cache import cache
+
+        InstanceSetting.objects.create(
+            setting_key="document_storage_provider", setting_value="google_drive"
+        )
+        InstanceSetting.objects.create(
+            setting_key="document_storage_url_template",
+            setting_value="https://drive.google.com/drive/search?q={record_id}",
+        )
+        cache.clear()
+
+        client = ClientFile.objects.create()
+        client.first_name = "Marcus"
+        client.last_name = "Jones"
+        client.record_id = "REC-2024-100"
+        client.save()
+
+        url = get_document_folder_url(client)
+        self.assertEqual(
+            url,
+            "https://drive.google.com/drive/search?q=REC-2024-100",
+        )

@@ -9,6 +9,7 @@ from apps.auth_app.decorators import minimum_role
 from apps.programs.models import Program, UserProgramRole
 
 from .forms import ClientFileForm, CustomFieldDefinitionForm, CustomFieldGroupForm, CustomFieldValuesForm
+from .helpers import get_document_folder_url
 from .models import ClientDetailValue, ClientFile, ClientProgramEnrolment, CustomFieldGroup
 
 
@@ -213,6 +214,7 @@ def client_detail(request, client_id):
         "active_tab": "info",
         "user_role": user_role,
         "is_receptionist": is_receptionist,
+        "document_folder_url": get_document_folder_url(client),
     }
     # HTMX tab switch — return only the tab content partial
     if request.headers.get("HX-Request"):

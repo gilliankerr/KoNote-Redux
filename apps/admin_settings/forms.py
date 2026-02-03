@@ -38,6 +38,13 @@ class TerminologyForm(forms.Form):
                 )
 
 
+DOCUMENT_STORAGE_CHOICES = [
+    ("none", "Not configured"),
+    ("sharepoint", "SharePoint / OneDrive"),
+    ("google_drive", "Google Drive"),
+]
+
+
 class InstanceSettingsForm(forms.Form):
     """Form for instance-level settings."""
 
@@ -68,9 +75,24 @@ class InstanceSettingsForm(forms.Form):
         help_text="Inactive sessions expire after this many minutes.",
     )
 
+    # Document storage settings
+    document_storage_provider = forms.ChoiceField(
+        choices=DOCUMENT_STORAGE_CHOICES,
+        initial="none",
+        label="Document Storage Provider",
+        help_text="External system where client documents are stored.",
+    )
+    document_storage_url_template = forms.CharField(
+        max_length=500, required=False, label="URL Template",
+        help_text='URL with {record_id} placeholder. Example for SharePoint: '
+                  'https://contoso.sharepoint.com/sites/KoNote/Clients/{record_id}/',
+        widget=forms.TextInput(attrs={"placeholder": "https://example.com/clients/{record_id}/"}),
+    )
+
     SETTING_KEYS = [
         "product_name", "support_email", "logo_url",
         "date_format", "session_timeout_minutes",
+        "document_storage_provider", "document_storage_url_template",
     ]
 
     def __init__(self, *args, **kwargs):
