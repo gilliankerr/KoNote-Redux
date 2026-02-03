@@ -15,6 +15,9 @@ django-ratelimit>=4.1
 # Encryption
 cryptography>=43.0
 
+# HTTP
+requests>=2.31
+
 # Utilities
 python-dotenv>=1.0
 dj-database-url>=2.2
