@@ -87,12 +87,12 @@ DATABASES = {
     "default": dj_database_url.config(
         default="postgresql://konote:konote@localhost:5432/konote",
         conn_max_age=600,
-    ),
+    ) | {"OPTIONS": {"connect_timeout": 10}},
     "audit": dj_database_url.config(
         env="AUDIT_DATABASE_URL",
         default="postgresql://konote:konote@localhost:5433/konote_audit",
         conn_max_age=600,
-    ),
+    ) | {"OPTIONS": {"connect_timeout": 10}},
 }
 
 DATABASE_ROUTERS = ["konote.db_router.AuditRouter"]
