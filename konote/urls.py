@@ -22,6 +22,7 @@ urlpatterns = [
     path("admin/settings/", include("apps.admin_settings.urls")),
     path("admin/audit/", include("apps.audit.urls")),
     path("ai/", include("konote.ai_urls")),
+    path("", include("apps.registration.urls")),
     path("", include("apps.clients.urls_home")),
     path("django-admin/", admin.site.urls),
 ]

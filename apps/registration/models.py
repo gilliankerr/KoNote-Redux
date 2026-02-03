@@ -80,17 +80,34 @@ class RegistrationLink(models.Model):
 
     def is_open(self):
         """Check if registration is currently accepting submissions."""
+        return self.is_closed_reason is None
+
+    @property
+    def spots_remaining(self):
+        """Return number of spots left, or None if unlimited."""
+        if self.max_registrations is None:
+            return None
+        approved_count = self.submissions.filter(
+            status__in=["pending", "approved"]
+        ).count()
+        return max(0, self.max_registrations - approved_count)
+
+    @property
+    def is_closed_reason(self):
+        """Return reason registration is closed, or None if open.
+
+        Possible reasons:
+        - "inactive": Link has been deactivated
+        - "deadline": Registration deadline has passed
+        - "capacity": Maximum registrations reached
+        """
         if not self.is_active:
-            return False
-        if self.closes_at and timezone.now() > self.closes_at:
-            return False
-        if self.max_registrations:
-            approved_count = self.submissions.filter(
-                status__in=["pending", "approved"]
-            ).count()
-            if approved_count >= self.max_registrations:
-                return False
-        return True
+            return "inactive"
+        if self.closes_at and self.closes_at <= timezone.now():
+            return "deadline"
+        if self.spots_remaining is not None and self.spots_remaining <= 0:
+            return "capacity"
+        return None
 
     def get_absolute_url(self):
         """Return the public registration URL."""

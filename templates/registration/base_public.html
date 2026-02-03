@@ -1,0 +1,112 @@
+{% load i18n %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% trans "Registration" %}{% endblock %} — {{ site.product_name|default:"KoNote" }}</title>
+
+    <!-- Pico CSS — classless, accessible defaults -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+    <!-- Theme (brand identity — swappable per agency) -->
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+
+    <!-- App structure styles -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+    <style>
+        /* Public registration page styles */
+        .registration-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .registration-logo {
+            max-width: 200px;
+            max-height: 80px;
+            margin-bottom: 1rem;
+        }
+        .registration-title {
+            margin-bottom: 0.5rem;
+        }
+        .registration-description {
+            color: var(--pico-muted-color);
+            margin-bottom: 1.5rem;
+        }
+        .registration-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .registration-info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--pico-secondary-background);
+            border-radius: 0.25rem;
+            font-size: 0.9rem;
+        }
+        .registration-closed {
+            text-align: center;
+            padding: 2rem;
+        }
+        .registration-closed h2 {
+            color: var(--pico-muted-color);
+        }
+        .field-group-heading {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--pico-muted-border-color);
+        }
+        .consent-section {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--pico-secondary-background);
+            border-radius: 0.25rem;
+        }
+        .consent-section label {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        .consent-section input[type="checkbox"] {
+            margin-top: 0.25rem;
+            flex-shrink: 0;
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <a href="#main-content" class="visually-hidden-focusable">{% trans "Skip to main content" %}</a>
+
+    <!-- Simple header for public pages -->
+    <header class="container" style="padding: 1rem 0; text-align: center; border-bottom: 1px solid var(--pico-muted-border-color);">
+        <strong>{{ site.product_name|default:"KoNote" }}</strong>
+    </header>
+
+    <main id="main-content" class="container" style="max-width: 640px; margin: 2rem auto;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container" style="text-align: center; padding: 2rem 0; border-top: 1px solid var(--pico-muted-border-color);">
+        <small>
+            {% trans "Your information is collected and stored securely." %}
+            <br>
+            {{ site.product_name|default:"KoNote" }} — {% trans "Secure Client Outcome Management" %}
+        </small>
+    </footer>
+
+    <!-- HTMX — for any dynamic interactions -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <!-- App JS — CSRF handling -->
+    <script src="{% static 'js/app.js' %}"></script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

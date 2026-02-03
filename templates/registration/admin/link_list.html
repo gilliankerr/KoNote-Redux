@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Registration Links" %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{% trans "Registration Links" %}</h1>
+    <p>{% trans "Create and manage self-service registration forms for programs." %}</p>
+</hgroup>
+
+<p>
+    <a href="{% url 'registration:registration_link_create' %}" role="button">{% trans "New Registration Link" %}</a>
+</p>
+
+{% if links %}
+<figure>
+<table role="grid">
+    <thead>
+        <tr>
+            <th scope="col">{% trans "Title" %}</th>
+            <th scope="col">{{ term.program|default:"Program" }}</th>
+            <th scope="col">{% trans "Status" %}</th>
+            <th scope="col">{% trans "Submissions" %}</th>
+            <th scope="col">{% trans "Created" %}</th>
+            <th scope="col"></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for link in links %}
+        <tr>
+            <td>
+                <strong>{{ link.title }}</strong>
+                {% if link.description %}
+                <br><small class="secondary">{{ link.description|truncatechars:60 }}</small>
+                {% endif %}
+            </td>
+            <td>{{ link.program.name }}</td>
+            <td>
+                {% if link.is_open %}
+                    <span class="badge badge-success">{% trans "Open" %}</span>
+                {% elif not link.is_active %}
+                    <span class="badge badge-secondary">{% trans "Inactive" %}</span>
+                {% elif link.closes_at and link.closes_at < now %}
+                    <span class="badge badge-warning">{% trans "Closed" %}</span>
+                {% else %}
+                    <span class="badge badge-secondary">{% trans "Full" %}</span>
+                {% endif %}
+            </td>
+            <td>
+                {{ link.submission_count }}
+                {% if link.pending_count > 0 %}
+                <span class="badge badge-warning">{{ link.pending_count }} {% trans "pending" %}</span>
+                {% endif %}
+                {% if link.max_registrations %}
+                <small class="secondary">/ {{ link.max_registrations }}</small>
+                {% endif %}
+            </td>
+            <td>
+                {{ link.created_at|date:"Y-m-d" }}
+                {% if link.created_by %}
+                <br><small class="secondary">{{ link.created_by.display_name }}</small>
+                {% endif %}
+            </td>
+            <td>
+                <details class="dropdown">
+                    <summary>{% trans "Actions" %}</summary>
+                    <ul>
+                        <li><a href="{% url 'registration:registration_link_edit' pk=link.pk %}">{% trans "Edit" %}</a></li>
+                        <li><a href="{{ link.get_absolute_url }}" target="_blank">{% trans "View Form" %}</a></li>
+                        <li><a href="#" onclick="copyToClipboard('{{ request.scheme }}://{{ request.get_host }}{{ link.get_absolute_url }}'); return false;">{% trans "Copy Link" %}</a></li>
+                        <li><a href="{% url 'registration:submission_list' %}?link={{ link.pk }}">{% trans "View Submissions" %}</a></li>
+                        <li><a href="{% url 'registration:registration_link_delete' pk=link.pk %}" class="secondary">{% trans "Delete" %}</a></li>
+                    </ul>
+                </details>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</figure>
+{% else %}
+<div class="empty-state">
+    <p>{% trans "No registration links yet." %}</p>
+    <p><a href="{% url 'registration:registration_link_create' %}">{% trans "Create your first registration link" %}</a></p>
+</div>
+{% endif %}
+
+<a href="{% url 'admin_settings:dashboard' %}" role="button" class="outline">{% trans "Back to Settings" %}</a>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        alert('Link copied to clipboard!');
+    }, function() {
+        prompt('Copy this link:', text);
+    });
+}
+</script>
+{% endblock %}

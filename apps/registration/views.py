@@ -1,13 +1,221 @@
 """Public registration views."""
-# Views will be implemented in a future phase.
-# This file contains placeholder functions for URL routing.
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+
+from apps.clients.models import CustomFieldDefinition
+
+from .forms import PublicRegistrationForm
+from .models import RegistrationLink, RegistrationSubmission
 
 
+# Rate limiting constants
+MAX_SUBMISSIONS_PER_HOUR = 5
+RATE_LIMIT_SESSION_KEY = "registration_submissions"
+
+
+def _check_rate_limit(request):
+    """Check if the session has exceeded the submission rate limit.
+
+    Returns:
+        tuple: (is_limited, remaining_submissions)
+    """
+    now = timezone.now()
+    submissions = request.session.get(RATE_LIMIT_SESSION_KEY, [])
+
+    # Filter to only submissions in the last hour
+    one_hour_ago = now - timezone.timedelta(hours=1)
+    recent_submissions = [
+        ts for ts in submissions
+        if timezone.datetime.fromisoformat(ts) > one_hour_ago
+    ]
+
+    # Update session with filtered list
+    request.session[RATE_LIMIT_SESSION_KEY] = recent_submissions
+
+    remaining = MAX_SUBMISSIONS_PER_HOUR - len(recent_submissions)
+    is_limited = remaining <= 0
+
+    return is_limited, max(0, remaining)
+
+
+def _record_submission(request):
+    """Record a submission timestamp in the session for rate limiting."""
+    submissions = request.session.get(RATE_LIMIT_SESSION_KEY, [])
+    submissions.append(timezone.now().isoformat())
+    request.session[RATE_LIMIT_SESSION_KEY] = submissions
+
+
+def _get_capacity_info(registration_link):
+    """Get capacity information for display.
+
+    Returns:
+        dict with 'remaining', 'total', 'has_limit' keys
+    """
+    if not registration_link.max_registrations:
+        return {"remaining": None, "total": None, "has_limit": False}
+
+    # Count pending and approved submissions
+    used = registration_link.submissions.filter(
+        status__in=["pending", "approved"]
+    ).count()
+    remaining = registration_link.max_registrations - used
+
+    return {
+        "remaining": max(0, remaining),
+        "total": registration_link.max_registrations,
+        "has_limit": True,
+    }
+
+
+def _get_grouped_custom_fields(registration_link):
+    """Get custom fields organized by group for template display.
+
+    Returns:
+        list of dicts with 'group' and 'fields' keys
+    """
+    field_groups = registration_link.field_groups.filter(status="active").order_by("sort_order")
+    grouped = []
+
+    for group in field_groups:
+        fields = CustomFieldDefinition.objects.filter(
+            group=group,
+            status="active",
+        ).order_by("sort_order")
+
+        if fields.exists():
+            grouped.append({
+                "group": group,
+                "fields": list(fields),
+            })
+
+    return grouped
+
+
+@require_http_methods(["GET", "POST"])
 def public_registration_form(request, slug):
-    """Display the public registration form for a registration link."""
-    raise NotImplementedError("View not yet implemented")
+    """Display the public registration form for a registration link.
+
+    GET: Show the registration form
+    POST: Validate and create a submission
+    """
+    # Look up the registration link
+    try:
+        registration_link = RegistrationLink.objects.select_related("program").get(
+            slug=slug
+        )
+    except RegistrationLink.DoesNotExist:
+        raise Http404("Registration form not found.")
+
+    # Check if the link is active
+    if not registration_link.is_active:
+        raise Http404("Registration form not found.")
+
+    # Get capacity info
+    capacity = _get_capacity_info(registration_link)
+
+    # Check if registration is open
+    is_open = registration_link.is_open()
+    closed_reason = None
+
+    if not is_open:
+        if registration_link.closes_at and timezone.now() > registration_link.closes_at:
+            closed_reason = "deadline"
+        elif capacity["has_limit"] and capacity["remaining"] == 0:
+            closed_reason = "full"
+        else:
+            closed_reason = "inactive"
+
+    # Get grouped custom fields for display
+    grouped_fields = _get_grouped_custom_fields(registration_link)
+
+    # Check rate limit
+    is_rate_limited, remaining_submissions = _check_rate_limit(request)
+
+    context = {
+        "registration_link": registration_link,
+        "is_open": is_open,
+        "closed_reason": closed_reason,
+        "capacity": capacity,
+        "grouped_fields": grouped_fields,
+        "is_rate_limited": is_rate_limited,
+        "remaining_submissions": remaining_submissions,
+    }
+
+    if request.method == "GET":
+        if is_open and not is_rate_limited:
+            form = PublicRegistrationForm(registration_link=registration_link)
+            context["form"] = form
+        return render(request, "registration/public_form.html", context)
+
+    # POST handling
+    if not is_open:
+        # Shouldn't happen with normal form submission, but handle it
+        return render(request, "registration/public_form.html", context)
+
+    if is_rate_limited:
+        context["rate_limit_error"] = True
+        return render(request, "registration/public_form.html", context)
+
+    form = PublicRegistrationForm(request.POST, registration_link=registration_link)
+    context["form"] = form
+
+    if not form.is_valid():
+        return render(request, "registration/public_form.html", context)
+
+    # Create the submission
+    submission = RegistrationSubmission(
+        registration_link=registration_link,
+    )
+
+    # Set encrypted PII fields
+    submission.first_name = form.cleaned_data["first_name"]
+    submission.last_name = form.cleaned_data["last_name"]
+    submission.email = form.cleaned_data["email"]
+    submission.phone = form.cleaned_data.get("phone", "")
+
+    # Store custom field values
+    submission.field_values = form.get_custom_field_values()
+
+    # Check if auto-approve is enabled
+    if registration_link.auto_approve:
+        submission.status = "approved"
+
+    submission.save()
+
+    # Record submission for rate limiting
+    _record_submission(request)
+
+    # Store reference number in session for the confirmation page
+    request.session["last_submission_ref"] = submission.reference_number
+    request.session["last_submission_auto_approved"] = registration_link.auto_approve
+
+    return redirect("registration:registration_submitted", slug=slug)
 
 
 def registration_submitted(request, slug):
     """Display confirmation after a registration is submitted."""
-    raise NotImplementedError("View not yet implemented")
+    # Look up the registration link (for branding/context)
+    try:
+        registration_link = RegistrationLink.objects.select_related("program").get(
+            slug=slug
+        )
+    except RegistrationLink.DoesNotExist:
+        raise Http404("Registration form not found.")
+
+    # Get submission info from session
+    reference_number = request.session.pop("last_submission_ref", None)
+    auto_approved = request.session.pop("last_submission_auto_approved", False)
+
+    # If no reference number in session, try query param (for bookmarking)
+    if not reference_number:
+        reference_number = request.GET.get("ref")
+
+    context = {
+        "registration_link": registration_link,
+        "reference_number": reference_number,
+        "auto_approved": auto_approved,
+    }
+
+    return render(request, "registration/submitted.html", context)

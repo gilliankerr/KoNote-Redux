@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% if editing %}{% trans "Edit Registration Link" %}{% else %}{% trans "New Registration Link" %}{% endif %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{% if editing %}{% trans "Edit Registration Link" %}{% else %}{% trans "New Registration Link" %}{% endif %}</h1>
+    <p>{% trans "Create a shareable link for self-service program registration." %}</p>
+</hgroup>
+
+{% if editing and link %}
+<article aria-label="registration link">
+    <p>
+        <strong>{% trans "Registration URL:" %}</strong><br>
+        <code id="registration-url">{{ request.scheme }}://{{ request.get_host }}{{ link.get_absolute_url }}</code>
+        <button type="button" class="outline secondary" style="margin-left: 0.5rem; padding: 0.25rem 0.5rem;" onclick="copyToClipboard()">{% trans "Copy" %}</button>
+    </p>
+</article>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+
+    <label for="{{ form.program.id_for_label }}">
+        {{ form.program.label }}
+        {% if form.program.field.required %}<abbr title="{% trans 'required' %}">*</abbr>{% endif %}
+    </label>
+    {{ form.program }}
+    {% if form.program.help_text %}<small>{{ form.program.help_text }}</small>{% endif %}
+    {% if form.program.errors %}
+    <small class="badge badge-danger">{{ form.program.errors.0 }}</small>
+    {% endif %}
+
+    <label for="{{ form.title.id_for_label }}">
+        {{ form.title.label }}
+        {% if form.title.field.required %}<abbr title="{% trans 'required' %}">*</abbr>{% endif %}
+    </label>
+    {{ form.title }}
+    {% if form.title.help_text %}<small>{{ form.title.help_text }}</small>{% endif %}
+    {% if form.title.errors %}
+    <small class="badge badge-danger">{{ form.title.errors.0 }}</small>
+    {% endif %}
+
+    <label for="{{ form.description.id_for_label }}">
+        {{ form.description.label }}
+    </label>
+    {{ form.description }}
+    {% if form.description.help_text %}<small>{{ form.description.help_text }}</small>{% endif %}
+    {% if form.description.errors %}
+    <small class="badge badge-danger">{{ form.description.errors.0 }}</small>
+    {% endif %}
+
+    <fieldset>
+        <legend>{% trans "Custom Field Groups" %}</legend>
+        <p><small>{% trans "Select which custom field groups to include on the registration form." %}</small></p>
+        {{ form.field_groups }}
+        {% if form.field_groups.errors %}
+        <small class="badge badge-danger">{{ form.field_groups.errors.0 }}</small>
+        {% endif %}
+    </fieldset>
+
+    <fieldset>
+        <legend>{% trans "Options" %}</legend>
+
+        <label>
+            {{ form.auto_approve }}
+            {{ form.auto_approve.label }}
+        </label>
+        {% if form.auto_approve.help_text %}<small>{{ form.auto_approve.help_text }}</small>{% endif %}
+
+        <label for="{{ form.max_registrations.id_for_label }}">
+            {{ form.max_registrations.label }}
+        </label>
+        {{ form.max_registrations }}
+        {% if form.max_registrations.help_text %}<small>{{ form.max_registrations.help_text }}</small>{% endif %}
+        {% if form.max_registrations.errors %}
+        <small class="badge badge-danger">{{ form.max_registrations.errors.0 }}</small>
+        {% endif %}
+
+        <label for="{{ form.closes_at.id_for_label }}">
+            {{ form.closes_at.label }}
+        </label>
+        {{ form.closes_at }}
+        {% if form.closes_at.help_text %}<small>{{ form.closes_at.help_text }}</small>{% endif %}
+        {% if form.closes_at.errors %}
+        <small class="badge badge-danger">{{ form.closes_at.errors.0 }}</small>
+        {% endif %}
+
+        <label>
+            {{ form.is_active }}
+            {{ form.is_active.label }}
+        </label>
+        <small>{% trans "Uncheck to temporarily disable this registration link." %}</small>
+    </fieldset>
+
+    <div role="group">
+        <button type="submit">{% if editing %}{% trans "Save Changes" %}{% else %}{% trans "Create Link" %}{% endif %}</button>
+        <a href="{% url 'registration:registration_link_list' %}" role="button" class="outline">{% trans "Cancel" %}</a>
+    </div>
+</form>
+
+{% if editing and link %}
+<script>
+function copyToClipboard() {
+    const url = document.getElementById('registration-url').textContent;
+    navigator.clipboard.writeText(url).then(function() {
+        alert('Link copied to clipboard!');
+    }, function() {
+        prompt('Copy this link:', url);
+    });
+}
+</script>
+{% endif %}
+{% endblock %}
