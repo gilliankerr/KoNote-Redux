@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # Security: run as non-root user
-RUN groupadd -r konote && useradd -r -g konote konote
+RUN groupadd -r konote && useradd -r -g konote -m konote
 
 WORKDIR /app
 
@@ -25,8 +25,8 @@ COPY . .
 # Collect static files (errors shown for debugging)
 RUN FIELD_ENCRYPTION_KEY=dummy-build-key SECRET_KEY=dummy-build-key ALLOWED_HOSTS=* python manage.py collectstatic --noinput --settings=konote.settings.production
 
-# Make entrypoint executable
-RUN chmod +x /app/entrypoint.sh
+# Make entrypoint executable and create fontconfig cache dir for non-root user
+RUN chmod +x /app/entrypoint.sh && mkdir -p /home/konote/.cache/fontconfig && chown -R konote:konote /home/konote
 
 # Switch to non-root user
 USER konote
