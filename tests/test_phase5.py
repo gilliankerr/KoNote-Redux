@@ -133,6 +133,75 @@ class EventCRUDTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Test event")
 
+    def test_event_create_all_day(self):
+        """All-day events should save with date only (time at midnight)."""
+        self.http.login(username="staff", password="pass")
+        resp = self.http.post(
+            f"/events/client/{self.client_file.pk}/create/",
+            {
+                "title": "All day workshop",
+                "description": "Full day training",
+                "all_day": "on",
+                "start_date": "2026-03-15",
+                "event_type": self.event_type.pk,
+            },
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(Event.objects.count(), 1)
+        event = Event.objects.first()
+        self.assertTrue(event.all_day)
+        self.assertEqual(event.start_timestamp.date().isoformat(), "2026-03-15")
+
+    def test_event_create_all_day_with_end_date(self):
+        """All-day events can have a multi-day span."""
+        self.http.login(username="staff", password="pass")
+        resp = self.http.post(
+            f"/events/client/{self.client_file.pk}/create/",
+            {
+                "title": "Conference",
+                "all_day": "on",
+                "start_date": "2026-03-15",
+                "end_date": "2026-03-17",
+                "event_type": self.event_type.pk,
+            },
+        )
+        self.assertEqual(resp.status_code, 302)
+        event = Event.objects.first()
+        self.assertTrue(event.all_day)
+        self.assertEqual(event.start_timestamp.date().isoformat(), "2026-03-15")
+        self.assertEqual(event.end_timestamp.date().isoformat(), "2026-03-17")
+
+    def test_event_list_shows_all_day_badge(self):
+        """All-day events should display 'All Day' badge in timeline."""
+        Event.objects.create(
+            client_file=self.client_file,
+            title="All day event",
+            start_timestamp=timezone.now(),
+            event_type=self.event_type,
+            all_day=True,
+        )
+        self.http.login(username="staff", password="pass")
+        resp = self.http.get(f"/events/client/{self.client_file.pk}/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "All Day")
+        self.assertContains(resp, "All day event")
+
+    def test_all_day_event_requires_start_date(self):
+        """All-day events must have a start date."""
+        self.http.login(username="staff", password="pass")
+        resp = self.http.post(
+            f"/events/client/{self.client_file.pk}/create/",
+            {
+                "title": "Missing date",
+                "all_day": "on",
+                # No start_date provided
+                "event_type": self.event_type.pk,
+            },
+        )
+        # Should re-render the form with errors, not redirect
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Event.objects.count(), 0)
+
 
 @override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY)
 class AlertCRUDTest(TestCase):

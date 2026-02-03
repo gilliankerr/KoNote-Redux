@@ -12,11 +12,11 @@ _All code review items complete._
 
 ### Phase 8 — UX Improvements for Frontline Staff
 
-- [ ] Show custom fields in read-only mode by default with edit toggle — (UX12)
-- [ ] Add date-only toggle to event form — (UX13)
-- [ ] Style permission error pages with navigation and helpful text — (UX14)
-- [ ] Add status and program filters to client list page — (UX15)
-- [ ] Auto-dismiss success messages after 3 seconds; keep errors persistent — (UX16)
+- [ ] 🔨 Show custom fields in read-only mode by default with edit toggle — (UX12)
+- [x] Add date-only toggle to event form — 2026-02-03 (UX13)
+- [ ] 🔨 Style permission error pages with navigation and helpful text — (UX14)
+- [ ] 🔨 Add status and program filters to client list page — (UX15)
+- [ ] 🔨 Auto-dismiss success messages after 3 seconds; keep errors persistent — (UX16)
 
 ## Roadmap — Prioritized Extensions
 
@@ -42,6 +42,18 @@ Based on usability review and expert panel analysis. See `tasks/usability-review
 - [ ] KoBoToolbox import API endpoint — POST /api/field-import/ — (FIELD1)
 - [ ] SharePoint Lists webhook receiver — Power Automate integration — (FIELD2)
 - [ ] Field data import documentation — setup guides for KoBoToolbox/SharePoint — (DOC7)
+
+### Phase D: Self-Service Registration (Medium Priority)
+
+Public sign-up forms for programs — parents register kids for sports, adults sign up for classes. See `tasks/self-service-registration-design.md` for full design.
+
+- [ ] RegistrationLink model — shareable form config per program — (REG1)
+- [ ] Public registration form view — mobile-friendly, no login required — (REG2)
+- [ ] RegistrationSubmission model — pending entries awaiting review — (REG3)
+- [ ] Submission review UI — approve/reject/merge duplicates — (REG4)
+- [ ] Auto-approve option — skip staff review for low-risk programs — (REG5)
+- [ ] Duplicate detection — match by email/phone, flag for merge — (REG6)
+- [ ] Capacity limits and deadlines — close registration when full or past date — (REG7)
 
 ### Explicitly Out of Scope
 

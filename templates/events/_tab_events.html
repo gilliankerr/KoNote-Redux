@@ -42,8 +42,14 @@
             {% else %}
                 <span class="badge badge-neutral">Event</span>
             {% endif %}
-            <strong>{{ entry.date|date:"Y-m-d H:i" }}</strong>
-            {% if entry.obj.end_timestamp %} — {{ entry.obj.end_timestamp|date:"Y-m-d H:i" }}{% endif %}
+            {% if entry.obj.all_day %}
+                <span class="badge badge-info" title="All day event">All Day</span>
+                <strong>{{ entry.date|date:"Y-m-d" }}</strong>
+                {% if entry.obj.end_timestamp %} — {{ entry.obj.end_timestamp|date:"Y-m-d" }}{% endif %}
+            {% else %}
+                <strong>{{ entry.date|date:"Y-m-d H:i" }}</strong>
+                {% if entry.obj.end_timestamp %} — {{ entry.obj.end_timestamp|date:"Y-m-d H:i" }}{% endif %}
+            {% endif %}
         </div>
         {% if entry.obj.title %}<p><strong>{{ entry.obj.title }}</strong></p>{% endif %}
         {% if entry.obj.description %}<p>{{ entry.obj.description|truncatechars:200 }}</p>{% endif %}

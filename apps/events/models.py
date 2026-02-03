@@ -32,6 +32,7 @@ class Event(models.Model):
     description = models.TextField(default="", blank=True)
     start_timestamp = models.DateTimeField()
     end_timestamp = models.DateTimeField(null=True, blank=True)
+    all_day = models.BooleanField(default=False, help_text="If true, only the date is stored; time is ignored.")
     event_type = models.ForeignKey(EventType, on_delete=models.SET_NULL, null=True, blank=True)
     related_note = models.ForeignKey("notes.ProgressNote", on_delete=models.SET_NULL, null=True, blank=True)
     author_program = models.ForeignKey("programs.Program", on_delete=models.SET_NULL, null=True, blank=True)
