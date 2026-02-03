@@ -11,6 +11,11 @@ CLIENT_URL_PATTERNS = [
     (re.compile(r"^/notes/client/(?P<client_id>\d+)"), "client_id"),
 ]
 
+# URL patterns for note-specific routes (look up client from note)
+NOTE_URL_PATTERNS = [
+    re.compile(r"^/notes/(?P<note_id>\d+)"),
+]
+
 # URLs that only admins can access
 ADMIN_ONLY_PATTERNS = [
     re.compile(r"^/admin/"),
@@ -62,6 +67,24 @@ class ProgramAccessMiddleware:
                 request.user_program_role = self._get_role_for_client(request.user, client_id)
                 break
 
+        # Note-scoped routes (no client_id in URL) — look up client from note
+        for pattern in NOTE_URL_PATTERNS:
+            match = pattern.match(path)
+            if match:
+                note_id = match.group("note_id")
+                client_id = self._get_client_id_from_note(note_id)
+                if client_id:
+                    if not self._user_can_access_client(request.user, client_id):
+                        if request.user.is_admin:
+                            return HttpResponseForbidden(
+                                "Administrators cannot access individual client records. "
+                                "Ask another admin to assign you a program role if you need client access."
+                            )
+                        return HttpResponseForbidden("Access denied. You are not assigned to this client's program.")
+                    request.accessible_client_id = client_id
+                    request.user_program_role = self._get_role_for_client(request.user, client_id)
+                break
+
         return self.get_response(request)
 
     # Role hierarchy — higher number = more access
@@ -102,3 +125,14 @@ class ProgramAccessMiddleware:
         if not roles:
             return None
         return max(roles, key=lambda r: self.ROLE_RANK.get(r, 0))
+
+    def _get_client_id_from_note(self, note_id):
+        """Return the client_file_id for a given progress note, or None if not found."""
+        from apps.notes.models import ProgressNote
+
+        try:
+            return ProgressNote.objects.filter(pk=note_id).values_list(
+                "client_file_id", flat=True
+            ).first()
+        except (ValueError, TypeError):
+            return None

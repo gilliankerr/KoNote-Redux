@@ -462,13 +462,19 @@ label {
 /* ---- Definition list (client info) ---- */
 .info-grid {
     display: grid;
-    grid-template-columns: 10rem 1fr;
-    gap: var(--kn-space-sm) var(--kn-space-lg);
+    grid-template-columns: minmax(8rem, auto) 1fr;
+    gap: var(--kn-space-base) var(--kn-space-xl);
     align-items: baseline;
+    max-width: 36rem;
+    margin-bottom: var(--kn-space-lg);
 }
 @media (max-width: 480px) {
     .info-grid {
         grid-template-columns: 1fr;
+        gap: var(--kn-space-xs) 0;
+    }
+    .info-grid dt {
+        margin-top: var(--kn-space-sm);
     }
 }
 .info-grid dt {
@@ -478,7 +484,8 @@ label {
 }
 .info-grid dd {
     margin: 0;
-    font-size: 0.9375rem;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 /* ---- Pagination ---- */
