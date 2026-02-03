@@ -11,6 +11,7 @@ from django.db.models import DateTimeField
 from django.db.models.functions import Coalesce
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -157,6 +158,12 @@ def note_list(request, client_id):
     paginator = Paginator(notes, 25)
     page = paginator.get_page(request.GET.get("page"))
 
+    # Breadcrumbs: Clients > [Client Name] > Notes
+    breadcrumbs = [
+        {"url": reverse("clients:client_list"), "label": "Clients"},
+        {"url": reverse("clients:client_detail", kwargs={"client_id": client.pk}), "label": f"{client.first_name} {client.last_name}"},
+        {"url": "", "label": "Notes"},
+    ]
     context = {
         "client": client,
         "page": page,
@@ -166,6 +173,7 @@ def note_list(request, client_id):
         "filter_author": author_filter,
         "active_tab": "notes",
         "user_role": getattr(request, "user_program_role", None),
+        "breadcrumbs": breadcrumbs,
     }
     if request.headers.get("HX-Request"):
         return render(request, "notes/_tab_notes.html", context)
@@ -209,9 +217,17 @@ def quick_note_create(request, client_id):
     else:
         form = QuickNoteForm()
 
+    # Breadcrumbs: Clients > [Client Name] > Notes > Quick Note
+    breadcrumbs = [
+        {"url": reverse("clients:client_list"), "label": "Clients"},
+        {"url": reverse("clients:client_detail", kwargs={"client_id": client.pk}), "label": f"{client.first_name} {client.last_name}"},
+        {"url": reverse("notes:note_list", kwargs={"client_id": client.pk}), "label": "Notes"},
+        {"url": "", "label": "Quick Note"},
+    ]
     return render(request, "notes/quick_note_form.html", {
         "form": form,
         "client": client,
+        "breadcrumbs": breadcrumbs,
     })
 
 
@@ -302,10 +318,18 @@ def note_create(request, client_id):
         form = FullNoteForm(initial={"session_date": timezone.localdate()})
         target_forms = _build_target_forms(client)
 
+    # Breadcrumbs: Clients > [Client Name] > Notes > New Note
+    breadcrumbs = [
+        {"url": reverse("clients:client_list"), "label": "Clients"},
+        {"url": reverse("clients:client_detail", kwargs={"client_id": client.pk}), "label": f"{client.first_name} {client.last_name}"},
+        {"url": reverse("notes:note_list", kwargs={"client_id": client.pk}), "label": "Notes"},
+        {"url": "", "label": "New Note"},
+    ]
     return render(request, "notes/note_form.html", {
         "form": form,
         "target_forms": target_forms,
         "client": client,
+        "breadcrumbs": breadcrumbs,
     })
 
 
@@ -430,8 +454,16 @@ def note_cancel(request, note_id):
     else:
         form = NoteCancelForm()
 
+    # Breadcrumbs: Clients > [Client Name] > Notes > Cancel Note
+    breadcrumbs = [
+        {"url": reverse("clients:client_list"), "label": "Clients"},
+        {"url": reverse("clients:client_detail", kwargs={"client_id": client.pk}), "label": f"{client.first_name} {client.last_name}"},
+        {"url": reverse("notes:note_list", kwargs={"client_id": client.pk}), "label": "Notes"},
+        {"url": "", "label": "Cancel Note"},
+    ]
     return render(request, "notes/cancel_form.html", {
         "form": form,
         "note": note,
         "client": client,
+        "breadcrumbs": breadcrumbs,
     })

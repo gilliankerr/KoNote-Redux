@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from apps.auth_app.decorators import minimum_role
 from apps.programs.models import Program, UserProgramRole
@@ -164,7 +165,13 @@ def client_edit(request, client_id):
             },
             available_programs=available_programs,
         )
-    return render(request, "clients/form.html", {"form": form, "editing": True, "client": client})
+    # Breadcrumbs: Clients > [Client Name] > Edit
+    breadcrumbs = [
+        {"url": reverse("clients:client_list"), "label": "Clients"},
+        {"url": reverse("clients:client_detail", kwargs={"client_id": client.pk}), "label": f"{client.first_name} {client.last_name}"},
+        {"url": "", "label": "Edit"},
+    ]
+    return render(request, "clients/form.html", {"form": form, "editing": True, "client": client, "breadcrumbs": breadcrumbs})
 
 
 @login_required
@@ -206,6 +213,11 @@ def client_detail(request, client_id):
         # Only include groups that have visible fields
         if field_values:
             custom_data.append({"group": group, "fields": field_values})
+    # Breadcrumbs: Clients > [Client Name]
+    breadcrumbs = [
+        {"url": reverse("clients:client_list"), "label": "Clients"},
+        {"url": "", "label": f"{client.first_name} {client.last_name}"},
+    ]
     context = {
         "client": client,
         "enrolments": enrolments,
@@ -215,6 +227,7 @@ def client_detail(request, client_id):
         "user_role": user_role,
         "is_receptionist": is_receptionist,
         "document_folder_url": get_document_folder_url(client),
+        "breadcrumbs": breadcrumbs,
     }
     # HTMX tab switch — return only the tab content partial
     if request.headers.get("HX-Request"):

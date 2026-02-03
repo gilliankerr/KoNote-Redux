@@ -4,6 +4,7 @@
 {% block title %}{% if editing %}{% blocktrans with client=term.client|default:"Client" %}Edit {{ client }}{% endblocktrans %}{% else %}{% blocktrans with client=term.client|default:"Client" %}New {{ client }}{% endblocktrans %}{% endif %} — {{ site.product_name|default:"KoNote" }}{% endblock %}
 
 {% block content %}
+{% include "_breadcrumbs.html" %}
 <hgroup>
     <h1>{% if editing %}{% blocktrans with first=client.first_name last=client.last_name %}Edit {{ first }} {{ last }}{% endblocktrans %}{% else %}{% blocktrans with client=term.client|default:"Client" %}New {{ client }}{% endblocktrans %}{% endif %}</h1>
 </hgroup>

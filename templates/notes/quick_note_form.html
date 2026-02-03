@@ -4,6 +4,7 @@
 {% block title %}{% blocktrans with note=term.progress_note|default:"Note" %}Quick {{ note }}{% endblocktrans %} — {{ client.first_name }} {{ client.last_name }}{% endblock %}
 
 {% block content %}
+{% include "_breadcrumbs.html" %}
 <hgroup>
     <h1>{% blocktrans with note=term.progress_note|default:"Note" %}Quick {{ note }}{% endblocktrans %}</h1>
     <p>{{ client.first_name }} {{ client.last_name }}</p>
