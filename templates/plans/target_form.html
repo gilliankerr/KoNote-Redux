@@ -17,7 +17,7 @@
     <small>{{ field.help_text }}</small>
     {% endif %}
     {% if field.errors %}
-    <small class="error">{{ field.errors.0 }}</small>
+    <small class="error" role="alert">{{ field.errors.0 }}</small>
     {% endif %}
     {% endfor %}
 

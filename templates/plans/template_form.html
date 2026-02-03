@@ -23,7 +23,7 @@
     </label>
     {{ field }}
     {% if field.errors %}
-    <small class="error">{{ field.errors.0 }}</small>
+    <small class="error" role="alert">{{ field.errors.0 }}</small>
     {% endif %}
     {% if field.help_text %}
     <small>{{ field.help_text }}</small>

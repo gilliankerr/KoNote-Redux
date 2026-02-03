@@ -13,7 +13,7 @@
     <label for="{{ form.notes_text.id_for_label }}">{{ term.progress_note|default:"Note" }}</label>
     {{ form.notes_text }}
     {% if form.notes_text.errors %}
-    <small class="error">{{ form.notes_text.errors.0 }}</small>
+    <small class="error" role="alert">{{ form.notes_text.errors.0 }}</small>
     {% endif %}
 
     <div role="group">

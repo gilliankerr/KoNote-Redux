@@ -17,12 +17,12 @@
 
         <label for="{{ form.template.id_for_label }}">Template</label>
         {{ form.template }}
-        {% if form.template.errors %}<small class="error">{{ form.template.errors.0 }}</small>{% endif %}
+        {% if form.template.errors %}<small class="error" role="alert">{{ form.template.errors.0 }}</small>{% endif %}
 
         <label for="{{ form.backdate.id_for_label }}">Session Date</label>
         {{ form.backdate }}
         <small>{{ form.backdate.help_text }}</small>
-        {% if form.backdate.errors %}<small class="error">{{ form.backdate.errors.0 }}</small>{% endif %}
+        {% if form.backdate.errors %}<small class="error" role="alert">{{ form.backdate.errors.0 }}</small>{% endif %}
     </fieldset>
 
     <!-- Target selection — staff pick which targets they worked on -->
@@ -53,7 +53,7 @@
 
         <label for="{{ tf.note_form.notes.id_for_label }}">Notes for this {{ term.target|default:"target" }}</label>
         {{ tf.note_form.notes }}
-        {% if tf.note_form.notes.errors %}<small class="error">{{ tf.note_form.notes.errors.0 }}</small>{% endif %}
+        {% if tf.note_form.notes.errors %}<small class="error" role="alert">{{ tf.note_form.notes.errors.0 }}</small>{% endif %}
 
         {% if tf.metric_forms %}
         <h4>{{ term.metric_plural|default:"Metrics" }}</h4>
@@ -62,7 +62,7 @@
         <label for="{{ mf.value.id_for_label }}">{{ mf.value.label }}</label>
         {{ mf.value }}
         {% if mf.value.help_text %}<small>{{ mf.value.help_text }}</small>{% endif %}
-        {% if mf.value.errors %}<small class="error">{{ mf.value.errors.0 }}</small>{% endif %}
+        {% if mf.value.errors %}<small class="error" role="alert">{{ mf.value.errors.0 }}</small>{% endif %}
         {% endfor %}
         {% endif %}
     </details>
@@ -76,7 +76,7 @@
         <legend>Summary</legend>
         <label for="{{ form.summary.id_for_label }}">Summary (optional)</label>
         {{ form.summary }}
-        {% if form.summary.errors %}<small class="error">{{ form.summary.errors.0 }}</small>{% endif %}
+        {% if form.summary.errors %}<small class="error" role="alert">{{ form.summary.errors.0 }}</small>{% endif %}
     </fieldset>
 
     <div role="group">

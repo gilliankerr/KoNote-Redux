@@ -18,7 +18,7 @@
     {% csrf_token %}
 
     {% if form.non_field_errors %}
-    <article class="pico-background-red-100" aria-label="Form errors">
+    <article class="pico-background-red-100" aria-label="Form errors" role="alert">
         {% for error in form.non_field_errors %}
         <p>{{ error }}</p>
         {% endfor %}
@@ -31,7 +31,7 @@
         {{ form.program }}
     </label>
     {% if form.program.errors %}
-    <small class="error">{{ form.program.errors.0 }}</small>
+    <small class="error" role="alert">{{ form.program.errors.0 }}</small>
     {% endif %}
 
     {# Date range #}
@@ -40,14 +40,14 @@
             {{ form.date_from.label }}
             {{ form.date_from }}
             {% if form.date_from.errors %}
-            <small class="error">{{ form.date_from.errors.0 }}</small>
+            <small class="error" role="alert">{{ form.date_from.errors.0 }}</small>
             {% endif %}
         </label>
         <label for="{{ form.date_to.id_for_label }}">
             {{ form.date_to.label }}
             {{ form.date_to }}
             {% if form.date_to.errors %}
-            <small class="error">{{ form.date_to.errors.0 }}</small>
+            <small class="error" role="alert">{{ form.date_to.errors.0 }}</small>
             {% endif %}
         </label>
     </div>
@@ -67,7 +67,7 @@
     <fieldset>
         <legend>{{ form.metrics.label }}</legend>
         {% if form.metrics.errors %}
-        <small class="error">{{ form.metrics.errors.0 }}</small>
+        <small class="error" role="alert">{{ form.metrics.errors.0 }}</small>
         {% endif %}
         <div style="margin-bottom: 0.5rem;">
             <a href="#" id="select-all-metrics" class="secondary">Select all</a>

@@ -15,7 +15,7 @@
         {% for field in form %}
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
-        {% if field.errors %}<small class="error">{{ field.errors.0 }}</small>{% endif %}
+        {% if field.errors %}<small class="error" role="alert">{{ field.errors.0 }}</small>{% endif %}
         {% endfor %}
     </fieldset>
 
@@ -34,7 +34,7 @@
                 {% if field.name != "id" and field.name != "DELETE" %}
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
-                {% if field.errors %}<small class="error">{{ field.errors.0 }}</small>{% endif %}
+                {% if field.errors %}<small class="error" role="alert">{{ field.errors.0 }}</small>{% endif %}
                 {% endif %}
             {% endfor %}
             {% if section_form.instance.pk %}
