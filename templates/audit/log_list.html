@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — {{ site.product_name|default:"KoNote" }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <hgroup>
+        <h1>Audit Log</h1>
+        <p>Review all system activity. Use filters to narrow results.</p>
+    </hgroup>
+
+    {# ---- Filter form ---- #}
+    <form method="get" action="" role="search">
+        <div class="grid">
+            <label for="date_from">
+                From
+                <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+            </label>
+            <label for="date_to">
+                To
+                <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+            </label>
+            <label for="user_display">
+                User
+                <input type="text" id="user_display" name="user_display" value="{{ user_display }}" placeholder="Search by name">
+            </label>
+            <label for="action">
+                Action
+                <select id="action" name="action">
+                    <option value="">All actions</option>
+                    {% for value, label in action_choices %}
+                    <option value="{{ value }}" {% if action_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label for="resource_type">
+                Resource type
+                <input type="text" id="resource_type" name="resource_type" value="{{ resource_type }}" placeholder="e.g. client, note">
+            </label>
+        </div>
+        <div class="grid">
+            <div>
+                <button type="submit">Filter</button>
+                <a href="{% url 'audit:audit_log_list' %}" role="button" class="secondary outline" style="margin-left:0.5rem;">Clear</a>
+            </div>
+            <div style="text-align:right;">
+                <a href="{% url 'audit:audit_log_export' %}{% if filter_query %}?{{ filter_query }}{% endif %}" role="button" class="contrast outline">Export CSV</a>
+            </div>
+        </div>
+    </form>
+
+    {# ---- Results table ---- #}
+    {% if page.object_list %}
+    <figure>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th scope="col">Timestamp</th>
+                    <th scope="col">User</th>
+                    <th scope="col">IP Address</th>
+                    <th scope="col">Action</th>
+                    <th scope="col">Resource Type</th>
+                    <th scope="col">Resource ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in page.object_list %}
+                <tr>
+                    <td>{{ entry.event_timestamp|date:"Y-m-d H:i" }}</td>
+                    <td>{{ entry.user_display }}</td>
+                    <td>{{ entry.ip_address|default:"—" }}</td>
+                    <td>
+                        <span class="badge {% if entry.action == 'create' %}badge-success{% elif entry.action == 'view' or entry.action == 'login' %}badge-info{% elif entry.action == 'update' or entry.action == 'put' or entry.action == 'patch' %}badge-warning{% elif entry.action == 'delete' %}badge-danger{% else %}badge-neutral{% endif %}">
+                            {{ entry.get_action_display }}
+                        </span>
+                    </td>
+                    <td>{{ entry.resource_type }}</td>
+                    <td>{{ entry.resource_id|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </figure>
+
+    {# ---- Pagination ---- #}
+    {% if page.has_previous or page.has_next %}
+    <nav aria-label="Pagination">
+        <ul>
+            {% if page.has_previous %}
+            <li><a href="?page={{ page.previous_page_number }}&{{ filter_query }}">Previous</a></li>
+            {% endif %}
+            <li>Page {{ page.number }} of {{ page.paginator.num_pages }}</li>
+            {% if page.has_next %}
+            <li><a href="?page={{ page.next_page_number }}&{{ filter_query }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <p>No audit log entries found. Try adjusting your filters.</p>
+    {% endif %}
+</div>
+{% endblock %}
