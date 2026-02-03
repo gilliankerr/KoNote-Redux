@@ -6,16 +6,7 @@ _Nothing flagged._
 
 ## Active Work
 
-**Phase 7: Hardening & Deployment**
-- [ ] Run seed_event_types management command on first deploy — (SEED1)
-- [ ] 🔨 Lock down audit DB permissions at deploy time, not after all phases — (SEC1)
-- [x] Tune CSP and rate limiting for production — 2026-02-02 (SEC4)
-- [x] Create encryption key rotation management command — 2026-02-02 (SEC5)
-- [ ] Write deployment guide for Azure — (DOC1)
-- [ ] Write deployment guide for Elest.io — (DOC2)
-- [ ] Write deployment guide for Railway — (DOC3)
-- [ ] Write agency setup guide (first-run wizard) — (DOC4)
-- [ ] Add pg_dump backup/restore documentation — (OPS2)
+_No active work._
 
 ## Parking Lot
 
@@ -23,7 +14,6 @@ _Nothing flagged._
 - [ ] GDPR toolkit UI — data export, right to erasure, consent management — (GDPR1)
 - [ ] French language support (bilingual UI) — (I18N1)
 - [ ] Data import from existing systems (CSV) — (IMP1)
-- [ ] Print/export progress reports to PDF — (RPT2)
 - [ ] Mobile-responsive optimisation pass — (UI1)
 - [ ] First-run setup wizard for new instances — (SETUP1)
 - [ ] Automated backups documentation — (OPS1)
@@ -31,6 +21,8 @@ _Nothing flagged._
 
 ## Recently Done
 
+- [x] PDF exports: individual client progress reports + bulk funder reports (WeasyPrint) — 2026-02-02 (RPT2)
+- [x] Phase 7: Audit DB lockdown, CSP tuning, rate limiting, key rotation command, deployment guides (Azure, Elest.io, Railway), agency setup guide, backup/restore docs — 2026-02-02 (SEC1, SEC4, SEC5, SEED1, DOC1, DOC2, DOC3, DOC4, OPS2)
 - [x] Phase 6: Terminology, feature toggles, instance settings, user management admin UIs, cache invalidation signals — 2026-02-02 (CUST1, CUST2, CUST3, USR1)
 - [x] Phase 5: Charts, events, alerts, combined timeline, funder report export, audit log viewer — 2026-02-02 (VIZ1, EVT1, EVT2, VIZ2, RPT1, AUD1)
 - [x] Phase 4: Quick notes, full structured notes, metric recording, templates admin, timeline, cancellation — 2026-02-02 (NOTE1–NOTE5)

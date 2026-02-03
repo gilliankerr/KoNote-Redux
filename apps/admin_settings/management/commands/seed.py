@@ -16,7 +16,14 @@ class Command(BaseCommand):
         self._seed_metrics()
         self._seed_feature_toggles()
         self._seed_instance_settings()
+        self._seed_event_types()
         self.stdout.write(self.style.SUCCESS("Seed data loaded successfully."))
+
+    def _seed_event_types(self):
+        """Delegate to the seed_event_types command so all seeding runs in one place."""
+        from django.core.management import call_command
+
+        call_command("seed_event_types", stdout=self.stdout)
 
     def _seed_metrics(self):
         from apps.plans.models import MetricDefinition
