@@ -4,6 +4,13 @@ from django import forms
 from .models import DEFAULT_TERMS, TerminologyOverride
 
 
+class FeatureToggleForm(forms.Form):
+    """Form for enabling/disabling a feature toggle."""
+
+    feature_key = forms.CharField(max_length=100)
+    action = forms.ChoiceField(choices=[("enable", "Enable"), ("disable", "Disable")])
+
+
 class TerminologyForm(forms.Form):
     """Dynamic form with one field per terminology key."""
 

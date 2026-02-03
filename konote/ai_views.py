@@ -6,6 +6,12 @@ from django_ratelimit.decorators import ratelimit
 
 from apps.admin_settings.models import FeatureToggle
 from konote import ai
+from konote.forms import (
+    GenerateNarrativeForm,
+    ImproveOutcomeForm,
+    SuggestMetricsForm,
+    SuggestNoteStructureForm,
+)
 
 
 def _ai_enabled():
@@ -22,9 +28,10 @@ def suggest_metrics_view(request):
     if not _ai_enabled():
         return HttpResponseForbidden("AI features are not enabled.")
 
-    target_description = request.POST.get("target_description", "").strip()
-    if not target_description:
+    form = SuggestMetricsForm(request.POST)
+    if not form.is_valid():
         return render(request, "ai/_error.html", {"message": "Please enter a target description first."})
+    target_description = form.cleaned_data["target_description"]
 
     # Build catalogue from non-PII metric data
     from apps.plans.models import MetricDefinition
@@ -49,9 +56,10 @@ def improve_outcome_view(request):
     if not _ai_enabled():
         return HttpResponseForbidden("AI features are not enabled.")
 
-    draft_text = request.POST.get("draft_text", "").strip()
-    if not draft_text:
+    form = ImproveOutcomeForm(request.POST)
+    if not form.is_valid():
         return render(request, "ai/_error.html", {"message": "Please enter a draft outcome first."})
+    draft_text = form.cleaned_data["draft_text"]
 
     improved = ai.improve_outcome(draft_text)
     if improved is None:
@@ -70,12 +78,13 @@ def generate_narrative_view(request):
     from apps.notes.models import MetricValue
     from apps.programs.models import Program
 
-    program_id = request.POST.get("program_id", "").strip()
-    date_from = request.POST.get("date_from", "").strip()
-    date_to = request.POST.get("date_to", "").strip()
-
-    if not all([program_id, date_from, date_to]):
+    form = GenerateNarrativeForm(request.POST)
+    if not form.is_valid():
         return render(request, "ai/_error.html", {"message": "Please select a programme and date range."})
+
+    program_id = form.cleaned_data["program_id"]
+    date_from = form.cleaned_data["date_from"]
+    date_to = form.cleaned_data["date_to"]
 
     try:
         program = Program.objects.get(pk=program_id)
@@ -137,12 +146,12 @@ def suggest_note_structure_view(request):
 
     from apps.plans.models import PlanTarget
 
-    target_id = request.POST.get("target_id", "").strip()
-    if not target_id:
+    form = SuggestNoteStructureForm(request.POST)
+    if not form.is_valid():
         return render(request, "ai/_error.html", {"message": "No target selected."})
 
     try:
-        target = PlanTarget.objects.get(pk=target_id)
+        target = PlanTarget.objects.get(pk=form.cleaned_data["target_id"])
     except PlanTarget.DoesNotExist:
         return HttpResponseBadRequest("Target not found.")
 

@@ -6,6 +6,18 @@ from apps.programs.models import Program
 from .models import Invite, User
 
 
+class LoginForm(forms.Form):
+    """Form for local username/password login."""
+
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={"autofocus": True}),
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput,
+    )
+
+
 class UserCreateForm(forms.ModelForm):
     """Form for creating a new user."""
 

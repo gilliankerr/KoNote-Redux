@@ -20,28 +20,36 @@ def login_view(request):
 @ratelimit(key="ip", rate="5/m", method="POST", block=True)
 def _local_login(request):
     """Username/password login with rate limiting."""
+    from apps.auth_app.forms import LoginForm
     from apps.auth_app.models import User
 
     error = None
     if request.method == "POST":
-        username = request.POST.get("username", "").strip()
-        password = request.POST.get("password", "")
-        try:
-            user = User.objects.get(username=username, is_active=True)
-            if user.check_password(password):
-                login(request, user)
-                user.last_login_at = timezone.now()
-                user.save(update_fields=["last_login_at"])
-                # Log to audit
-                _audit_login(request, user)
-                return redirect("/")
-            else:
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data["username"].strip()
+            password = form.cleaned_data["password"]
+            try:
+                user = User.objects.get(username=username, is_active=True)
+                if user.check_password(password):
+                    login(request, user)
+                    user.last_login_at = timezone.now()
+                    user.save(update_fields=["last_login_at"])
+                    # Log to audit
+                    _audit_login(request, user)
+                    return redirect("/")
+                else:
+                    error = "Invalid username or password."
+            except User.DoesNotExist:
                 error = "Invalid username or password."
-        except User.DoesNotExist:
-            error = "Invalid username or password."
+        else:
+            error = "Please enter both username and password."
+    else:
+        form = LoginForm()
 
     return render(request, "auth/login.html", {
         "error": error,
+        "form": form,
         "auth_mode": "local",
         "demo_mode": settings.DEMO_MODE,
     })

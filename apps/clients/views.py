@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.programs.models import Program, UserProgramRole
 
-from .forms import ClientFileForm, CustomFieldDefinitionForm, CustomFieldGroupForm
+from .forms import ClientFileForm, CustomFieldDefinitionForm, CustomFieldGroupForm, CustomFieldValuesForm
 from .models import ClientDetailValue, ClientFile, ClientProgramEnrolment, CustomFieldGroup
 
 
@@ -177,15 +177,21 @@ def client_save_custom_fields(request, client_id):
     client = get_object_or_404(ClientFile, pk=client_id)
     if request.method == "POST":
         groups = CustomFieldGroup.objects.filter(status="active").prefetch_related("fields")
-        for group in groups:
-            for field_def in group.fields.filter(status="active"):
-                raw_value = request.POST.get(f"custom_{field_def.pk}", "")
+        all_field_defs = [
+            fd for group in groups for fd in group.fields.filter(status="active")
+        ]
+        form = CustomFieldValuesForm(request.POST, field_definitions=all_field_defs)
+        if form.is_valid():
+            for field_def in all_field_defs:
+                raw_value = form.cleaned_data.get(f"custom_{field_def.pk}", "")
                 cdv, _ = ClientDetailValue.objects.get_or_create(
                     client_file=client, field_def=field_def,
                 )
                 cdv.set_value(raw_value)
                 cdv.save()
-        messages.success(request, "Custom fields saved.")
+            messages.success(request, "Custom fields saved.")
+        else:
+            messages.error(request, "Please correct the errors in the custom fields.")
     return redirect("clients:client_detail", client_id=client.pk)
 
 

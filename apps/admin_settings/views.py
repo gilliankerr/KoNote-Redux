@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 
-from .forms import InstanceSettingsForm, TerminologyForm
+from .forms import FeatureToggleForm, InstanceSettingsForm, TerminologyForm
 from .models import DEFAULT_TERMS, FeatureToggle, InstanceSetting, TerminologyOverride
 
 
@@ -80,9 +80,10 @@ DEFAULT_FEATURES = {
 @admin_required
 def features(request):
     if request.method == "POST":
-        feature_key = request.POST.get("feature_key")
-        action = request.POST.get("action")
-        if feature_key and action in ("enable", "disable"):
+        form = FeatureToggleForm(request.POST)
+        if form.is_valid():
+            feature_key = form.cleaned_data["feature_key"]
+            action = form.cleaned_data["action"]
             FeatureToggle.objects.update_or_create(
                 feature_key=feature_key,
                 defaults={"is_enabled": action == "enable"},

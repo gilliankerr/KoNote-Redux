@@ -35,6 +35,45 @@ class CustomFieldGroupForm(forms.ModelForm):
         fields = ["title", "sort_order", "status"]
 
 
+class CustomFieldValuesForm(forms.Form):
+    """Dynamic form for saving custom field values on a client.
+
+    Builds one field per active custom field definition, keyed as 'custom_{pk}'.
+    """
+
+    def __init__(self, *args, field_definitions=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if field_definitions:
+            for field_def in field_definitions:
+                field_key = f"custom_{field_def.pk}"
+                if field_def.input_type == "checkbox":
+                    self.fields[field_key] = forms.BooleanField(
+                        required=False, label=field_def.name,
+                    )
+                elif field_def.input_type == "number":
+                    self.fields[field_key] = forms.CharField(
+                        required=field_def.is_required,
+                        label=field_def.name,
+                    )
+                elif field_def.input_type == "select" and field_def.options_json:
+                    choices = [("", "— Select —")] + [
+                        (opt, opt) for opt in field_def.options_json
+                    ]
+                    self.fields[field_key] = forms.ChoiceField(
+                        choices=choices,
+                        required=field_def.is_required,
+                        label=field_def.name,
+                    )
+                else:
+                    self.fields[field_key] = forms.CharField(
+                        required=field_def.is_required,
+                        label=field_def.name,
+                        widget=forms.Textarea(attrs={"rows": 2})
+                        if field_def.input_type == "textarea"
+                        else forms.TextInput(attrs={"placeholder": field_def.placeholder or ""}),
+                    )
+
+
 class CustomFieldDefinitionForm(forms.ModelForm):
     class Meta:
         model = CustomFieldDefinition
