@@ -54,7 +54,7 @@
                 <span class="badge badge-danger">Cancelled</span>
             {% endif %}
             <strong>{{ note.effective_date|date:"Y-m-d" }}</strong>
-            <span class="note-author">{{ note.author.display_name|default:note.author }}{% if note.author_program %} ({{ note.author_program.name }}){% endif %}</span>
+            <span class="note-author">{% if note.author %}{{ note.author.display_name|default:note.author }}{% else %}(unknown){% endif %}{% if note.author_program %} ({{ note.author_program.name }}){% endif %}</span>
         </div>
         {% if note.status == "cancelled" %}
             <p class="note-row-text"><del>{{ note.notes_text|truncatechars:200 }}</del></p>

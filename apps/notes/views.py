@@ -7,6 +7,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import DateTimeField
+from django.db.models.functions import Coalesce
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -106,7 +108,15 @@ def note_list(request, client_id):
     if client is None:
         return HttpResponseForbidden("You do not have access to this client.")
 
-    notes = ProgressNote.objects.filter(client_file=client).select_related("author", "author_program")
+    # Annotate with computed effective_date for filtering and ordering
+    # (backdate if set, otherwise created_at)
+    notes = (
+        ProgressNote.objects.filter(client_file=client)
+        .select_related("author", "author_program")
+        .annotate(
+            _effective_date=Coalesce("backdate", "created_at", output_field=DateTimeField())
+        )
+    )
 
     # Filters
     note_type = request.GET.get("type", "")
@@ -118,18 +128,18 @@ def note_list(request, client_id):
         notes = notes.filter(note_type=note_type)
     if date_from:
         try:
-            notes = notes.filter(effective_date__gte=datetime.date.fromisoformat(date_from))
+            notes = notes.filter(_effective_date__date__gte=datetime.date.fromisoformat(date_from))
         except ValueError:
             pass
     if date_to:
         try:
-            notes = notes.filter(effective_date__lte=datetime.date.fromisoformat(date_to))
+            notes = notes.filter(_effective_date__date__lte=datetime.date.fromisoformat(date_to))
         except ValueError:
             pass
     if author_filter == "mine":
         notes = notes.filter(author=request.user)
 
-    notes = notes.order_by("-effective_date", "-created_at")
+    notes = notes.order_by("-_effective_date", "-created_at")
     paginator = Paginator(notes, 25)
     page = paginator.get_page(request.GET.get("page"))
 
@@ -141,6 +151,7 @@ def note_list(request, client_id):
         "filter_date_to": date_to,
         "filter_author": author_filter,
         "active_tab": "notes",
+        "user_role": getattr(request, "user_program_role", None),
     }
     if request.headers.get("HX-Request"):
         return render(request, "notes/_tab_notes.html", context)
@@ -264,6 +275,20 @@ def note_detail(request, note_id):
             ProgressNote.objects.select_related("author", "author_program", "template"),
             pk=note_id,
         )
+
+        # Validate that author exists (defensive check for data integrity)
+        if not note.author:
+            logger.error(
+                "Data integrity issue: note %s has no author",
+                note_id
+            )
+            return render(request, "notes/_note_detail.html", {
+                "note": note,
+                "client": None,
+                "target_entries": [],
+                "error": "This note has a data integrity issue. Please contact support.",
+            })
+
         # Middleware already verified access; this is a redundant safety check
         client = _get_client_or_403(request, note.client_file_id)
         if client is None:
@@ -274,7 +299,7 @@ def note_detail(request, note_id):
             return HttpResponseForbidden("You do not have access to this client.")
 
         # Filter out any orphaned entries (plan_target deleted outside Django)
-        target_entries = (
+        target_entries = list(
             ProgressNoteTarget.objects.filter(progress_note=note, plan_target__isnull=False)
             .select_related("plan_target")
             .prefetch_related("metric_values__metric_def")

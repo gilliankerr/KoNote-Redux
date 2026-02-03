@@ -91,12 +91,15 @@ class ProgressNote(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.get_note_type_display()} - {self.created_at:%Y-%m-%d}"
+        if self.created_at:
+            return f"{self.get_note_type_display()} - {self.created_at:%Y-%m-%d}"
+        return f"{self.get_note_type_display()} - (no date)"
 
     @property
     def effective_date(self):
         """The date this note is for (backdate if set, otherwise created_at)."""
-        return self.backdate or self.created_at
+        from django.utils import timezone
+        return self.backdate or self.created_at or timezone.now()
 
 
 class ProgressNoteTarget(models.Model):

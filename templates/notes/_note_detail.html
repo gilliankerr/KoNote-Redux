@@ -10,7 +10,7 @@
             <span class="badge badge-danger">Cancelled</span>
         {% endif %}
         <strong>{{ note.effective_date|date:"Y-m-d" }}</strong>
-        — {{ note.author.display_name|default:note.author }}
+        — {% if note.author %}{{ note.author.display_name|default:note.author }}{% else %}(unknown author){% endif %}
         {% if note.author_program %}
             <small>({{ note.author_program.name }})</small>
         {% endif %}
