@@ -60,6 +60,12 @@ Public sign-up forms for programs — parents register kids for sports, adults s
 - [x] Capacity limits and deadlines — close registration when full or past date — (REG7)
 - [x] Iframe embed support — agencies can embed form on their own website — (REG8)
 
+### Phase F: Staff Productivity (Medium Priority)
+
+See `tasks/note-follow-ups-design.md` for full design and rationale.
+
+- [ ] Note follow-up dates — optional follow-up date on notes, shows on home page — (FU1)
+
 ### Planned Extensions (Build When Requested)
 
 These features are designed but deferred until agencies request them. See expert panel rationale in `tasks/field-data-decision.md`.
