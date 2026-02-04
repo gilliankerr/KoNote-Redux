@@ -101,9 +101,26 @@ class ProgressNote(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
+        # Build date portion
         if self.created_at:
-            return f"{self.get_note_type_display()} - {self.created_at:%Y-%m-%d}"
-        return f"{self.get_note_type_display()} - (no date)"
+            date_str = f"{self.created_at:%Y-%m-%d}"
+        else:
+            date_str = "(no date)"
+
+        # Get preview text from summary or notes_text
+        preview = ""
+        if self.summary:
+            preview = self.summary.strip()
+        elif self.notes_text:
+            preview = self.notes_text.strip()
+
+        # Truncate preview to 40 characters
+        if preview:
+            if len(preview) > 40:
+                preview = preview[:40].rstrip() + "…"
+            return f"{self.get_note_type_display()} - {date_str}: {preview}"
+
+        return f"{self.get_note_type_display()} - {date_str}"
 
     @property
     def effective_date(self):
