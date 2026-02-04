@@ -1,0 +1,318 @@
+# Deploy KoNote2 on FullHost (Canadian Hosting)
+
+This guide walks you through deploying your own KoNote2 instance on FullHost, a Canadian-owned hosting provider with data centres in Canada.
+
+**Time required:** About 15 minutes
+**Technical skill required:** None — just follow the steps
+**Cost:** ~$23 CAD/month for a small nonprofit (see [Understanding Costs](#understanding-costs))
+
+---
+
+## Why FullHost?
+
+- **Canadian data residency** — Your client data stays in Canada (Montreal data centre)
+- **Canadian-owned company** — Based in Victoria, BC
+- **Pay only for what you use** — No long-term contracts
+- **Free trial** — $25 in credits to try it out (no credit card required)
+
+---
+
+## Before You Start
+
+You'll need:
+
+1. **An email address** — For your FullHost account and KoNote2 admin login
+2. **Your organisation name** — As you want it displayed in KoNote2
+3. **A term for the people you serve** — clients, participants, members, etc.
+4. **A password** — For your KoNote2 admin account (minimum 10 characters)
+
+---
+
+## Step 1: Create a FullHost Account
+
+1. Go to [fullhost.com/cloud-paas](https://www.fullhost.com/cloud-paas/)
+2. Click **"Get Started"** or **"Try for Free"**
+3. Enter your email address
+4. Check your inbox for a confirmation email
+5. Click the link in the email to verify your account
+6. Set a password for your FullHost account
+
+**Note:** This creates your FullHost hosting account. You'll create a separate KoNote2 admin account later.
+
+---
+
+## Step 2: Deploy KoNote2
+
+### Option A: One-Click Deploy (Easiest)
+
+1. Click this button:
+
+   [![Deploy to FullHost](https://www.fullhost.com/deploy-button.svg)](https://app.fullhost.cloud/install?manifest=https://raw.githubusercontent.com/gilliankerr/KoNote-Redux/main/fullhost-manifest.jps)
+
+2. If prompted, log in to your FullHost account
+
+3. You'll see the **KoNote2 Setup** screen
+
+### Option B: Manual Import
+
+If the button doesn't work:
+
+1. Log in to your FullHost dashboard at [app.fullhost.cloud](https://app.fullhost.cloud)
+2. Click **"Import"** in the top menu
+3. Select the **"URL"** tab
+4. Paste this URL:
+   ```
+   https://raw.githubusercontent.com/gilliankerr/KoNote-Redux/main/fullhost-manifest.jps
+   ```
+5. Click **"Import"**
+
+---
+
+## Step 3: Configure Your Instance
+
+On the setup screen, fill in:
+
+| Field | What to Enter |
+|-------|---------------|
+| **Organisation Name** | Your nonprofit's name (e.g., "Community Support Services") |
+| **Admin Email** | Your email address — you'll use this to log in |
+| **Admin Password** | A secure password (minimum 10 characters) |
+| **What do you call the people you serve?** | Select from the dropdown: Clients, Participants, Members, etc. |
+
+Then click **"Install"**.
+
+---
+
+## Step 4: Wait for Installation
+
+The installation takes about 5–10 minutes. You'll see a progress bar showing:
+
+1. Creating databases...
+2. Deploying application...
+3. Running setup...
+4. Creating admin account...
+
+**Don't close the browser tab** until you see the success message.
+
+---
+
+## Step 5: Save Your Encryption Key
+
+When installation completes, you'll see a success screen with an **encryption key**.
+
+**This is critically important:**
+
+```
+Your encryption key (example — yours will be different):
+xK9mP2nQ4rS6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6n=
+```
+
+**You must save this key:**
+
+1. Copy the key
+2. Save it somewhere secure (password manager, printed in a safe, etc.)
+3. **Do not store it in the same place as your database backups**
+
+If you ever need to restore KoNote2 from a backup, you'll need this key to decrypt client data. **If you lose this key, encrypted client data cannot be recovered.**
+
+---
+
+## Step 6: Log In to KoNote2
+
+1. Click the link in the success message, or go to your KoNote2 URL (shown on screen)
+2. Enter your **admin email** and **password** (the ones you chose during setup)
+3. Click **"Log In"**
+
+You're in! You'll see the KoNote2 dashboard.
+
+---
+
+## Step 7: Complete Initial Setup
+
+After logging in for the first time:
+
+1. **Review terminology settings** — Go to Admin → Settings to confirm your client term
+2. **Create programs** — Set up the programs your organisation runs
+3. **Invite staff** — Go to Admin → Users to add your team members
+4. **Configure outcomes** — Define the outcomes you track for each program
+
+See the [Getting Started Guide](getting-started.md) for detailed instructions.
+
+---
+
+## Understanding Costs
+
+FullHost charges based on resource usage. You pay for reserved resources (always on) plus dynamic resources (used during activity).
+
+### Estimated Monthly Cost
+
+*Calculated from FullHost pricing as of February 2026*
+
+**Assumptions:**
+- Small nonprofit: 5–10 staff users
+- 100–500 clients in the system
+- Light to moderate usage (a few hours of active use per day)
+- 1–2 GB total database storage
+
+| Component | Reserved (always on) | Dynamic (average usage) | Monthly |
+|-----------|---------------------|------------------------|---------|
+| App server | 2 cloudlets × $1.50 | ~2 cloudlets × $2.50 | $8.00 |
+| Main database | 2 cloudlets × $1.50 | ~1 cloudlet × $2.50 | $5.50 |
+| Audit database | 2 cloudlets × $1.50 | ~1 cloudlet × $2.50 | $5.50 |
+| Storage | — | 2 GB × $0.20 | $0.40 |
+| External IP | — | — | $3.50 |
+| **Total** | | | **~$23 CAD/month** |
+
+**What affects your costs:**
+- More staff or heavier usage → higher dynamic cloudlet usage
+- More clients/notes → more storage
+- Minimum possible (idle system) → ~$13 CAD/month (reserved only + IP)
+- Busy nonprofit with 20+ active users → could reach $35–45 CAD/month
+
+### Pricing Reference
+
+A "cloudlet" is FullHost's billing unit: 128 MB RAM + 200 MHz CPU.
+
+| Type | Cost | When charged |
+|------|------|--------------|
+| Reserved cloudlet | $1.50/month | Always (guaranteed minimum) |
+| Dynamic cloudlet | $2.50/month | Only when used |
+| Storage | $0.20/GB/month | Based on actual usage |
+| External IP | $3.50/month | Required for public access |
+
+### Free Trial
+
+New FullHost accounts receive **$25 in free credits** — enough for roughly 1 month at typical small-nonprofit usage levels.
+
+### Monitoring Your Costs
+
+1. Log in to [app.fullhost.cloud](https://app.fullhost.cloud)
+2. Click on your KoNote2 environment
+3. Click **"Statistics"** to see resource usage
+4. Click **"Billing"** in the top menu to see current charges
+
+---
+
+## Custom Domain (Optional)
+
+By default, your KoNote2 URL looks like:
+```
+https://konote2-abc123.jls-can1.cloudjiffy.net
+```
+
+To use your own domain (like `outcomes.mynonprofit.org`):
+
+### Step 1: Add Domain in FullHost
+
+1. Go to your KoNote2 environment in FullHost
+2. Click **Settings** (gear icon)
+3. Click **Custom Domains**
+4. Enter your domain name
+5. Click **"Bind"**
+
+### Step 2: Update Your DNS
+
+You'll see instructions like:
+```
+Add a CNAME record pointing to: node12345-konote2.jls-can1.cloudjiffy.net
+```
+
+Go to wherever you manage your domain (GoDaddy, Cloudflare, etc.) and add that CNAME record.
+
+### Step 3: Wait for DNS
+
+DNS changes can take 1–48 hours to take effect. Once working, you can access KoNote2 at your custom domain with automatic HTTPS.
+
+---
+
+## Backing Up Your Data
+
+FullHost provides automatic backups, but you should also:
+
+### Download a Manual Backup
+
+1. In FullHost, click on your Main Database
+2. Click **"Backup"**
+3. Click **"Create"** to make a new backup
+4. Click **"Download"** to save it to your computer
+
+**Do the same for your Audit Database.**
+
+### Backup Schedule
+
+We recommend:
+- **Weekly**: Download backups of both databases
+- **Monthly**: Test that you can restore from a backup (optional but wise)
+- **Always**: Keep your encryption key stored separately from backups
+
+---
+
+## Troubleshooting
+
+### "Application Error" when visiting KoNote2
+
+1. In FullHost, check if all three containers are running (green status)
+2. Click on the app container and check **Logs** for error messages
+3. Try restarting the app container (click **Restart**)
+
+### Forgot Admin Password
+
+1. In FullHost, click on your app container (KoNote2 App)
+2. Click **"Web SSH"** (or **"Terminal"**)
+3. Run:
+   ```
+   python manage.py changepassword your-email@example.com
+   ```
+4. Enter a new password when prompted
+
+### Running Out of Credits
+
+1. Log in to FullHost
+2. Click **"Billing"** → **"Add Funds"**
+3. Add credits with a credit card
+
+FullHost will email you when credits are running low.
+
+### Need More Help?
+
+- **KoNote2 Documentation:** [github.com/gilliankerr/KoNote-Redux/docs](https://github.com/gilliankerr/KoNote-Redux/docs)
+- **FullHost Support:** [fullhost.com/support](https://www.fullhost.com/support/)
+
+---
+
+## Updating KoNote2
+
+When new versions of KoNote2 are released:
+
+1. **Back up your data first** (see Backing Up section above)
+2. In FullHost, click on your KoNote2 environment
+3. Click on the **KoNote2 App** container
+4. Click **"Redeploy"**
+5. Ensure the image tag is set to `fullhost-latest`
+6. Click **"Redeploy"** to pull the latest version
+
+The container will restart automatically and run any new database migrations.
+
+**Tip:** Always download a backup before updating.
+
+---
+
+## Deleting Your Instance
+
+If you need to remove KoNote2:
+
+1. **Download your data first** (see Backing Up section)
+2. In FullHost, go to your KoNote2 environment
+3. Click **Settings** (gear icon)
+4. Scroll to bottom and click **"Delete Environment"**
+5. Confirm deletion
+
+This removes all data permanently. FullHost will stop charging you.
+
+---
+
+## Getting Help
+
+- **KoNote2 Issues:** [github.com/gilliankerr/KoNote-Redux/issues](https://github.com/gilliankerr/KoNote-Redux/issues)
+- **FullHost Support:** [fullhost.com/support](https://www.fullhost.com/support/)
+- **Community Forum:** [github.com/gilliankerr/KoNote-Redux/discussions](https://github.com/gilliankerr/KoNote-Redux/discussions)
