@@ -45,6 +45,12 @@ class Event(models.Model):
         db_table = "events"
         ordering = ["-start_timestamp"]
 
+    def __str__(self):
+        # Use title if available, otherwise event type, otherwise generic
+        label = self.title or (self.event_type.name if self.event_type else "Event")
+        date_str = self.start_timestamp.strftime("%Y-%m-%d") if self.start_timestamp else "(no date)"
+        return f"{label} - {date_str}"
+
 
 class Alert(models.Model):
     """An alert attached to a client file (e.g., safety concerns)."""
@@ -67,3 +73,12 @@ class Alert(models.Model):
         app_label = "events"
         db_table = "alerts"
         ordering = ["-created_at"]
+
+    def __str__(self):
+        date_str = self.created_at.strftime("%Y-%m-%d") if self.created_at else "(no date)"
+        preview = self.content.strip()[:40] if self.content else ""
+        if len(self.content.strip()) > 40:
+            preview += "…"
+        if preview:
+            return f"Alert - {date_str}: {preview}"
+        return f"Alert - {date_str}"

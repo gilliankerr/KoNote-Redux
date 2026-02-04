@@ -121,6 +121,10 @@ class PlanTargetRevision(models.Model):
         db_table = "plan_target_revisions"
         ordering = ["-created_at"]
 
+    def __str__(self):
+        date_str = self.created_at.strftime("%Y-%m-%d") if self.created_at else "draft"
+        return f"{self.name} (rev {date_str})"
+
 
 class PlanTargetMetric(models.Model):
     """Links a metric definition to a plan target."""

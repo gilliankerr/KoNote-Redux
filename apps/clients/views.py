@@ -10,7 +10,7 @@ from apps.auth_app.decorators import minimum_role
 from apps.programs.models import Program, UserProgramRole
 
 from .forms import ClientFileForm, ConsentRecordForm, CustomFieldDefinitionForm, CustomFieldGroupForm, CustomFieldValuesForm
-from .helpers import get_document_folder_url
+from .helpers import get_client_tab_counts, get_document_folder_url
 from .models import ClientDetailValue, ClientFile, ClientProgramEnrolment, CustomFieldGroup
 
 
@@ -218,6 +218,9 @@ def client_detail(request, client_id):
         {"url": reverse("clients:client_list"), "label": "Clients"},
         {"url": "", "label": f"{client.first_name} {client.last_name}"},
     ]
+    # Tab counts for badges (only for non-receptionists, only for full page loads)
+    tab_counts = {} if is_receptionist else get_client_tab_counts(client)
+
     context = {
         "client": client,
         "enrolments": enrolments,
@@ -228,6 +231,7 @@ def client_detail(request, client_id):
         "is_receptionist": is_receptionist,
         "document_folder_url": get_document_folder_url(client),
         "breadcrumbs": breadcrumbs,
+        **tab_counts,  # notes_count, events_count, targets_count
     }
     # HTMX tab switch — return only the tab content partial
     if request.headers.get("HX-Request"):

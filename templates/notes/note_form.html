@@ -81,21 +81,26 @@
     <small>{% trans "(optional — adds to your home page reminders)" %}</small>
     {% if form.follow_up_date.errors %}<small class="error" role="alert">{{ form.follow_up_date.errors.0 }}</small>{% endif %}
 
-    <!-- Consent confirmation -->
-    <fieldset>
-        <label>
-            {{ form.consent_confirmed }}
-            {% trans "I confirm verbal consent was obtained" %}
-        </label>
-        <small>{% blocktrans with client=term.client|default:"client" %}The {{ client }} has given verbal consent to record notes about this session.{% endblocktrans %}</small>
-        {% if form.consent_confirmed.errors %}
-        <small class="error" role="alert">{{ form.consent_confirmed.errors.0 }}</small>
-        {% endif %}
-    </fieldset>
-
-    <div role="group">
-        <button type="submit">{% blocktrans with note=term.progress_note|default:"Note" %}Save {{ note }}{% endblocktrans %}</button>
-        <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Cancel" %}</a>
+    <!-- Sticky footer with consent and save -->
+    <div class="sticky-form-footer{% if form.consent_confirmed.errors %} has-error{% endif %}" role="region" aria-label="{% trans 'Consent and save' %}">
+        <div class="sticky-form-footer-inner">
+            <div class="consent-section">
+                <label for="{{ form.consent_confirmed.id_for_label }}">
+                    {{ form.consent_confirmed }}
+                    {% trans "I confirm verbal consent was obtained" %}
+                </label>
+                {% if form.consent_confirmed.errors %}
+                <small class="error" role="alert">{{ form.consent_confirmed.errors.0 }}</small>
+                {% endif %}
+            </div>
+            <span class="autosave-indicator" id="autosave-status" hidden aria-live="polite" role="status">
+                <span class="status-text">{% trans "Saved" %}</span>
+            </span>
+            <div class="button-group">
+                <a href="{% url 'notes:note_list' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Cancel" %}</a>
+                <button type="submit">{% blocktrans with note=term.progress_note|default:"Note" %}Save {{ note }}{% endblocktrans %}</button>
+            </div>
+        </div>
     </div>
 </form>
 {% endblock %}

@@ -427,10 +427,318 @@ document.addEventListener("click", function (event) {
         forms.forEach(initAutoSave);
     }
 
+    // Show autosave indicator
+    function showAutosaveIndicator(status) {
+        var indicator = document.getElementById("autosave-status");
+        if (!indicator) return;
+
+        var statusText = indicator.querySelector(".status-text");
+        indicator.hidden = false;
+        indicator.classList.remove("saving", "saved");
+
+        if (status === "saving") {
+            indicator.classList.add("saving");
+            if (statusText) statusText.textContent = "Saving…";
+        } else if (status === "saved") {
+            indicator.classList.add("saved");
+            if (statusText) statusText.textContent = "Saved";
+            // Hide after 2 seconds
+            setTimeout(function() {
+                indicator.hidden = true;
+            }, 2000);
+        }
+    }
+
+    // Initialize auto-save on a form (updated with visual feedback)
+    function initAutoSave(form) {
+        var key = getStorageKey(form);
+        if (!key) return; // Form doesn't have required data attributes
+
+        // Check for existing draft and show recovery banner
+        var draft = loadDraft(form);
+        if (draft && hasContent(draft)) {
+            showRecoveryBanner(form, draft);
+        }
+
+        // Set up auto-save on input with visual feedback
+        var debouncedSave = debounce(function () {
+            showAutosaveIndicator("saving");
+            saveDraft(form);
+            setTimeout(function() {
+                showAutosaveIndicator("saved");
+            }, 300);
+        }, AUTOSAVE_DELAY);
+
+        form.addEventListener("input", debouncedSave);
+        form.addEventListener("change", debouncedSave);
+
+        // Clear draft on successful form submission
+        form.addEventListener("submit", function () {
+            clearDraft(form);
+        });
+    }
+
+    // Find and initialize all auto-save forms
+    function setupAutoSave() {
+        var forms = document.querySelectorAll("form[data-autosave]");
+        forms.forEach(initAutoSave);
+    }
+
     // Run on page load
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", setupAutoSave);
     } else {
         setupAutoSave();
+    }
+})();
+
+// --- Unsaved Changes Warning ---
+(function() {
+    var formDirty = false;
+
+    function markFormDirty() {
+        formDirty = true;
+    }
+
+    function markFormClean() {
+        formDirty = false;
+    }
+
+    function setupUnsavedWarning() {
+        // Track changes on forms with data-autosave attribute
+        var forms = document.querySelectorAll("form[data-autosave]");
+        forms.forEach(function(form) {
+            form.addEventListener("input", markFormDirty);
+            form.addEventListener("change", markFormDirty);
+            form.addEventListener("submit", markFormClean);
+        });
+
+        // Warn before leaving page with unsaved changes
+        window.addEventListener("beforeunload", function(e) {
+            if (formDirty) {
+                e.preventDefault();
+                e.returnValue = ""; // Required for Chrome
+                return "You have unsaved changes. Are you sure you want to leave?";
+            }
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupUnsavedWarning);
+    } else {
+        setupUnsavedWarning();
+    }
+})();
+
+// --- Keyboard Shortcuts ---
+(function() {
+    var pendingKey = null;
+    var pendingTimeout = null;
+
+    function isInputFocused() {
+        var active = document.activeElement;
+        if (!active) return false;
+        var tag = active.tagName.toLowerCase();
+        return tag === "input" || tag === "textarea" || tag === "select" || active.isContentEditable;
+    }
+
+    function showShortcutsModal() {
+        var modal = document.getElementById("shortcuts-modal");
+        var backdrop = document.getElementById("shortcuts-backdrop");
+        if (modal && backdrop) {
+            modal.hidden = false;
+            backdrop.hidden = false;
+            modal.focus();
+        }
+    }
+
+    function hideShortcutsModal() {
+        var modal = document.getElementById("shortcuts-modal");
+        var backdrop = document.getElementById("shortcuts-backdrop");
+        if (modal && backdrop) {
+            modal.hidden = true;
+            backdrop.hidden = true;
+        }
+    }
+
+    function handleShortcut(key) {
+        // Two-key sequences (g + something)
+        if (pendingKey === "g") {
+            pendingKey = null;
+            clearTimeout(pendingTimeout);
+
+            if (key === "h") {
+                // g h = Go to Home
+                window.location.href = "/";
+                return true;
+            }
+            return false;
+        }
+
+        // Single key shortcuts
+        switch (key) {
+            case "/":
+                // Focus search input
+                var search = document.querySelector("input[name='q'], input[type='search'], .search-input-wrapper input");
+                if (search) {
+                    search.focus();
+                    search.select();
+                    return true;
+                }
+                break;
+
+            case "g":
+                // Start g-sequence
+                pendingKey = "g";
+                pendingTimeout = setTimeout(function() {
+                    pendingKey = null;
+                }, 1000);
+                return true;
+
+            case "n":
+                // New quick note (only on client page)
+                var quickNoteLink = document.querySelector("a[href*='quick-note']");
+                if (quickNoteLink) {
+                    quickNoteLink.click();
+                    return true;
+                }
+                break;
+
+            case "?":
+                showShortcutsModal();
+                return true;
+        }
+
+        return false;
+    }
+
+    function setupKeyboardShortcuts() {
+        document.addEventListener("keydown", function(e) {
+            // Don't intercept shortcuts when typing in inputs
+            if (isInputFocused() && e.key !== "Escape") {
+                return;
+            }
+
+            // Escape closes modals
+            if (e.key === "Escape") {
+                hideShortcutsModal();
+                return;
+            }
+
+            // Ctrl+S to save form
+            if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+                var form = document.querySelector("form[data-autosave]");
+                if (form) {
+                    e.preventDefault();
+                    form.requestSubmit ? form.requestSubmit() : form.submit();
+                    return;
+                }
+            }
+
+            // Don't process if modifier keys are held (except for Ctrl+S above)
+            if (e.ctrlKey || e.metaKey || e.altKey) {
+                return;
+            }
+
+            if (handleShortcut(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        // Button to show shortcuts modal
+        var showBtn = document.getElementById("show-shortcuts");
+        if (showBtn) {
+            showBtn.addEventListener("click", showShortcutsModal);
+        }
+
+        // Close shortcuts modal
+        var closeBtn = document.getElementById("close-shortcuts");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", hideShortcutsModal);
+        }
+
+        // Close modal when clicking backdrop
+        var backdrop = document.getElementById("shortcuts-backdrop");
+        if (backdrop) {
+            backdrop.addEventListener("click", hideShortcutsModal);
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupKeyboardShortcuts);
+    } else {
+        setupKeyboardShortcuts();
+    }
+})();
+
+// --- Session Timer ---
+(function() {
+    var WARNING_THRESHOLD = 5; // minutes
+    var CRITICAL_THRESHOLD = 1; // minutes
+
+    function setupSessionTimer() {
+        var timerEl = document.getElementById("session-timer");
+        var remainingEl = document.getElementById("session-remaining");
+        if (!timerEl || !remainingEl) return;
+
+        var timeoutMinutes = parseInt(timerEl.getAttribute("data-timeout"), 10) || 30;
+        var remainingSeconds = timeoutMinutes * 60;
+
+        function updateDisplay() {
+            var mins = Math.floor(remainingSeconds / 60);
+            remainingEl.textContent = mins;
+
+            // Update styling based on remaining time
+            timerEl.classList.remove("warning", "critical");
+            if (mins <= CRITICAL_THRESHOLD) {
+                timerEl.classList.add("critical");
+            } else if (mins <= WARNING_THRESHOLD) {
+                timerEl.classList.add("warning");
+            }
+        }
+
+        function tick() {
+            remainingSeconds--;
+            if (remainingSeconds <= 0) {
+                // Session expired - reload to trigger login redirect
+                window.location.reload();
+                return;
+            }
+            updateDisplay();
+        }
+
+        // Reset timer on user activity
+        function resetTimer() {
+            remainingSeconds = timeoutMinutes * 60;
+            updateDisplay();
+        }
+
+        // Track user activity to reset timer
+        var activityEvents = ["mousedown", "keydown", "scroll", "touchstart"];
+        var resetDebounced = debounce(resetTimer, 1000);
+        activityEvents.forEach(function(evt) {
+            document.addEventListener(evt, resetDebounced, { passive: true });
+        });
+
+        // Simple debounce for activity tracking
+        function debounce(fn, delay) {
+            var timer = null;
+            return function() {
+                clearTimeout(timer);
+                timer = setTimeout(fn, delay);
+            };
+        }
+
+        // Initial display
+        updateDisplay();
+
+        // Tick every minute (no need for per-second accuracy)
+        setInterval(tick, 60000);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupSessionTimer);
+    } else {
+        setupSessionTimer();
     }
 })();

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}{{ site.product_name|default:"KoNote" }}{% endblock %}</title>
+    <title>{% block title %}{{ site.product_name|default:"KoNote2" }}{% endblock %}</title>
 
     <!-- Pico CSS — classless, accessible defaults -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
@@ -28,7 +28,7 @@
     <nav class="container-fluid">
         <ul>
             <li><a href="/" class="contrast">
-                <strong>{{ site.product_name|default:"KoNote" }}</strong>
+                <strong>{{ site.product_name|default:"KoNote2" }}</strong>
             </a></li>
             <li>
                 <!-- Mobile menu toggle -->
@@ -107,9 +107,50 @@
         <button type="button" id="htmx-error-toast-close" aria-label="Dismiss" style="background:none;border:none;cursor:pointer;padding:0 0 0 1rem;font-size:1.2rem;color:inherit;">&times;</button>
     </div>
 
-    <footer class="container">
-        <small>{{ site.product_name|default:"KoNote2" }} &mdash; {% trans "Participant Outcome Management" %}</small>
+    <footer class="container site-footer" role="contentinfo">
+        <div class="site-footer-inner">
+            <div class="site-footer-brand">
+                <strong>{{ site.product_name|default:"KoNote2" }}</strong>
+                <span>{% trans "Open source outcome management" %} · MIT License</span>
+                {% if site.support_email %}<span>{% trans "Support:" %} <a href="mailto:{{ site.support_email }}">{{ site.support_email }}</a></span>{% endif %}
+            </div>
+            <div class="site-footer-links">
+                <a href="https://github.com/konote/konote2" target="_blank" rel="noopener">GitHub</a>
+                <a href="/privacy/">{% trans "Privacy" %}</a>
+                <a href="/help/">{% trans "Help" %}</a>
+                <button type="button" class="keyboard-shortcuts-btn" id="show-shortcuts" aria-label="{% trans 'Keyboard shortcuts' %}">?</button>
+            </div>
+            {% if user.is_authenticated %}
+            <div class="site-footer-session">
+                <span>{% trans "Logged in as" %} {{ user.display_name|default:user.username }}</span>
+                <span class="session-timer" id="session-timer" data-timeout="{{ session_timeout_minutes|default:30 }}">
+                    {% trans "Session:" %} <span id="session-remaining">--</span> {% trans "min" %}
+                </span>
+            </div>
+            {% endif %}
+        </div>
     </footer>
+
+    <!-- Keyboard shortcuts modal -->
+    <div class="modal-backdrop" id="shortcuts-backdrop" hidden></div>
+    <div class="keyboard-shortcuts-modal" id="shortcuts-modal" hidden role="dialog" aria-labelledby="shortcuts-title" aria-modal="true">
+        <button type="button" class="modal-close" id="close-shortcuts" aria-label="{% trans 'Close' %}">&times;</button>
+        <h3 id="shortcuts-title">{% trans "Keyboard Shortcuts" %}</h3>
+        <dl>
+            <dt>/</dt>
+            <dd>{% trans "Focus search" %}</dd>
+            <dt>g h</dt>
+            <dd>{% trans "Go to Home" %}</dd>
+            <dt>n</dt>
+            <dd>{% trans "New quick note (on client page)" %}</dd>
+            <dt>Ctrl+S</dt>
+            <dd>{% trans "Save current form" %}</dd>
+            <dt>Esc</dt>
+            <dd>{% trans "Close modal / Cancel" %}</dd>
+            <dt>?</dt>
+            <dd>{% trans "Show this help" %}</dd>
+        </dl>
+    </div>
 
     <!-- HTMX — dynamic interactions without a JS framework -->
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>

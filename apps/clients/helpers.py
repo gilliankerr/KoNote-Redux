@@ -61,3 +61,45 @@ def get_document_storage_info():
         "provider_display": provider_display_map.get(provider, "Unknown"),
         "is_configured": provider != "none",
     }
+
+
+def get_client_tab_counts(client):
+    """Get counts for client tab badges.
+
+    Args:
+        client: A ClientFile instance.
+
+    Returns:
+        dict: Contains counts for notes, events, plan sections/targets.
+    """
+    from apps.notes.models import ProgressNote
+    from apps.events.models import Event, Alert
+    from apps.plans.models import PlanSection, PlanTarget
+
+    notes_count = ProgressNote.objects.filter(
+        client_file=client,
+        status="default"
+    ).count()
+
+    events_count = Event.objects.filter(
+        client_file=client,
+        status="default"
+    ).count()
+
+    # Active alerts (shown prominently)
+    alerts_count = Alert.objects.filter(
+        client_file=client,
+        status="default"
+    ).count()
+
+    # Active plan targets
+    targets_count = PlanTarget.objects.filter(
+        client_file=client,
+        status="default"
+    ).count()
+
+    return {
+        "notes_count": notes_count,
+        "events_count": events_count + alerts_count,  # Combined for Events tab
+        "targets_count": targets_count,
+    }

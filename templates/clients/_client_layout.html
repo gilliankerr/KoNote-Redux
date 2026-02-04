@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{{ client.first_name }} {{ client.last_name }} — {{ site.product_name|default:"KoNote" }}{% endblock %}
+{% block title %}{{ client.first_name }} {{ client.last_name }} — {{ site.product_name|default:"KoNote2" }}{% endblock %}
 
 {% block content %}
 {% include "_breadcrumbs.html" %}
@@ -46,9 +46,9 @@
     <ul class="tab-bar">
         <li>{% if active_tab == "info" %}<a href="{% url 'clients:client_detail' client_id=client.pk %}" class="tab-active" aria-current="page">{% trans "Info" %}</a>{% else %}<a href="{% url 'clients:client_detail' client_id=client.pk %}" hx-get="{% url 'clients:client_detail' client_id=client.pk %}" hx-target="#tab-content" hx-swap="innerHTML" hx-push-url="true">{% trans "Info" %}</a>{% endif %}</li>
         {% if user_role != "receptionist" %}
-        <li>{% if active_tab == "plan" %}<a href="{% url 'plans:plan_view' client_id=client.pk %}" class="tab-active" aria-current="page">{{ term.plan|default:"Plan" }}</a>{% else %}<a href="{% url 'plans:plan_view' client_id=client.pk %}" hx-get="{% url 'plans:plan_view' client_id=client.pk %}" hx-target="#tab-content" hx-swap="innerHTML" hx-push-url="true">{{ term.plan|default:"Plan" }}</a>{% endif %}</li>
-        <li>{% if active_tab == "notes" %}<a href="{% url 'notes:note_list' client_id=client.pk %}" class="tab-active" aria-current="page">{{ term.progress_note|default:"Notes" }}</a>{% else %}<a href="{% url 'notes:note_list' client_id=client.pk %}" hx-get="{% url 'notes:note_list' client_id=client.pk %}" hx-target="#tab-content" hx-swap="innerHTML" hx-push-url="true">{{ term.progress_note|default:"Notes" }}</a>{% endif %}</li>
-        <li>{% if active_tab == "events" %}<a href="{% url 'events:event_list' client_id=client.pk %}" class="tab-active" aria-current="page">{% trans "Events" %}</a>{% else %}<a href="{% url 'events:event_list' client_id=client.pk %}" hx-get="{% url 'events:event_list' client_id=client.pk %}" hx-target="#tab-content" hx-swap="innerHTML" hx-push-url="true">{% trans "Events" %}</a>{% endif %}</li>
+        <li>{% if active_tab == "plan" %}<a href="{% url 'plans:plan_view' client_id=client.pk %}" class="tab-active" aria-current="page">{{ term.plan|default:"Plan" }}{% if targets_count %}<span class="tab-count">{{ targets_count }}</span>{% endif %}</a>{% else %}<a href="{% url 'plans:plan_view' client_id=client.pk %}" hx-get="{% url 'plans:plan_view' client_id=client.pk %}" hx-target="#tab-content" hx-swap="innerHTML" hx-push-url="true">{{ term.plan|default:"Plan" }}{% if targets_count %}<span class="tab-count">{{ targets_count }}</span>{% endif %}</a>{% endif %}</li>
+        <li>{% if active_tab == "notes" %}<a href="{% url 'notes:note_list' client_id=client.pk %}" class="tab-active" aria-current="page">{{ term.progress_note|default:"Notes" }}{% if notes_count %}<span class="tab-count">{{ notes_count }}</span>{% endif %}</a>{% else %}<a href="{% url 'notes:note_list' client_id=client.pk %}" hx-get="{% url 'notes:note_list' client_id=client.pk %}" hx-target="#tab-content" hx-swap="innerHTML" hx-push-url="true">{{ term.progress_note|default:"Notes" }}{% if notes_count %}<span class="tab-count">{{ notes_count }}</span>{% endif %}</a>{% endif %}</li>
+        <li>{% if active_tab == "events" %}<a href="{% url 'events:event_list' client_id=client.pk %}" class="tab-active" aria-current="page">{% trans "Events" %}{% if events_count %}<span class="tab-count">{{ events_count }}</span>{% endif %}</a>{% else %}<a href="{% url 'events:event_list' client_id=client.pk %}" hx-get="{% url 'events:event_list' client_id=client.pk %}" hx-target="#tab-content" hx-swap="innerHTML" hx-push-url="true">{% trans "Events" %}{% if events_count %}<span class="tab-count">{{ events_count }}</span>{% endif %}</a>{% endif %}</li>
         <li>{% if active_tab == "analysis" %}<a href="{% url 'reports:client_analysis' client_id=client.pk %}" class="tab-active" aria-current="page">{% trans "Analysis" %}</a>{% else %}<a href="{% url 'reports:client_analysis' client_id=client.pk %}" hx-get="{% url 'reports:client_analysis' client_id=client.pk %}" hx-target="#tab-content" hx-swap="innerHTML" hx-push-url="true">{% trans "Analysis" %}</a>{% endif %}</li>
         {% endif %}
     </ul>
