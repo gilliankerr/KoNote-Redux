@@ -10,37 +10,73 @@
     {% endif %}
 </div>
 
-{# Privacy consent section (PRIV1) #}
+{# Consent warning - only shown when missing #}
+{% if not client.consent_given_at %}
 <section id="consent-section" aria-labelledby="consent-heading">
     {% include "clients/_consent_display.html" %}
 </section>
+{% endif %}
 
-<section>
-    <h2>{% trans "Basic Information" %}</h2>
-    <dl class="info-grid">
-        <dt>{% trans "First Name" %}</dt><dd>{{ client.first_name }}</dd>
-        <dt>{% trans "Last Name" %}</dt><dd>{{ client.last_name }}</dd>
-        {% if client.middle_name %}<dt>{% trans "Middle Name" %}</dt><dd>{{ client.middle_name }}</dd>{% endif %}
-        {% if client.birth_date %}<dt>{% trans "Date of Birth" %}</dt><dd>{{ client.birth_date }}</dd>{% endif %}
-        {% if client.record_id %}<dt>{% trans "Record ID" %}</dt><dd>{{ client.record_id }}</dd>{% endif %}
+{# Quick info row - high-frequency data for receptionists #}
+<section class="quick-info-section">
+    <dl class="quick-info">
+        {% if client.birth_date %}
+        <div class="quick-info-item">
+            <dt>{% trans "DOB" %}</dt>
+            <dd>{{ client.birth_date }}</dd>
+        </div>
+        {% endif %}
+        {% if client.phone %}
+        <div class="quick-info-item">
+            <dt>{% trans "Phone" %}</dt>
+            <dd><a href="tel:{{ client.phone }}">{{ client.phone }}</a></dd>
+        </div>
+        {% endif %}
+        {% if enrolments %}
+        <div class="quick-info-item">
+            <dt>{{ term.program_plural|default:"Programs" }}</dt>
+            <dd>
+                {% for e in enrolments %}
+                <span class="program-dot" style="background-color: {{ e.program.colour_hex }}" aria-hidden="true"></span>{{ e.program.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </dd>
+        </div>
+        {% endif %}
     </dl>
-
-    {% if enrolments %}
-    <h3>{{ term.program_plural|default:"Programs" }}</h3>
-    <ul>
-        {% for e in enrolments %}
-        <li>
-            <span class="program-dot" style="background-color: {{ e.program.colour_hex }}" aria-hidden="true"></span>
-            {{ e.program.name }}
-        </li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-
-    {% if custom_data %}
-    <hr>
-    <div id="custom-fields-section">
-        {% include "clients/_custom_fields_display.html" %}
-    </div>
-    {% endif %}
 </section>
+
+{# Additional details - only if client has middle name or custom data #}
+{% if client.middle_name or custom_data %}
+<section>
+    <details open>
+        <summary><h2 style="display: inline; font-size: 1rem; margin: 0;">{% trans "Details" %}</h2></summary>
+
+        {% if client.middle_name %}
+        <dl class="info-grid-compact" style="margin-top: var(--kn-space-base);">
+            <div class="info-field">
+                <dt>{% trans "Middle Name" %}</dt>
+                <dd>{{ client.middle_name }}</dd>
+            </div>
+        </dl>
+        {% endif %}
+
+        {% if custom_data %}
+        <div id="custom-fields-section">
+            {% include "clients/_custom_fields_display.html" %}
+        </div>
+        {% endif %}
+    </details>
+</section>
+{% endif %}
+
+{# Consent details (when recorded) - collapsed by default #}
+{% if client.consent_given_at %}
+<section id="consent-section">
+    <details>
+        <summary><h2 style="display: inline; font-size: 1rem; margin: 0;">{% trans "Privacy Consent" %}</h2></summary>
+        <div style="margin-top: var(--kn-space-base);">
+            {% include "clients/_consent_display.html" %}
+        </div>
+    </details>
+</section>
+{% endif %}

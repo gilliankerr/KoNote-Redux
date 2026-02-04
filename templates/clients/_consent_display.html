@@ -1,32 +1,48 @@
 {% load i18n %}
 {# Partial: Read-only display of consent status with record button #}
-<div class="consent-header">
-    <h2 id="consent-heading">{% trans "Privacy Consent" %}</h2>
+{% if client.consent_given_at %}
+{# Compact display when consent exists - shown inside a details element #}
+<dl class="quick-info">
+    <div class="quick-info-item">
+        <dt>{% trans "Type" %}</dt>
+        <dd>{{ client.consent_type|default:"—" }}</dd>
+    </div>
+    <div class="quick-info-item">
+        <dt>{% trans "Recorded" %}</dt>
+        <dd>{{ client.consent_given_at|date:"Y-m-d" }}</dd>
+    </div>
+    {% if not is_receptionist %}
+    <div class="quick-info-item">
+        <dd>
+            <button type="button"
+                    class="outline secondary"
+                    style="padding: var(--kn-space-xs) var(--kn-space-sm); font-size: 0.75rem; margin: 0;"
+                    hx-get="{% url 'clients:client_consent_edit' client_id=client.pk %}"
+                    hx-target="#consent-section"
+                    hx-swap="innerHTML"
+                    aria-label="{% trans 'Update consent record' %}">
+                {% trans "Update" %}
+            </button>
+        </dd>
+    </div>
+    {% endif %}
+</dl>
+{% else %}
+{# Warning display when consent is missing #}
+<div class="consent-warning">
+    <p class="notice warning" role="alert">
+        <strong>{% trans "No consent on file." %}</strong>
+        {% trans "Consent must be recorded before progress notes can be created for this" %} {{ term.client|default:"client" }}.
+    </p>
     {% if not is_receptionist %}
     <button type="button"
-            class="outline secondary"
+            class="outline"
             hx-get="{% url 'clients:client_consent_edit' client_id=client.pk %}"
             hx-target="#consent-section"
             hx-swap="innerHTML"
-            aria-describedby="consent-heading"
-            aria-label="{% if client.consent_given_at %}{% trans 'Update consent record' %}{% else %}{% trans 'Record consent' %}{% endif %}">
-        {% if client.consent_given_at %}{% trans "Update" %}{% else %}{% trans "Record Consent" %}{% endif %}
+            aria-label="{% trans 'Record consent' %}">
+        {% trans "Record Consent" %}
     </button>
     {% endif %}
 </div>
-
-{% if client.consent_given_at %}
-<dl class="info-grid">
-    <dt>{% trans "Status" %}</dt>
-    <dd><span class="badge success">{% trans "Consent recorded" %}</span></dd>
-    <dt>{% trans "Type" %}</dt>
-    <dd>{{ client.consent_type|default:"—" }}</dd>
-    <dt>{% trans "Date recorded" %}</dt>
-    <dd>{{ client.consent_given_at|date:"Y-m-d" }}</dd>
-</dl>
-{% else %}
-<p class="notice warning" role="alert">
-    <strong>{% trans "No consent on file." %}</strong>
-    {% trans "Consent must be recorded before progress notes can be created for this" %} {{ term.client|default:"client" }}.
-</p>
 {% endif %}

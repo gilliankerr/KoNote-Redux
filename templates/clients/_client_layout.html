@@ -17,6 +17,12 @@
     {% if client.record_id %}
         <span class="client-meta">{% trans "ID:" %} {{ client.record_id }}</span>
     {% endif %}
+    {# Consent status indicator #}
+    {% if client.consent_given_at %}
+        <span class="badge badge-success" title="{% trans 'Consent recorded' %} {{ client.consent_given_at|date:'Y-m-d' }}">✓ {% trans "Consent" %}</span>
+    {% else %}
+        <span class="badge badge-warning">{% trans "No Consent" %}</span>
+    {% endif %}
     <div class="client-actions">
         {% if document_storage.is_configured and document_folder_url %}
         <a href="{{ document_folder_url }}"
