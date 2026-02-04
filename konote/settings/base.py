@@ -152,6 +152,8 @@ X_FRAME_OPTIONS = "DENY"
 #
 #   default-src 'self'         — fallback: only same-origin resources
 #   script-src  unpkg.com      — HTMX is loaded from unpkg CDN
+#               jsdelivr.net   — Chart.js is loaded from jsDelivr CDN
+#               'unsafe-inline' — required for inline chart init scripts
 #   style-src   jsdelivr.net   — Pico CSS is loaded from jsDelivr CDN
 #               'unsafe-inline' — required by Pico CSS (see production.py note)
 #   img-src     data:          — allows inline data-URI images (e.g. Chart.js)
@@ -163,7 +165,7 @@ X_FRAME_OPTIONS = "DENY"
 #   form-action 'self'         — forms can only submit to same origin
 # ─────────────────────────────────────────────────────────────────────
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "https://unpkg.com")
+CSP_SCRIPT_SRC = ("'self'", "https://unpkg.com", "https://cdn.jsdelivr.net", "'unsafe-inline'")
 CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net")
 CSP_IMG_SRC = ("'self'", "data:")
 CSP_CONNECT_SRC = ("'self'",)
