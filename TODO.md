@@ -2,7 +2,7 @@
 
 ## Flagged
 
-_Nothing flagged._
+- [ ] Choose Canadian hosting provider for pilot deployment — See `tasks/canadian-hosting-research.md` (HOST1)
 
 ## Active Work
 
@@ -79,15 +79,16 @@ These features are intentionally excluded. See technical documentation for ratio
 
 ## Parking Lot
 
+- [ ] Progress note encryption — encrypt clinical content (CLOUD Act protection) — (SEC1)
 - [ ] GDPR toolkit UI — data export, right to erasure, consent management — (GDPR1)
 - [ ] First-run setup wizard — Claude skill + import command — See `tasks/setup-wizard-design.md` (SETUP1)
 - [ ] Encrypted search optimisation (search hash field) for large client lists — (PERF1)
 - [ ] Bulk operations for discharge, assign, export — (UX17)
 - [ ] Keyboard shortcuts and command palette — (UX18)
-- [ ] Merge home search and client list into single unified page — (UX20)
 
 ## Recently Done
 
+- [x] Azure deployment guide — step-by-step for Canadian hosting — See `tasks/azure-deployment-guide.md` — 2026-02-04 (DOC20)
 - [x] Move old docs to archive folder — 2026-02-03 (DOC19)
 - [x] Create "Quick Start for Staff" training doc — 2026-02-03 (DOC18)
 - [x] Fix test suite configuration error — 2026-02-03 (TEST2)
