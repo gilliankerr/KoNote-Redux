@@ -19,10 +19,11 @@
     <table role="grid">
         <thead>
             <tr>
+                <th scope="col">{% trans "Code" %}</th>
                 <th scope="col">{% trans "Record ID" %}</th>
+                <th scope="col">{% trans "Level" %}</th>
                 <th scope="col">{% trans "Requested By" %}</th>
                 <th scope="col">{% trans "Date" %}</th>
-                <th scope="col">{% trans "Reason" %}</th>
                 <th scope="col">{% trans "Approvals" %}</th>
                 <th scope="col">{% trans "Status" %}</th>
                 <th scope="col"></th>
@@ -31,10 +32,11 @@
         <tbody>
             {% for er in pending_requests %}
             <tr>
+                <td>{{ er.erasure_code }}</td>
                 <td>{{ er.client_record_id|default:"—" }}</td>
+                <td><small>{{ er.get_erasure_tier_display }}</small></td>
                 <td>{{ er.requested_by_display }}</td>
                 <td>{{ er.requested_at|date:"Y-m-d" }}</td>
-                <td>{{ er.get_reason_category_display }}</td>
                 <td>
                     {{ er.approvals.count }}/{{ er.programs_required|length }}
                     {% if er.is_stuck %}

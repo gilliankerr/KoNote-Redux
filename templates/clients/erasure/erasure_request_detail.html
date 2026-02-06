@@ -1,21 +1,26 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Erasure Request" %} #{{ er.pk }}{% endblock %}
+{% block title %}{% trans "Erasure Request" %} {{ er.erasure_code }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>{% trans "Erasure Request" %} #{{ er.pk }}</h1>
+    <h1>{% trans "Erasure Request" %} {{ er.erasure_code }}</h1>
     <p>
         {% if er.client_record_id %}{{ er.client_record_id }} — {% endif %}
         <span class="badge badge-{{ er.status }}">{{ er.get_status_display }}</span>
+        — {{ er.get_erasure_tier_display }}
     </p>
 </hgroup>
 
 {% if er.status == "pending" %}
 <article aria-label="warning" class="warning" style="border-left: 4px solid var(--pico-del-color); background: var(--pico-del-color-bg, rgba(255,0,0,0.05));">
     <strong>{% trans "This action cannot be undone." %}</strong>
-    {% trans "Once all program managers approve, the client's data will be permanently deleted. Recovery requires a database backup." %}
+    {% if er.erasure_tier == "full_erasure" %}
+    {% trans "Once all programme managers approve, the client's data will be permanently deleted." %}
+    {% else %}
+    {% trans "Once all programme managers approve, the client's identifying information will be permanently removed." %}
+    {% endif %}
 </article>
 {% endif %}
 
@@ -43,10 +48,18 @@
         <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Request Details" %}</h2>
     </header>
     <dl>
+        <dt>{% trans "Erasure Code" %}</dt>
+        <dd>{{ er.erasure_code }}</dd>
+
+        <dt>{% trans "Erasure Level" %}</dt>
+        <dd>{{ er.get_erasure_tier_display }}</dd>
+
         <dt>{% trans "Client" %}</dt>
         <dd>
             {% if er.client_file %}
             <a href="{% url 'clients:client_detail' client_id=er.client_file.pk %}">{{ er.client_file }}</a>
+            {% elif er.status == "anonymised" %}
+            {% blocktrans with pk=er.client_pk %}Client #{{ pk }} (anonymised){% endblocktrans %}
             {% else %}
             {% blocktrans with pk=er.client_pk %}Client #{{ pk }} (deleted){% endblocktrans %}
             {% endif %}
@@ -69,6 +82,11 @@
         <dd>{{ er.completed_at|date:"Y-m-d H:i" }}</dd>
         {% endif %}
     </dl>
+
+    {% if can_download_receipt %}
+    <a href="{% url 'erasure_receipt_pdf' pk=er.pk %}" role="button" class="outline secondary" style="font-size: 0.875rem;">{% trans "Download PDF Receipt" %}</a>
+    <small class="secondary">{% trans "Download a copy of this request including client details before erasure proceeds. The system does not retain a copy." %}</small>
+    {% endif %}
 </article>
 
 {# Data summary: original snapshot vs current counts #}

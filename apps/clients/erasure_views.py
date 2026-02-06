@@ -13,6 +13,7 @@ from apps.programs.models import UserProgramRole
 
 from .erasure import (
     build_data_summary,
+    get_available_tiers,
     get_required_programs,
     is_deadlocked,
     record_approval,
@@ -72,14 +73,19 @@ def _get_visible_requests(user, status_filter=None):
     return qs.filter(pk__in=matching_pks)
 
 
-# --- Request creation (staff+) ---
+# --- Request creation (PM+ only) ---
 
 @login_required
-@minimum_role("staff")
+@minimum_role("program_manager")
 def erasure_request_create(request, client_id):
     """Create an erasure request for a client."""
     base_qs = get_client_queryset(request.user)
     client = get_object_or_404(base_qs, pk=client_id)
+
+    # Block if client is already anonymised
+    if client.is_anonymised:
+        messages.info(request, _("This client's data has already been anonymised."))
+        return redirect("clients:client_detail", client_id=client.pk)
 
     # Check for existing pending request
     existing = ErasureRequest.objects.filter(
@@ -89,8 +95,10 @@ def erasure_request_create(request, client_id):
         messages.info(request, _("An erasure request already exists for this client."))
         return redirect("erasure_request_detail", pk=existing.pk)
 
+    available_tiers = get_available_tiers(client)
+
     if request.method == "POST":
-        form = ErasureRequestForm(request.POST)
+        form = ErasureRequestForm(request.POST, available_tiers=available_tiers)
         if form.is_valid():
             programs = get_required_programs(client)
             summary = build_data_summary(client)
@@ -104,6 +112,7 @@ def erasure_request_create(request, client_id):
                 requested_by_display=request.user.get_display_name(),
                 reason_category=form.cleaned_data["reason_category"],
                 request_reason=form.cleaned_data["request_reason"],
+                erasure_tier=form.cleaned_data["erasure_tier"],
                 programs_required=programs,
             )
 
@@ -114,10 +123,10 @@ def erasure_request_create(request, client_id):
             # Send email notification to PMs
             _notify_pms_erasure_request(er, request)
 
-            messages.success(request, _("Erasure request created. Program managers have been notified."))
+            messages.success(request, _("Erasure request created. Programme managers have been notified."))
             return redirect("erasure_request_detail", pk=er.pk)
     else:
-        form = ErasureRequestForm()
+        form = ErasureRequestForm(available_tiers=available_tiers)
 
     summary = build_data_summary(client)
     active_alerts = Alert.objects.filter(client_file=client, status="default")
@@ -127,6 +136,7 @@ def erasure_request_create(request, client_id):
         "form": form,
         "data_summary": summary,
         "active_alerts": active_alerts,
+        "available_tiers": available_tiers,
         "nav_active": "clients",
     })
 
@@ -212,6 +222,7 @@ def erasure_request_detail(request, pk):
         "admin_can_approve": admin_can_approve,
         "approval_form": approval_form,
         "reject_form": reject_form,
+        "can_download_receipt": er.status == "pending" and er.client_file is not None,
         "nav_active": "admin",
     })
 
@@ -263,7 +274,10 @@ def erasure_approve(request, pk):
 
     if executed:
         _notify_erasure_completed(er, request)
-        messages.success(request, _("All approvals received. Client data has been permanently erased."))
+        if er.erasure_tier == "full_erasure":
+            messages.success(request, _("All approvals received. Client data has been permanently erased."))
+        else:
+            messages.success(request, _("All approvals received. Client data has been anonymised."))
         return redirect("erasure_history")
     else:
         messages.success(request, _("Approval recorded. Waiting for remaining program managers."))
@@ -322,7 +336,7 @@ def erasure_reject(request, pk):
 # --- Cancel (requester or PM) ---
 
 @login_required
-@minimum_role("staff")
+@minimum_role("program_manager")
 def erasure_cancel(request, pk):
     """Cancel a pending erasure request."""
     if request.method != "POST":
@@ -365,6 +379,61 @@ def erasure_history(request):
     })
 
 
+# --- PDF receipt ---
+
+@login_required
+@minimum_role("program_manager")
+def erasure_receipt_pdf(request, pk):
+    """Generate a one-time PDF receipt of the erasure request.
+
+    Includes client PII — this is the document the privacy officer
+    keeps outside the system before erasure proceeds. The system
+    does NOT retain a copy.
+    """
+    from apps.reports.pdf_utils import is_pdf_available, render_pdf
+
+    if not is_pdf_available():
+        messages.error(request, _("PDF generation is not available on this server."))
+        return redirect("erasure_request_detail", pk=pk)
+
+    er = get_object_or_404(ErasureRequest, pk=pk)
+
+    # Only available while client data still exists
+    if er.client_file is None:
+        messages.error(request, _("Client data no longer exists. Receipt cannot be generated."))
+        return redirect("erasure_request_detail", pk=pk)
+
+    client = er.client_file
+    from apps.admin_settings.models import InstanceSetting
+    org_name = InstanceSetting.get("organisation_name", "")
+
+    context = {
+        "er": er,
+        "client": client,
+        "org_name": org_name,
+        "programmes": er.data_summary.get("programmes", []),
+        "data_summary": er.data_summary,
+        "approvals": er.approvals.select_related("approved_by"),
+    }
+
+    # Audit the download
+    from .erasure import _log_audit
+    _log_audit(
+        user=request.user,
+        action="export",
+        resource_type="erasure_receipt_pdf",
+        resource_id=er.pk,
+        ip_address=_get_client_ip(request),
+        metadata={
+            "erasure_code": er.erasure_code,
+            "client_pk": er.client_pk,
+        },
+    )
+
+    filename = f"erasure-receipt-{er.erasure_code}.pdf"
+    return render_pdf("clients/erasure/pdf_erasure_receipt.html", context, filename=filename)
+
+
 # --- Email notifications ---
 
 def _notify_pms_erasure_request(erasure_request, request):
@@ -392,6 +461,8 @@ def _notify_pms_erasure_request(erasure_request, request):
     context = {
         "erasure_request": erasure_request,
         "requester_name": erasure_request.requested_by_display,
+        "erasure_code": erasure_request.erasure_code,
+        "erasure_tier_display": erasure_request.get_erasure_tier_display(),
         "review_url": review_url,
     }
 
@@ -425,11 +496,24 @@ def _notify_erasure_completed(erasure_request, request):
     if not involved_users:
         return
 
+    code = erasure_request.erasure_code
     record_ref = erasure_request.client_record_id or _("Client #%(pk)s") % {"pk": erasure_request.client_pk}
-    subject = _("Client Data Erased — %(record)s") % {"record": record_ref}
+    tier_label = erasure_request.get_erasure_tier_display()
+
+    if erasure_request.erasure_tier == "full_erasure":
+        subject = _("Client Data Erased — %(code)s") % {"code": code}
+        action_desc = _("Client data has been permanently erased.")
+    else:
+        subject = _("Client Data Anonymised — %(code)s") % {"code": code}
+        action_desc = _("Client data has been anonymised.")
+
     body = (
-        _("Client data erasure has been completed for %(record)s.") % {"record": record_ref}
+        action_desc
         + "\n\n"
+        + _("Erasure code: %(code)s") % {"code": code}
+        + "\n"
+        + _("Erasure level: %(tier)s") % {"tier": tier_label}
+        + "\n"
         + _("Reason: %(category)s — %(reason)s") % {
             "category": erasure_request.get_reason_category_display(),
             "reason": erasure_request.request_reason,
@@ -437,7 +521,7 @@ def _notify_erasure_completed(erasure_request, request):
         + "\n"
         + _("Requested by: %(name)s") % {"name": erasure_request.requested_by_display}
         + "\n"
-        + _("All program manager approvals were received.")
+        + _("All programme manager approvals were received.")
         + "\n\n"
         + _("This action cannot be undone.")
     )

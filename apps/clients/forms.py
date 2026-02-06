@@ -135,7 +135,7 @@ class CustomFieldDefinitionForm(forms.ModelForm):
 # --- Erasure forms ---
 
 class ErasureRequestForm(forms.Form):
-    """Form for requesting client data erasure."""
+    """Form for requesting client data erasure with tier selection and acknowledgements."""
 
     REASON_CATEGORY_CHOICES = [
         ("client_requested", _("Client requested")),
@@ -143,6 +143,19 @@ class ErasureRequestForm(forms.Form):
         ("discharged", _("Client discharged")),
         ("other", _("Other")),
     ]
+
+    TIER_CHOICES = [
+        ("anonymise", _("Anonymise — Remove identifying information, keep service records")),
+        ("anonymise_purge", _("Anonymise + Purge Notes — Remove identifying information and all narrative content")),
+        ("full_erasure", _("Full Erasure — Delete all records permanently")),
+    ]
+
+    erasure_tier = forms.ChoiceField(
+        choices=TIER_CHOICES,
+        widget=forms.RadioSelect,
+        initial="anonymise",
+        label=_("Erasure level"),
+    )
 
     reason_category = forms.ChoiceField(
         choices=REASON_CATEGORY_CHOICES,
@@ -156,6 +169,45 @@ class ErasureRequestForm(forms.Form):
         label=_("Details"),
         help_text=_("Required. Provide context such as client request date, retention policy reference, etc."),
     )
+
+    # Acknowledgement checkboxes — all three required
+    ack_permanent = forms.BooleanField(
+        label=_("I understand all data for this client will be permanently "
+                "anonymised or erased once all programme managers approve."),
+        required=True,
+    )
+    ack_authorised = forms.BooleanField(
+        label=_("I have verified this erasure request is authorised and documented "
+                "(e.g., client request, retention policy, privacy officer approval)."),
+        required=True,
+    )
+    ack_notify = forms.BooleanField(
+        label=_("I understand all programme managers will be notified and must "
+                "approve before erasure proceeds."),
+        required=True,
+    )
+
+    def __init__(self, *args, available_tiers=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.available_tiers = available_tiers or {}
+        # Mark unavailable tiers in the widget
+        if available_tiers:
+            disabled_tiers = [
+                tier for tier, info in available_tiers.items()
+                if not info.get("available", True)
+            ]
+            if disabled_tiers:
+                self.fields["erasure_tier"].widget.attrs["data-disabled-tiers"] = ",".join(disabled_tiers)
+
+    def clean_erasure_tier(self):
+        tier = self.cleaned_data["erasure_tier"]
+        if self.available_tiers:
+            tier_info = self.available_tiers.get(tier, {})
+            if not tier_info.get("available", True):
+                raise forms.ValidationError(
+                    tier_info.get("reason", _("This erasure level is not available."))
+                )
+        return tier
 
 
 class ErasureApprovalForm(forms.Form):

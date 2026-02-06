@@ -1,0 +1,136 @@
+{% extends "reports/pdf_base.html" %}
+{% load i18n %}
+
+{% block title %}Erasure Receipt — {{ er.erasure_code }}{% endblock %}
+
+{% block styles %}
+{{ block.super }}
+.confidential {
+    text-align: center;
+    font-size: 12pt;
+    font-weight: 700;
+    color: #c53030;
+    text-transform: uppercase;
+    letter-spacing: 0.1cm;
+    margin-bottom: 1cm;
+    border: 2px solid #c53030;
+    padding: 0.3cm;
+}
+.footer-note {
+    margin-top: 2cm;
+    padding-top: 0.5cm;
+    border-top: 1px solid #d1d5db;
+    font-size: 9pt;
+    color: #718096;
+}
+{% endblock %}
+
+{% block content %}
+<div class="confidential">
+    {% trans "Confidential — Erasure Receipt" %}
+</div>
+
+{% if org_name %}
+<p style="text-align: centre; font-size: 14pt; color: #4a5568; margin-bottom: 1cm;">{{ org_name }}</p>
+{% endif %}
+
+<h2>{% trans "Erasure Request Details" %}</h2>
+
+<dl>
+    <dt>{% trans "Erasure Code" %}</dt>
+    <dd><strong>{{ er.erasure_code }}</strong></dd>
+
+    <dt>{% trans "Erasure Level" %}</dt>
+    <dd>{{ er.get_erasure_tier_display }}</dd>
+
+    <dt>{% trans "Status" %}</dt>
+    <dd>{{ er.get_status_display }}</dd>
+
+    <dt>{% trans "Requested By" %}</dt>
+    <dd>{{ er.requested_by_display }}</dd>
+
+    <dt>{% trans "Request Date" %}</dt>
+    <dd>{{ er.requested_at|date:"Y-m-d H:i" }}</dd>
+
+    <dt>{% trans "Reason" %}</dt>
+    <dd>{{ er.get_reason_category_display }} — {{ er.request_reason }}</dd>
+</dl>
+
+<h2>{% trans "Client Information" %}</h2>
+
+<dl>
+    <dt>{% trans "Full Name" %}</dt>
+    <dd>{{ client.first_name }} {% if client.middle_name %}{{ client.middle_name }} {% endif %}{{ client.last_name }}</dd>
+
+    <dt>{% trans "Date of Birth" %}</dt>
+    <dd>{{ client.birth_date|default:"—" }}</dd>
+
+    <dt>{% trans "Record ID" %}</dt>
+    <dd>{{ client.record_id|default:"—" }}</dd>
+
+    <dt>{% trans "Status" %}</dt>
+    <dd>{{ client.get_status_display }}</dd>
+
+    {% if client.retention_expires %}
+    <dt>{% trans "Retention Expires" %}</dt>
+    <dd>{{ client.retention_expires }}</dd>
+    {% endif %}
+</dl>
+
+{% if programmes %}
+<h2>{% trans "Programmes Enrolled" %}</h2>
+<ul>
+    {% for prog_name in programmes %}
+    <li>{{ prog_name }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<h2>{% trans "Data Summary" %}</h2>
+<table>
+    <thead>
+        <tr>
+            <th>{% trans "Record Type" %}</th>
+            <th>{% trans "Count" %}</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>{% trans "Progress Notes" %}</td><td>{{ data_summary.progress_notes|default:"0" }}</td></tr>
+        <tr><td>{% trans "Plan Sections" %}</td><td>{{ data_summary.plan_sections|default:"0" }}</td></tr>
+        <tr><td>{% trans "Plan Targets" %}</td><td>{{ data_summary.plan_targets|default:"0" }}</td></tr>
+        <tr><td>{% trans "Events" %}</td><td>{{ data_summary.events|default:"0" }}</td></tr>
+        <tr><td>{% trans "Alerts" %}</td><td>{{ data_summary.alerts|default:"0" }}</td></tr>
+        <tr><td>{% trans "Custom Field Values" %}</td><td>{{ data_summary.custom_field_values|default:"0" }}</td></tr>
+        <tr><td>{% trans "Programme Enrolments" %}</td><td>{{ data_summary.enrolments|default:"0" }}</td></tr>
+        <tr><td>{% trans "Metric Values" %}</td><td>{{ data_summary.metric_values|default:"0" }}</td></tr>
+    </tbody>
+</table>
+
+{% if approvals %}
+<h2>{% trans "Approvals" %}</h2>
+<table>
+    <thead>
+        <tr>
+            <th>{% trans "Programme" %}</th>
+            <th>{% trans "Approved By" %}</th>
+            <th>{% trans "Date" %}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in approvals %}
+        <tr>
+            <td>{% if a.program %}{{ a.program.name }}{% else %}{% trans "Deleted programme" %}{% endif %}</td>
+            <td>{{ a.approved_by_display }}</td>
+            <td>{{ a.approved_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<div class="footer-note">
+    <p>{% trans "This document was generated before data erasure. The system does not retain a copy." %}</p>
+    <p>{% trans "This receipt should be stored securely by the privacy officer as the only record linking the erasure code to the client's identity." %}</p>
+    <p>{% trans "Generated:" %} {% now "Y-m-d H:i" %}</p>
+</div>
+{% endblock %}

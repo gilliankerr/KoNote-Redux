@@ -1,20 +1,26 @@
 {% load i18n %}
 <!-- Partial: Info tab content -->
 <div class="action-bar">
-    {% if not is_receptionist %}
+    {% if not is_receptionist and not client.is_anonymised %}
     <a href="{% url 'clients:client_edit' client_id=client.pk %}" role="button" class="outline">{% trans "Edit" %}</a>
     {% endif %}
     <a href="{% url 'clients:client_list' %}" role="button" class="outline secondary">{% trans "Back to List" %}</a>
-    {% if not is_receptionist %}
+    {% if not is_receptionist and not client.is_anonymised %}
     <a href="{% url 'reports:client_progress_pdf' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Export PDF" %}</a>
     <a href="{% url 'reports:client_export' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Export All Data" %}</a>
+    {% endif %}
     {% if pending_erasure %}
     <span class="badge badge-warning">{% trans "Erasure Pending" %}</span>
-    {% else %}
-    <a href="{% url 'clients:client_erasure_request' client_id=client.pk %}" role="button" class="outline" style="color: var(--pico-del-color); border-color: var(--pico-del-color);">{% trans "Erase Client Data" %}</a>
-    {% endif %}
     {% endif %}
 </div>
+
+{# Anonymised record banner #}
+{% if client.is_anonymised %}
+<article aria-label="notice" style="border-left: 4px solid var(--pico-muted-border-color); background: var(--pico-card-background-color);">
+    <strong>{% trans "This record has been anonymised." %}</strong>
+    {% trans "Identifying information has been removed. Service records are retained for statistical and compliance purposes." %}
+</article>
+{% endif %}
 
 {# Consent warning - only shown when missing #}
 {% if not client.consent_given_at %}
@@ -76,6 +82,23 @@
         <summary><h2 style="display: inline; font-size: 1rem; margin: 0;">{% trans "Privacy Consent" %}</h2></summary>
         <div style="margin-top: var(--kn-space-base);">
             {% include "clients/_consent_display.html" %}
+        </div>
+    </details>
+</section>
+{% endif %}
+
+{# Privacy & Data Management — collapsed, PM+ only, not shown for anonymised clients #}
+{% if is_pm_or_admin and not client.is_anonymised %}
+<section>
+    <details>
+        <summary><h2 style="display: inline; font-size: 1rem; margin: 0;">{% trans "Privacy & Data Management" %}</h2></summary>
+        <div style="margin-top: var(--kn-space-base);">
+            <p class="secondary">{% trans "These actions are for privacy compliance and data governance. Data erasure is permanent and irreversible." %}</p>
+            {% if pending_erasure %}
+            <span class="badge badge-warning">{% trans "Erasure Pending" %}</span>
+            {% else %}
+            <a href="{% url 'clients:client_erasure_request' client_id=client.pk %}" class="secondary" style="font-size: 0.875rem;">{% trans "Request Irreversible Data Erasure" %}</a>
+            {% endif %}
         </div>
     </details>
 </section>

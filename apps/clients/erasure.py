@@ -1,7 +1,12 @@
-"""Client data erasure service — the core deletion logic.
+"""Client data erasure service — tiered anonymisation and deletion logic.
 
 This module contains the business logic for the multi-PM erasure approval
 workflow. Views call these functions; they never call client.delete() directly.
+
+Three tiers of erasure:
+  - anonymise (default): Strip PII, keep all service records intact.
+  - anonymise_purge: Strip PII and blank all narrative content.
+  - full_erasure: CASCADE delete (only when retention period has expired).
 """
 import logging
 
@@ -13,10 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 def build_data_summary(client_file):
-    """Count all related records for a ClientFile.
+    """Build a statistical summary for a ClientFile.
 
-    Returns a dict of integer counts only. Must never include PII.
+    Returns a dict of integer counts and non-PII metadata.
     Used to populate ErasureRequest.data_summary at request time.
+    This data forms the statistical tombstone that survives after erasure.
     """
     from apps.events.models import Alert, Event
     from apps.notes.models import MetricValue, ProgressNote
@@ -24,7 +30,8 @@ def build_data_summary(client_file):
 
     from .models import ClientDetailValue, ClientProgramEnrolment
 
-    return {
+    # Record counts (existing)
+    summary = {
         "progress_notes": ProgressNote.objects.filter(client_file=client_file).count(),
         "plan_sections": PlanSection.objects.filter(client_file=client_file).count(),
         "plan_targets": PlanTarget.objects.filter(client_file=client_file).count(),
@@ -36,6 +43,65 @@ def build_data_summary(client_file):
             progress_note_target__progress_note__client_file=client_file
         ).count(),
     }
+
+    # Programme names (not PII — programme names are organisational, not personal)
+    enrolments = ClientProgramEnrolment.objects.filter(
+        client_file=client_file,
+    ).select_related("program")
+    summary["programmes"] = list({e.program.name for e in enrolments if e.program})
+
+    # Service period (earliest enrolment → latest activity)
+    first_enrolment = enrolments.order_by("enrolled_at").first()
+    if first_enrolment and first_enrolment.enrolled_at:
+        summary["service_period_start"] = first_enrolment.enrolled_at.isoformat()
+    last_note = ProgressNote.objects.filter(
+        client_file=client_file,
+    ).order_by("-created_at").first()
+    if last_note:
+        summary["service_period_end"] = last_note.created_at.isoformat()
+
+    # Outcome summary (target status counts)
+    targets = PlanTarget.objects.filter(client_file=client_file)
+    if targets.exists():
+        from collections import Counter
+        status_counts = Counter(targets.values_list("status", flat=True))
+        summary["outcome_summary"] = dict(status_counts)
+
+    return summary
+
+
+def get_available_tiers(client_file):
+    """Determine which erasure tiers are available based on retention status.
+
+    Returns a dict of tier → {available: bool, reason: str}.
+    Tiers 1 (anonymise) and 2 (anonymise_purge) are always available.
+    Tier 3 (full_erasure) requires the retention period to have expired.
+    """
+    today = timezone.now().date()
+
+    result = {
+        "anonymise": {"available": True, "reason": ""},
+        "anonymise_purge": {"available": True, "reason": ""},
+        "full_erasure": {"available": False, "reason": ""},
+    }
+
+    if client_file.retention_expires:
+        if client_file.retention_expires <= today:
+            result["full_erasure"]["available"] = True
+            result["full_erasure"]["reason"] = ""
+        else:
+            days_remaining = (client_file.retention_expires - today).days
+            result["full_erasure"]["reason"] = _(
+                "Retention period has not expired. %(days)s days remaining "
+                "(expires %(date)s). Only anonymisation is available."
+            ) % {"days": days_remaining, "date": client_file.retention_expires}
+    else:
+        result["full_erasure"]["reason"] = _(
+            "No retention period has been set for this client. "
+            "Set a retention expiry date before requesting full erasure."
+        )
+
+    return result
 
 
 def get_required_programs(client_file):
@@ -190,26 +256,26 @@ def record_approval(erasure_request, user, program, ip_address, review_notes="")
 
 
 def execute_erasure(erasure_request, ip_address):
-    """Execute the actual client data deletion. Called internally only.
+    """Dispatch to the appropriate tier's execution logic.
 
     Must be called within a transaction (record_approval wraps it).
-
-    1. Scrub PII on linked RegistrationSubmissions
-    2. Set ClientFile convenience flags
-    3. Delete the ClientFile (CASCADE handles all related records)
-    4. Update ErasureRequest status
-    5. Create audit log entry (outside main transaction since audit DB is separate)
     """
+    tier = erasure_request.erasure_tier
+
+    if tier == "anonymise":
+        _execute_tier1_anonymise(erasure_request, ip_address)
+    elif tier == "anonymise_purge":
+        _execute_tier2_anonymise_purge(erasure_request, ip_address)
+    elif tier == "full_erasure":
+        _execute_tier3_full_erasure(erasure_request, ip_address)
+    else:
+        raise ValueError(f"Unknown erasure tier: {tier}")
+
+
+def _scrub_registration_submissions(client):
+    """Scrub PII from RegistrationSubmissions linked to a client."""
     from apps.registration.models import RegistrationSubmission
 
-    client = erasure_request.client_file
-    if client is None:
-        raise ValueError("Client file no longer exists.")
-
-    client_pk = client.pk
-    record_id = client.record_id
-
-    # 1. Scrub PII on linked RegistrationSubmissions (before delete nulls the FK)
     RegistrationSubmission.objects.filter(client_file=client).update(
         _first_name_encrypted=b"",
         _last_name_encrypted=b"",
@@ -218,25 +284,78 @@ def execute_erasure(erasure_request, ip_address):
         email_hash="",
     )
 
-    # 2. Delete the ClientFile — CASCADE handles all related records
-    client.delete()
 
-    # 3. Update the ErasureRequest
-    erasure_request.status = "approved"
-    erasure_request.completed_at = timezone.now()
-    erasure_request.client_file = None  # Already deleted, make explicit
-    erasure_request.save(update_fields=["status", "completed_at", "client_file"])
+def _anonymise_client_pii(client, erasure_code):
+    """Strip all PII from a ClientFile record, keeping the record intact.
 
-    # 4. Audit log (try/except — audit DB failure shouldn't break erasure)
+    Sets encrypted fields to empty bytes, replaces record_id with erasure code.
+    """
+    from .models import ClientDetailValue
+
+    # Blank client identifying fields
+    client._first_name_encrypted = b""
+    client._middle_name_encrypted = b""
+    client._last_name_encrypted = b""
+    client._birth_date_encrypted = b""
+    client.record_id = erasure_code
+    client.status = "discharged"
+    client.is_anonymised = True
+    client.erasure_completed_at = timezone.now()
+    client.save()
+
+    # Blank sensitive custom field values
+    ClientDetailValue.objects.filter(
+        client_file=client,
+        field_def__is_sensitive=True,
+    ).update(_value_encrypted=b"", value="")
+
+    # Also blank non-sensitive custom field values (may contain identifying info)
+    ClientDetailValue.objects.filter(
+        client_file=client,
+        field_def__is_sensitive=False,
+    ).update(value="")
+
+
+def _purge_narrative_content(client):
+    """Blank all narrative/text content from a client's related records.
+
+    Keeps the records themselves (dates, structure, numeric metrics survive).
+    """
+    from apps.events.models import Alert, Event
+    from apps.notes.models import ProgressNote, ProgressNoteTarget
+
+    # Blank progress note text
+    ProgressNote.objects.filter(client_file=client).update(
+        _notes_text_encrypted=b"",
+        _summary_encrypted=b"",
+        _participant_reflection_encrypted=b"",
+    )
+
+    # Blank target-level notes
+    ProgressNoteTarget.objects.filter(
+        progress_note__client_file=client,
+    ).update(_notes_encrypted=b"")
+
+    # Blank alert content
+    Alert.objects.filter(client_file=client).update(content="")
+
+    # Blank event text (titles and descriptions may contain identifying info)
+    Event.objects.filter(client_file=client).update(title="", description="")
+
+
+def _log_erasure_audit(erasure_request, client_pk, record_id, action, ip_address):
+    """Write the audit log entry for an erasure execution."""
     try:
         _log_audit(
-            user=None,  # System action — all approvers are recorded in ErasureApproval
-            action="delete",
+            user=None,
+            action=action,
             resource_type="client_erasure",
             resource_id=client_pk,
             ip_address=ip_address,
             metadata={
                 "erasure_request_id": erasure_request.pk,
+                "erasure_code": erasure_request.erasure_code,
+                "erasure_tier": erasure_request.erasure_tier,
                 "record_id": record_id,
                 "requested_by": erasure_request.requested_by_display,
                 "reason_category": erasure_request.reason_category,
@@ -251,9 +370,83 @@ def execute_erasure(erasure_request, ip_address):
         )
     except Exception:
         logger.error(
-            "Failed to write audit log for erasure request %s (client %s)",
-            erasure_request.pk, client_pk, exc_info=True,
+            "Failed to write audit log for erasure %s (client %s)",
+            erasure_request.erasure_code, client_pk, exc_info=True,
         )
+
+
+def _execute_tier1_anonymise(erasure_request, ip_address):
+    """Tier 1: Strip all PII, keep all service records intact.
+
+    The client record survives as [ANONYMISED] with programme enrolments,
+    progress notes, plans, metrics, events, and alerts all preserved.
+    No identifying information remains linked to the record.
+    """
+    client = erasure_request.client_file
+    if client is None:
+        raise ValueError("Client file no longer exists.")
+
+    client_pk = client.pk
+    record_id = client.record_id
+
+    _scrub_registration_submissions(client)
+    _anonymise_client_pii(client, erasure_request.erasure_code)
+
+    # Update the ErasureRequest — client_file stays linked (record still exists)
+    erasure_request.status = "anonymised"
+    erasure_request.completed_at = timezone.now()
+    erasure_request.save(update_fields=["status", "completed_at"])
+
+    _log_erasure_audit(erasure_request, client_pk, record_id, "update", ip_address)
+
+
+def _execute_tier2_anonymise_purge(erasure_request, ip_address):
+    """Tier 2: Strip all PII AND blank all narrative content.
+
+    Like Tier 1 but also removes text from notes, alerts, and events.
+    Numeric metrics, plan structure, and programme enrolments survive.
+    """
+    client = erasure_request.client_file
+    if client is None:
+        raise ValueError("Client file no longer exists.")
+
+    client_pk = client.pk
+    record_id = client.record_id
+
+    _scrub_registration_submissions(client)
+    _anonymise_client_pii(client, erasure_request.erasure_code)
+    _purge_narrative_content(client)
+
+    erasure_request.status = "anonymised"
+    erasure_request.completed_at = timezone.now()
+    erasure_request.save(update_fields=["status", "completed_at"])
+
+    _log_erasure_audit(erasure_request, client_pk, record_id, "update", ip_address)
+
+
+def _execute_tier3_full_erasure(erasure_request, ip_address):
+    """Tier 3: CASCADE delete — the original behaviour.
+
+    Deletes the ClientFile and all related records. Only the ErasureRequest
+    tombstone survives (with data_summary counts and erasure_code).
+    Only available when the retention period has expired.
+    """
+    client = erasure_request.client_file
+    if client is None:
+        raise ValueError("Client file no longer exists.")
+
+    client_pk = client.pk
+    record_id = client.record_id
+
+    _scrub_registration_submissions(client)
+    client.delete()
+
+    erasure_request.status = "approved"
+    erasure_request.completed_at = timezone.now()
+    erasure_request.client_file = None
+    erasure_request.save(update_fields=["status", "completed_at", "client_file"])
+
+    _log_erasure_audit(erasure_request, client_pk, record_id, "delete", ip_address)
 
 
 def _is_admin_fallback(erasure_request, user):

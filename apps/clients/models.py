@@ -1,6 +1,7 @@
 """Client file and custom field models."""
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from konote.encryption import decrypt_field, encrypt_field
@@ -81,7 +82,15 @@ class ClientFile(models.Model):
         db_table = "client_files"
         ordering = ["-updated_at"]
 
+    # Anonymisation flag — set after PII is stripped
+    is_anonymised = models.BooleanField(
+        default=False,
+        help_text="True after PII has been stripped. Record kept for statistical purposes.",
+    )
+
     def __str__(self):
+        if self.is_anonymised:
+            return _("[ANONYMISED]")
         return f"{self.first_name} {self.last_name}" if self.first_name else f"Client #{self.pk}"
 
     # Encrypted property accessors
@@ -264,16 +273,23 @@ class ErasureRequest(models.Model):
     """
     Tracks a client data erasure request through a multi-PM approval workflow.
 
-    Workflow: Staff requests → all program managers approve → data erased.
-    Survives after the ClientFile is deleted (client_file becomes NULL).
+    Workflow: PM requests → all program managers approve → data anonymised/erased.
+    Survives after the ClientFile is deleted or anonymised (client_file SET_NULL on delete).
     Stores enough non-PII metadata to serve as a permanent audit record.
     """
 
     STATUS_CHOICES = [
         ("pending", _("Pending Approval")),
+        ("anonymised", _("Approved — Data Anonymised")),
         ("approved", _("Approved — Data Erased")),
         ("rejected", _("Rejected")),
         ("cancelled", _("Cancelled")),
+    ]
+
+    TIER_CHOICES = [
+        ("anonymise", _("Anonymise")),
+        ("anonymise_purge", _("Anonymise + Purge Notes")),
+        ("full_erasure", _("Full Erasure")),
     ]
 
     REASON_CATEGORY_CHOICES = [
@@ -309,6 +325,16 @@ class ErasureRequest(models.Model):
         help_text="Why this data should be erased. Do not include client names.",
     )
 
+    # Erasure tier and tracking code
+    erasure_tier = models.CharField(
+        max_length=20, choices=TIER_CHOICES, default="anonymise",
+        help_text="Level of data erasure: anonymise (default), purge notes, or full delete.",
+    )
+    erasure_code = models.CharField(
+        max_length=20, unique=True, blank=True, default="",
+        help_text="Auto-generated reference code, e.g. ER-2026-001.",
+    )
+
     # Approval tracking
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -324,8 +350,18 @@ class ErasureRequest(models.Model):
         db_table = "erasure_requests"
         ordering = ["-requested_at"]
 
+    def save(self, *args, **kwargs):
+        if not self.erasure_code:
+            year = timezone.now().year
+            last = ErasureRequest.objects.filter(
+                erasure_code__startswith=f"ER-{year}-",
+            ).count()
+            self.erasure_code = f"ER-{year}-{last + 1:03d}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Erasure #{self.pk} — Client #{self.client_pk} ({self.get_status_display()})"
+        code = self.erasure_code or f"#{self.pk}"
+        return f"Erasure {code} — Client #{self.client_pk} ({self.get_status_display()})"
 
 
 class ErasureApproval(models.Model):

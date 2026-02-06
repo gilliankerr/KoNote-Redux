@@ -1,18 +1,36 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Erase Client Data" %} — {{ client }}{% endblock %}
+{% block title %}{% trans "Request Data Erasure" %} — {{ client }}{% endblock %}
 
 {% block content %}
 <hgroup>
-    <h1>{% trans "Erase Client Data" %}</h1>
+    <h1>{% trans "Request Data Erasure" %}</h1>
     <p>{{ client }}</p>
 </hgroup>
 
 <article aria-label="warning" class="warning" style="border-left: 4px solid var(--pico-del-color); background: var(--pico-del-color-bg, rgba(255,0,0,0.05));">
     <strong>{% trans "This action cannot be undone." %}</strong>
-    {% trans "All client data will be permanently deleted once all program managers approve. Recovery requires a database backup." %}
+    {% trans "Once all programme managers approve, client data will be permanently anonymised or erased depending on the level selected below." %}
 </article>
+
+{# Retention status #}
+{% if client.retention_expires %}
+<article>
+    <strong>{% trans "Retention period:" %}</strong>
+    {% blocktrans with date=client.retention_expires %}Expires {{ date }}{% endblocktrans %}
+    {% if available_tiers.full_erasure.available %}
+    <br><small class="secondary">{% trans "Retention period has expired. All erasure levels are available." %}</small>
+    {% else %}
+    <br><small>{{ available_tiers.full_erasure.reason }}</small>
+    {% endif %}
+</article>
+{% else %}
+<article>
+    <strong>{% trans "No retention period set." %}</strong>
+    <small class="secondary">{% trans "Consider setting a retention expiry date on this client record. Full erasure is only available after the retention period expires." %}</small>
+</article>
+{% endif %}
 
 {% if active_alerts %}
 <article aria-label="active alerts" class="warning">
@@ -28,7 +46,7 @@
 
 <article>
     <header>
-        <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Data that will be erased" %}</h2>
+        <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Data that will be affected" %}</h2>
     </header>
     <figure>
         <table role="grid">
@@ -45,20 +63,49 @@
                 <tr><td>{% trans "Events" %}</td><td>{{ data_summary.events|default:"0" }}</td></tr>
                 <tr><td>{% trans "Alerts" %}</td><td>{{ data_summary.alerts|default:"0" }}</td></tr>
                 <tr><td>{% trans "Custom Field Values" %}</td><td>{{ data_summary.custom_field_values|default:"0" }}</td></tr>
-                <tr><td>{% trans "Program Enrolments" %}</td><td>{{ data_summary.enrolments|default:"0" }}</td></tr>
+                <tr><td>{% trans "Programme Enrolments" %}</td><td>{{ data_summary.enrolments|default:"0" }}</td></tr>
                 <tr><td>{% trans "Metric Values" %}</td><td>{{ data_summary.metric_values|default:"0" }}</td></tr>
             </tbody>
         </table>
     </figure>
-    <small>{% trans "Previously exported files expire within 24 hours." %}</small>
 </article>
 
 <article>
-    <header>
-        <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Request Details" %}</h2>
-    </header>
     <form method="post">
         {% csrf_token %}
+
+        {# Erasure tier selection #}
+        <fieldset>
+            <legend><strong>{{ form.erasure_tier.label }}</strong></legend>
+            <p class="secondary" style="font-size: 0.875rem; margin-bottom: 0.75rem;">
+                {% trans "Choose the level of data removal. Anonymisation (recommended) removes identifying information while keeping service records for compliance and reporting." %}
+            </p>
+            {% for radio in form.erasure_tier %}
+            <label style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; {% if radio.choice_value == 'full_erasure' and not available_tiers.full_erasure.available %}opacity: 0.5;{% endif %}">
+                <input type="radio" name="{{ form.erasure_tier.html_name }}" value="{{ radio.choice_value }}"
+                       {% if radio.is_checked %}checked{% endif %}
+                       {% if radio.choice_value == 'full_erasure' and not available_tiers.full_erasure.available %}disabled{% endif %}
+                       style="margin-top: 0.25rem;">
+                <span>
+                    {{ radio.choice_label }}
+                    {% if radio.choice_value == "anonymise" %}
+                    <br><small class="secondary">{% trans "Removes name, date of birth, and other identifying fields. Keeps notes, metrics, plans, and programme data for reporting." %}</small>
+                    {% elif radio.choice_value == "anonymise_purge" %}
+                    <br><small class="secondary">{% trans "Removes identifying fields AND all narrative content (notes, alerts, event descriptions). Keeps numeric metrics and programme enrolments." %}</small>
+                    {% elif radio.choice_value == "full_erasure" %}
+                    <br><small class="secondary">{% trans "Permanently deletes all records. Only a statistical summary is preserved." %}
+                    {% if not available_tiers.full_erasure.available %}<br><em>{{ available_tiers.full_erasure.reason }}</em>{% endif %}
+                    </small>
+                    {% endif %}
+                </span>
+            </label>
+            {% endfor %}
+            {% if form.erasure_tier.errors %}
+            <small class="error">{{ form.erasure_tier.errors.0 }}</small>
+            {% endif %}
+        </fieldset>
+
+        {# Reason and details #}
         <label for="id_reason_category">{{ form.reason_category.label }}</label>
         {{ form.reason_category }}
         {% if form.reason_category.errors %}
@@ -74,10 +121,65 @@
         <small class="error">{{ form.request_reason.errors.0 }}</small>
         {% endif %}
 
+        {# Acknowledgement checkboxes #}
+        <hr style="margin: 1.5rem 0;">
+        <fieldset>
+            <legend><strong>{% trans "Before submitting, confirm you understand:" %}</strong></legend>
+
+            <label style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <input type="checkbox" name="ack_permanent" class="erasure-ack-checkbox" style="margin-top: 0.25rem;" {% if form.ack_permanent.value %}checked{% endif %}>
+                <span>{{ form.ack_permanent.label }}</span>
+            </label>
+            {% if form.ack_permanent.errors %}
+            <small class="error">{{ form.ack_permanent.errors.0 }}</small>
+            {% endif %}
+
+            <label style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <input type="checkbox" name="ack_authorised" class="erasure-ack-checkbox" style="margin-top: 0.25rem;" {% if form.ack_authorised.value %}checked{% endif %}>
+                <span>{{ form.ack_authorised.label }}</span>
+            </label>
+            {% if form.ack_authorised.errors %}
+            <small class="error">{{ form.ack_authorised.errors.0 }}</small>
+            {% endif %}
+
+            <label style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <input type="checkbox" name="ack_notify" class="erasure-ack-checkbox" style="margin-top: 0.25rem;" {% if form.ack_notify.value %}checked{% endif %}>
+                <span>{{ form.ack_notify.label }}</span>
+            </label>
+            {% if form.ack_notify.errors %}
+            <small class="error">{{ form.ack_notify.errors.0 }}</small>
+            {% endif %}
+        </fieldset>
+
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-            <button type="submit" style="background-color: var(--pico-del-color);" {% trans "Are you sure? This will start the erasure approval process." as confirm_msg %}onclick="return confirm('{{ confirm_msg|escapejs }}')">{% trans "Submit Erasure Request" %}</button>
+            <button type="submit" id="erasure-submit-btn" disabled style="opacity: 0.5;">{% trans "Submit Erasure Request" %}</button>
             <a href="{% url 'clients:client_detail' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Cancel" %}</a>
         </div>
     </form>
 </article>
+
+<script>
+(function() {
+    var acks = document.querySelectorAll('.erasure-ack-checkbox');
+    var submitBtn = document.getElementById('erasure-submit-btn');
+
+    function updateSubmitState() {
+        var allChecked = Array.from(acks).every(function(cb) { return cb.checked; });
+        submitBtn.disabled = !allChecked;
+        if (allChecked) {
+            submitBtn.style.backgroundColor = 'var(--pico-del-color)';
+            submitBtn.style.opacity = '1';
+        } else {
+            submitBtn.style.backgroundColor = '';
+            submitBtn.style.opacity = '0.5';
+        }
+    }
+
+    acks.forEach(function(cb) {
+        cb.addEventListener('change', updateSubmitState);
+    });
+
+    updateSubmitState();
+})();
+</script>
 {% endblock %}

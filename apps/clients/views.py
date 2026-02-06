@@ -268,6 +268,8 @@ def client_detail(request, client_id):
         client_file=client, status="pending",
     ).exists()
 
+    is_pm_or_admin = user_role in ("program_manager", "executive") or getattr(request.user, "is_admin", False)
+
     context = {
         "client": client,
         "enrolments": enrolments,
@@ -276,6 +278,7 @@ def client_detail(request, client_id):
         "active_tab": "info",
         "user_role": user_role,
         "is_receptionist": is_receptionist,
+        "is_pm_or_admin": is_pm_or_admin,
         "pending_erasure": pending_erasure,
         "document_folder_url": get_document_folder_url(client),
         "breadcrumbs": breadcrumbs,
