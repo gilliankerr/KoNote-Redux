@@ -26,7 +26,7 @@
 
     {% if user.is_authenticated and user.is_demo %}
     <div class="demo-banner" role="alert" aria-live="polite">
-        <strong>Demo Mode:</strong> You are logged in as {{ user.display_name }}. Changes affect demo data only.
+        <strong>{% trans "Demo Mode:" %}</strong> {% blocktrans with name=user.display_name %}You are logged in as {{ name }}. Changes affect demo data only.{% endblocktrans %}
     </div>
     {% endif %}
 
@@ -70,6 +70,7 @@
                         <li><a href="/admin/settings/">{% trans "Settings" %}</a></li>
                         <li><a href="/auth/invites/">{% trans "Invites" %}</a></li>
                         <li><a href="/admin/audit/">{% trans "Audit Log" %}</a></li>
+                        <li><a href="/erasure/">{% trans "Erase Client Data" %}{% if pending_erasure_count %} <span class="badge badge-warning">{{ pending_erasure_count }}</span>{% endif %}</a></li>
                         <li><a href="/reports/client-data-export/">{% trans "Export Client Data" %}</a></li>
                     </ul>
                 </details>
@@ -84,29 +85,19 @@
                 </details>
             </li>
             <li>
-                <!-- Language toggle [EN | FR] -->
+                <!-- Language link — canada.ca convention -->
                 {% get_current_language as CURRENT_LANG %}
-                <div class="lang-switcher" role="group" aria-label="{% trans 'Language' %}" style="margin-bottom: 0;">
+                <form action="{% url 'switch_language' %}" method="post" class="nav-lang-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
                     {% if CURRENT_LANG == "en" %}
-                    <strong>EN</strong>
-                    <span class="lang-divider">|</span>
-                    <form action="{% url 'switch_language' %}" method="post" class="lang-switcher-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.path }}">
-                        <input type="hidden" name="language" value="fr">
-                        <button type="submit" class="lang-switcher-link">FR</button>
-                    </form>
+                    <input type="hidden" name="language" value="fr">
+                    <button type="submit" class="lang-link" lang="fr" hreflang="fr">Français</button>
                     {% else %}
-                    <form action="{% url 'switch_language' %}" method="post" class="lang-switcher-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.path }}">
-                        <input type="hidden" name="language" value="en">
-                        <button type="submit" class="lang-switcher-link">EN</button>
-                    </form>
-                    <span class="lang-divider">|</span>
-                    <strong>FR</strong>
+                    <input type="hidden" name="language" value="en">
+                    <button type="submit" class="lang-link" lang="en" hreflang="en">English</button>
                     {% endif %}
-                </div>
+                </form>
             </li>
         </ul>
     </nav>
@@ -127,7 +118,7 @@
     <!-- HTMX error toast — shown by app.js on network/server errors -->
     <div id="htmx-error-toast" class="toast toast-error" role="alert" hidden>
         <span id="htmx-error-toast-message"></span>
-        <button type="button" id="htmx-error-toast-close" aria-label="Dismiss" style="background:none;border:none;cursor:pointer;padding:0 0 0 1rem;font-size:1.2rem;color:inherit;">&times;</button>
+        <button type="button" id="htmx-error-toast-close" aria-label="{% trans 'Dismiss' %}" style="background:none;border:none;cursor:pointer;padding:0 0 0 1rem;font-size:1.2rem;color:inherit;">&times;</button>
     </div>
 
     <footer class="container site-footer" role="contentinfo">

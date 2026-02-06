@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Pending Erasure Requests" %}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{% trans "Pending Erasure Requests" %}</h1>
+    <p>{% trans "Requests awaiting program manager approval." %}</p>
+</hgroup>
+
+<nav aria-label="{% trans 'Erasure request views' %}" style="margin-bottom: 1rem;">
+    <a href="{% url 'erasure_pending_list' %}" class="nav-active outline" role="button">{% trans "Pending" %}</a>
+    <a href="{% url 'erasure_history' %}" role="button" class="outline secondary">{% trans "History" %}</a>
+</nav>
+
+{% if pending_requests %}
+<figure>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th scope="col">{% trans "Record ID" %}</th>
+                <th scope="col">{% trans "Requested By" %}</th>
+                <th scope="col">{% trans "Date" %}</th>
+                <th scope="col">{% trans "Reason" %}</th>
+                <th scope="col">{% trans "Approvals" %}</th>
+                <th scope="col">{% trans "Status" %}</th>
+                <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for er in pending_requests %}
+            <tr>
+                <td>{{ er.client_record_id|default:"—" }}</td>
+                <td>{{ er.requested_by_display }}</td>
+                <td>{{ er.requested_at|date:"Y-m-d" }}</td>
+                <td>{{ er.get_reason_category_display }}</td>
+                <td>
+                    {{ er.approvals.count }}/{{ er.programs_required|length }}
+                    {% if er.is_stuck %}
+                    <span class="badge badge-warning" title="{% trans 'This request may be stuck — a required program has no active PM.' %}">!</span>
+                    {% endif %}
+                </td>
+                <td><span class="badge badge-warning">{% trans "Pending" %}</span></td>
+                <td><a href="{% url 'erasure_request_detail' pk=er.pk %}">{% trans "Review" %}</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</figure>
+{% else %}
+<div class="empty-state">
+    <p>{% trans "No pending erasure requests." %}</p>
+</div>
+{% endif %}
+{% endblock %}

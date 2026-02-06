@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Erasure History" %}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{% trans "Erasure History" %}</h1>
+    <p>{% trans "All erasure requests and their outcomes." %}</p>
+</hgroup>
+
+<nav aria-label="{% trans 'Erasure request views' %}" style="margin-bottom: 1rem;">
+    <a href="{% url 'erasure_pending_list' %}" role="button" class="outline secondary">{% trans "Pending" %}</a>
+    <a href="{% url 'erasure_history' %}" class="nav-active outline" role="button">{% trans "History" %}</a>
+</nav>
+
+{% if erasure_requests %}
+<figure>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">{% trans "Record ID" %}</th>
+                <th scope="col">{% trans "Requested By" %}</th>
+                <th scope="col">{% trans "Date" %}</th>
+                <th scope="col">{% trans "Reason" %}</th>
+                <th scope="col">{% trans "Status" %}</th>
+                <th scope="col">{% trans "Completed" %}</th>
+                <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for er in erasure_requests %}
+            <tr>
+                <td>{{ er.pk }}</td>
+                <td>{{ er.client_record_id|default:"—" }}</td>
+                <td>{{ er.requested_by_display }}</td>
+                <td>{{ er.requested_at|date:"Y-m-d" }}</td>
+                <td>{{ er.get_reason_category_display }}</td>
+                <td>
+                    {% if er.status == "pending" %}
+                    <span class="badge badge-warning">{{ er.get_status_display }}</span>
+                    {% elif er.status == "approved" %}
+                    <span class="badge badge-success">{{ er.get_status_display }}</span>
+                    {% elif er.status == "rejected" %}
+                    <span class="badge badge-danger">{{ er.get_status_display }}</span>
+                    {% else %}
+                    <span class="badge badge-secondary">{{ er.get_status_display }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ er.completed_at|date:"Y-m-d"|default:"—" }}</td>
+                <td><a href="{% url 'erasure_request_detail' pk=er.pk %}">{% trans "View" %}</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</figure>
+{% else %}
+<div class="empty-state">
+    <p>{% trans "No erasure requests have been made." %}</p>
+</div>
+{% endif %}
+{% endblock %}

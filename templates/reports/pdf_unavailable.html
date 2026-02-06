@@ -14,7 +14,7 @@
         <strong>{% trans "What happened?" %}</strong>
     </header>
     <p>
-        {% trans "PDF report generation requires <strong>WeasyPrint</strong> and its native GTK libraries. These are not installed on this server." %}
+        {% blocktrans with strong_open="<strong>" strong_close="</strong>" %}PDF report generation requires {{ strong_open }}WeasyPrint{{ strong_close }} and its native GTK libraries. These are not installed on this server.{% endblocktrans %}
     </p>
     {% if reason %}
     <details>

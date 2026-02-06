@@ -2,7 +2,10 @@
 """
 Validate .po translation files for common errors.
 
-Checks for duplicate msgid entries that would cause compilemessages to fail.
+Checks for:
+  1. Duplicate msgid entries (would cause compilemessages to fail)
+  2. Untranslated entries (msgid exists but msgstr is empty)
+
 Run this before compilemessages to get clear, actionable error messages.
 """
 
@@ -38,6 +41,61 @@ def find_duplicate_msgids(po_file_path):
     return duplicates
 
 
+def find_untranslated_entries(po_file_path):
+    """Find msgid entries that have no translation (empty msgstr)."""
+    with open(po_file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    untranslated = []
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Skip the header block (first msgid "")
+        if line == 'msgid ""' and i < 5:
+            # Skip past the header's msgstr block
+            i += 1
+            while i < len(lines) and lines[i].strip().startswith('"'):
+                i += 1
+            if i < len(lines) and lines[i].strip().startswith('msgstr'):
+                i += 1
+                while i < len(lines) and lines[i].strip().startswith('"'):
+                    i += 1
+            continue
+
+        # Found a msgid line
+        if line.startswith('msgid "') and line != 'msgid ""':
+            msgid_line = i + 1  # 1-indexed
+            match = re.match(r'^msgid "(.+)"$', line)
+            if match:
+                msgid = match.group(1)
+                # Read continuation lines
+                i += 1
+                while i < len(lines) and lines[i].strip().startswith('"'):
+                    msgid += lines[i].strip().strip('"')
+                    i += 1
+
+                # Now expect msgstr
+                if i < len(lines) and lines[i].strip().startswith('msgstr'):
+                    msgstr_line = lines[i].strip()
+                    msgstr_match = re.match(r'^msgstr "(.*)"$', msgstr_line)
+                    msgstr_value = msgstr_match.group(1) if msgstr_match else ''
+
+                    # Read continuation lines for msgstr
+                    i += 1
+                    while i < len(lines) and lines[i].strip().startswith('"'):
+                        msgstr_value += lines[i].strip().strip('"')
+                        i += 1
+
+                    if not msgstr_value:
+                        untranslated.append((msgid_line, msgid))
+                continue
+
+        i += 1
+
+    return untranslated
+
+
 def main():
     """Check all .po files in locale directories."""
     locale_dir = Path(__file__).parent.parent / 'locale'
@@ -53,13 +111,16 @@ def main():
         return 0
 
     errors_found = False
+    warnings_found = False
 
     for po_file in po_files:
+        rel_path = po_file.relative_to(locale_dir.parent)
+
+        # Check 1: Duplicates (errors — will break compilemessages)
         duplicates = find_duplicate_msgids(po_file)
 
         if duplicates:
             errors_found = True
-            rel_path = po_file.relative_to(locale_dir.parent)
 
             print(f"\n{'='*60}")
             print(f"ERROR: Duplicate translations in {rel_path}")
@@ -79,9 +140,29 @@ def main():
             print("4. Make sure to delete the entire block (msgid + msgstr lines)")
             print()
 
+        # Check 2: Untranslated entries (warnings — will show English to users)
+        untranslated = find_untranslated_entries(po_file)
+
+        if untranslated:
+            warnings_found = True
+
+            print(f"\n{'='*60}")
+            print(f"WARNING: {len(untranslated)} untranslated string(s) in {rel_path}")
+            print(f"{'='*60}\n")
+
+            for line_num, msgid in untranslated:
+                print(f'  Line {line_num}: "{msgid}"')
+
+            print(f"\nThese strings will appear in English for French users.")
+            print(f"Add French translations in {rel_path} for each msgstr.\n")
+
     if errors_found:
         print("Translation validation FAILED - fix duplicates before deploying")
         return 1
+
+    if warnings_found:
+        print("Translation validation passed with WARNINGS - untranslated strings found")
+        return 0
 
     print(f"Translation validation passed - checked {len(po_files)} file(s)")
     return 0

@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from .forms import UserCreateForm, UserEditForm
 from .models import User
@@ -34,7 +35,7 @@ def user_create(request):
         form = UserCreateForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "User created.")
+            messages.success(request, _("User created."))
             return redirect("auth_app:user_list")
     else:
         form = UserCreateForm()
@@ -49,7 +50,7 @@ def user_edit(request, user_id):
         form = UserEditForm(request.POST, instance=user)
         if form.is_valid():
             form.save()
-            messages.success(request, "User updated.")
+            messages.success(request, _("User updated."))
             return redirect("auth_app:user_list")
     else:
         form = UserEditForm(instance=user)
@@ -64,11 +65,11 @@ def user_deactivate(request, user_id):
     user = get_object_or_404(User, pk=user_id)
     if request.method == "POST":
         if user == request.user:
-            messages.error(request, "You cannot deactivate your own account.")
+            messages.error(request, _("You cannot deactivate your own account."))
         else:
             user.is_active = False
             user.save()
-            messages.success(request, f"User '{user.display_name}' deactivated.")
+            messages.success(request, _("User '%(name)s' deactivated.") % {"name": user.display_name})
     return redirect("auth_app:user_list")
 
 
@@ -87,13 +88,13 @@ def impersonate_user(request, user_id):
     if not target_user.is_demo:
         messages.error(
             request,
-            "Cannot impersonate real users. Only demo accounts can be impersonated."
+            _("Cannot impersonate real users. Only demo accounts can be impersonated.")
         )
         return redirect("auth_app:user_list")
 
     # Additional check: target must be active
     if not target_user.is_active:
-        messages.error(request, "Cannot impersonate inactive users.")
+        messages.error(request, _("Cannot impersonate inactive users."))
         return redirect("auth_app:user_list")
 
     # Log the impersonation for audit trail
@@ -113,8 +114,11 @@ def impersonate_user(request, user_id):
 
     messages.success(
         request,
-        f"You are now logged in as {target_user.get_display_name()} (demo account). "
-        f"Impersonated by admin '{original_username}'."
+        _("You are now logged in as %(name)s (demo account). "
+          "Impersonated by admin '%(admin)s'.") % {
+            "name": target_user.get_display_name(),
+            "admin": original_username,
+        }
     )
     return redirect("/")
 

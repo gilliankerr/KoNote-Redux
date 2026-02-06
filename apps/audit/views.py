@@ -8,6 +8,8 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render
 from django.utils import timezone
 
+from apps.reports.csv_utils import sanitise_csv_row
+
 from .models import AuditLog
 
 
@@ -124,10 +126,10 @@ def audit_log_export(request):
     response["Content-Disposition"] = f'attachment; filename="audit_log_{today}.csv"'
 
     writer = csv.writer(response)
-    writer.writerow(["Timestamp", "User", "IP Address", "Action", "Resource Type", "Resource ID", "Program ID"])
+    writer.writerow(sanitise_csv_row(["Timestamp", "User", "IP Address", "Action", "Resource Type", "Resource ID", "Program ID"]))
 
     for entry in qs.iterator():
-        writer.writerow([
+        writer.writerow(sanitise_csv_row([
             entry.event_timestamp.strftime("%Y-%m-%d %H:%M"),
             entry.user_display,
             entry.ip_address or "",
@@ -135,7 +137,7 @@ def audit_log_export(request):
             entry.resource_type,
             entry.resource_id or "",
             entry.program_id or "",
-        ])
+        ]))
 
     # Log the export action
     filters_used = {k: v for k, v in {

@@ -327,8 +327,10 @@ class CustomFieldTest(TestCase):
     def test_save_sensitive_custom_field_encrypted(self):
         self.client.login(username="admin", password="testpass123")
         group = CustomFieldGroup.objects.create(title="Contact")
+        # Use a generic name to avoid auto-detecting validation_type as "phone"
+        # This test is about encryption, not phone validation
         field_def = CustomFieldDefinition.objects.create(
-            group=group, name="Phone", input_type="text", is_sensitive=True
+            group=group, name="Secret Code", input_type="text", is_sensitive=True
         )
         cf = ClientFile()
         cf.first_name = "Jane"
@@ -337,14 +339,129 @@ class CustomFieldTest(TestCase):
         # Enrol client in program so admin has access
         ClientProgramEnrolment.objects.create(client_file=cf, program=self.program)
         resp = self.client.post(f"/clients/{cf.pk}/custom-fields/", {
-            f"custom_{field_def.pk}": "555-0100",
+            f"custom_{field_def.pk}": "secret-value-123",
         })
         self.assertEqual(resp.status_code, 302)
         cdv = ClientDetailValue.objects.get(client_file=cf, field_def=field_def)
         # Value should be retrievable via get_value() (decrypted)
-        self.assertEqual(cdv.get_value(), "555-0100")
+        self.assertEqual(cdv.get_value(), "secret-value-123")
         # Plain value field should be empty (stored encrypted instead)
         self.assertEqual(cdv.value, "")
+
+
+@override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY)
+class SelectOtherFieldTest(TestCase):
+    """Tests for the select_other input type (dropdown with free-text Other option)."""
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.client = Client()
+        self.admin = User.objects.create_user(username="admin", password="testpass123", is_admin=True)
+        self.program = Program.objects.create(name="Test Program", colour_hex="#10B981")
+        UserProgramRole.objects.create(user=self.admin, program=self.program, role="program_manager")
+        self.group = CustomFieldGroup.objects.create(title="Contact Information")
+        self.pronouns_field = CustomFieldDefinition.objects.create(
+            group=self.group, name="Pronouns", input_type="select_other",
+            is_sensitive=True, receptionist_access="view",
+            options_json=["He/him", "He/they", "She/her", "She/they", "They/them", "Prefer not to answer"],
+        )
+        self.cf = ClientFile()
+        self.cf.first_name = "Alex"
+        self.cf.last_name = "Taylor"
+        self.cf.save()
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.program)
+        self.client.login(username="admin", password="testpass123")
+
+    def test_save_standard_option(self):
+        """Selecting a standard dropdown option stores that value."""
+        resp = self.client.post(f"/clients/{self.cf.pk}/custom-fields/", {
+            f"custom_{self.pronouns_field.pk}": "They/them",
+            f"custom_{self.pronouns_field.pk}_other": "",
+        })
+        self.assertIn(resp.status_code, [200, 302])
+        cdv = ClientDetailValue.objects.get(client_file=self.cf, field_def=self.pronouns_field)
+        self.assertEqual(cdv.get_value(), "They/them")
+
+    def test_save_other_uses_free_text(self):
+        """Selecting 'Other' stores the free-text value, not '__other__'."""
+        resp = self.client.post(f"/clients/{self.cf.pk}/custom-fields/", {
+            f"custom_{self.pronouns_field.pk}": "__other__",
+            f"custom_{self.pronouns_field.pk}_other": "xe/xem",
+        })
+        self.assertIn(resp.status_code, [200, 302])
+        cdv = ClientDetailValue.objects.get(client_file=self.cf, field_def=self.pronouns_field)
+        self.assertEqual(cdv.get_value(), "xe/xem")
+
+    def test_save_other_strips_whitespace(self):
+        """Free-text Other value has whitespace stripped."""
+        resp = self.client.post(f"/clients/{self.cf.pk}/custom-fields/", {
+            f"custom_{self.pronouns_field.pk}": "__other__",
+            f"custom_{self.pronouns_field.pk}_other": "  ze/zir  ",
+        })
+        self.assertIn(resp.status_code, [200, 302])
+        cdv = ClientDetailValue.objects.get(client_file=self.cf, field_def=self.pronouns_field)
+        self.assertEqual(cdv.get_value(), "ze/zir")
+
+    def test_pronouns_encrypted_when_sensitive(self):
+        """Pronouns field with is_sensitive=True stores encrypted value."""
+        self.client.post(f"/clients/{self.cf.pk}/custom-fields/", {
+            f"custom_{self.pronouns_field.pk}": "She/her",
+            f"custom_{self.pronouns_field.pk}_other": "",
+        })
+        cdv = ClientDetailValue.objects.get(client_file=self.cf, field_def=self.pronouns_field)
+        self.assertEqual(cdv.get_value(), "She/her")
+        # Plain value should be empty — stored encrypted instead
+        self.assertEqual(cdv.value, "")
+
+    def test_other_value_detected_in_context(self):
+        """Custom (Other) values are flagged as is_other_value in the view context."""
+        # Save a non-standard value
+        cdv = ClientDetailValue.objects.create(client_file=self.cf, field_def=self.pronouns_field)
+        cdv.set_value("xe/xem")
+        cdv.save()
+        # Fetch the edit view (HTMX partial)
+        resp = self.client.get(
+            f"/clients/{self.cf.pk}/custom-fields/edit/",
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(resp.status_code, 200)
+        # Check that is_other_value is True for this field in context
+        for group in resp.context["custom_data"]:
+            for item in group["fields"]:
+                if item["field_def"].pk == self.pronouns_field.pk:
+                    self.assertTrue(item["is_other_value"])
+
+    def test_standard_value_not_flagged_as_other(self):
+        """Standard dropdown values are NOT flagged as is_other_value."""
+        cdv = ClientDetailValue.objects.create(client_file=self.cf, field_def=self.pronouns_field)
+        cdv.set_value("They/them")
+        cdv.save()
+        resp = self.client.get(
+            f"/clients/{self.cf.pk}/custom-fields/edit/",
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(resp.status_code, 200)
+        for group in resp.context["custom_data"]:
+            for item in group["fields"]:
+                if item["field_def"].pk == self.pronouns_field.pk:
+                    self.assertFalse(item["is_other_value"])
+
+    def test_front_desk_can_view_but_not_edit(self):
+        """Front desk staff (receptionist) can see pronouns but not edit them."""
+        receptionist = User.objects.create_user(username="frontdesk", password="testpass123")
+        UserProgramRole.objects.create(user=receptionist, program=self.program, role="receptionist")
+        # Save a value first
+        cdv = ClientDetailValue.objects.create(client_file=self.cf, field_def=self.pronouns_field)
+        cdv.set_value("They/them")
+        cdv.save()
+        self.client.login(username="frontdesk", password="testpass123")
+        # Display view should show the value
+        resp = self.client.get(
+            f"/clients/{self.cf.pk}/custom-fields/display/",
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "They/them")
 
 
 @override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY)

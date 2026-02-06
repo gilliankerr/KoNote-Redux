@@ -533,15 +533,16 @@ Discharged and inactive clients:
 
 Some privacy regulations require the ability to permanently delete personal data upon request.
 
-**Current status:** The data model includes fields for erasure requests (`erasure_requested`, `erasure_completed_at`), but the workflow is not yet implemented.
+**How it works:** Any staff member can request erasure from a client's detail page. The request then requires approval from a program manager in each of the client's enrolled programs. Once all approvals are received, the client's data is permanently deleted and an audit record is preserved.
 
-**Workaround for erasure requests:**
-1. Export the client's data for their records (CSV export)
-2. Mark the client as "Inactive"
-3. Document the erasure request in a note
-4. Contact your technical support to discuss database-level removal if legally required
+**Steps:**
+1. Navigate to the client's detail page and click **Erase Client Data**
+2. Select a reason category and provide details (do not include client names)
+3. Submit the request — program managers are notified by email
+4. Each relevant program manager reviews and approves or rejects
+5. Once all approvals are received, the data is permanently erased
 
-**Planned:** A formal erasure workflow with approval process and audit trail is on the roadmap (see GDPR1 in TODO.md).
+**Important:** This action cannot be undone. Recovery requires a database backup. All erasure requests, approvals, and deletions are logged in the audit trail for PIPEDA compliance.
 
 ---
 

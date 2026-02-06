@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.clients.models import ClientFile, CustomFieldDefinition
 
@@ -81,7 +82,7 @@ def link_create(request):
             link.created_by = request.user
             link.save()
             form.save_m2m()  # Save many-to-many relationships (field_groups)
-            messages.success(request, f"Registration link '{link.title}' created.")
+            messages.success(request, _("Registration link '%(title)s' created.") % {"title": link.title})
             return redirect("registration:registration_link_list")
     else:
         form = RegistrationLinkForm()
@@ -103,7 +104,7 @@ def link_edit(request, pk):
         form = RegistrationLinkForm(request.POST, instance=link)
         if form.is_valid():
             form.save()
-            messages.success(request, f"Registration link '{link.title}' updated.")
+            messages.success(request, _("Registration link '%(title)s' updated.") % {"title": link.title})
             return redirect("registration:registration_link_list")
     else:
         form = RegistrationLinkForm(instance=link)
@@ -149,7 +150,7 @@ def link_delete(request, pk):
     if request.method == "POST":
         title = link.title
         link.delete()
-        messages.success(request, f"Registration link '{title}' deleted.")
+        messages.success(request, _("Registration link '%(title)s' deleted.") % {"title": title})
         return redirect("registration:registration_link_list")
 
     return render(request, "registration/admin/link_confirm_delete.html", {
@@ -244,7 +245,7 @@ def submission_approve(request, pk):
 
     if request.method == "POST":
         if submission.status not in ("pending", "waitlist"):
-            messages.error(request, "This submission has already been reviewed.")
+            messages.error(request, _("This submission has already been reviewed."))
             return redirect("registration:submission_detail", pk=pk)
 
         # Use the utility function to create client and enrol
@@ -252,7 +253,10 @@ def submission_approve(request, pk):
 
         messages.success(
             request,
-            f"Approved! Client record created for {client.first_name} {client.last_name}.",
+            _("Approved! Client record created for %(first)s %(last)s.") % {
+                "first": client.first_name,
+                "last": client.last_name,
+            },
         )
         return redirect("registration:submission_list")
 
@@ -266,12 +270,12 @@ def submission_reject(request, pk):
 
     if request.method == "POST":
         if submission.status not in ("pending", "waitlist"):
-            messages.error(request, "This submission has already been reviewed.")
+            messages.error(request, _("This submission has already been reviewed."))
             return redirect("registration:submission_detail", pk=pk)
 
         reason = request.POST.get("reason", "").strip()
         if not reason:
-            messages.error(request, "A rejection reason is required.")
+            messages.error(request, _("A rejection reason is required."))
             return redirect("registration:submission_detail", pk=pk)
 
         submission.status = "rejected"
@@ -280,7 +284,7 @@ def submission_reject(request, pk):
         submission.reviewed_at = timezone.now()
         submission.save()
 
-        messages.success(request, "Submission rejected.")
+        messages.success(request, _("Submission rejected."))
         return redirect("registration:submission_list")
 
     return redirect("registration:submission_detail", pk=pk)
@@ -293,7 +297,7 @@ def submission_waitlist(request, pk):
 
     if request.method == "POST":
         if submission.status not in ("pending", "waitlist"):
-            messages.error(request, "This submission cannot be waitlisted.")
+            messages.error(request, _("This submission cannot be waitlisted."))
             return redirect("registration:submission_detail", pk=pk)
 
         submission.status = "waitlist"
@@ -301,7 +305,7 @@ def submission_waitlist(request, pk):
         submission.reviewed_at = timezone.now()
         submission.save()
 
-        messages.success(request, "Submission moved to waitlist.")
+        messages.success(request, _("Submission moved to waitlist."))
         return redirect("registration:submission_list")
 
     return redirect("registration:submission_detail", pk=pk)
@@ -314,18 +318,18 @@ def submission_merge(request, pk):
 
     if request.method == "POST":
         if submission.status != "pending":
-            messages.error(request, "This submission has already been reviewed.")
+            messages.error(request, _("This submission has already been reviewed."))
             return redirect("registration:submission_detail", pk=pk)
 
         client_id = request.POST.get("client_id")
         if not client_id:
-            messages.error(request, "No client selected for merge.")
+            messages.error(request, _("No client selected for merge."))
             return redirect("registration:submission_detail", pk=pk)
 
         try:
             existing_client = ClientFile.objects.get(pk=client_id)
         except ClientFile.DoesNotExist:
-            messages.error(request, "Selected client not found.")
+            messages.error(request, _("Selected client not found."))
             return redirect("registration:submission_detail", pk=pk)
 
         # Use the utility function to merge
@@ -333,7 +337,10 @@ def submission_merge(request, pk):
 
         messages.success(
             request,
-            f"Merged with existing client {client.first_name} {client.last_name}.",
+            _("Merged with existing client %(first)s %(last)s.") % {
+                "first": client.first_name,
+                "last": client.last_name,
+            },
         )
         return redirect("registration:submission_list")
 

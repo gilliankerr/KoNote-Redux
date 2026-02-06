@@ -2365,3 +2365,455 @@ class ExportWarningDialogTests(TestCase):
         resp = self.client.get("/reports/cmt-export/")
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Draft Template")
+
+
+# =================================================================
+# Individual Client Export — PIPEDA Data Portability (EXP2x-aa)
+# =================================================================
+
+
+@override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY, AUTH_MODE="local")
+class IndividualClientExportViewTests(TestCase):
+    """Tests for the individual client data export view (PIPEDA compliance)."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module.FIELD_ENCRYPTION_KEY = TEST_KEY
+        enc_module._fernet = Fernet(TEST_KEY)
+
+        # Create a program
+        self.program = Program.objects.create(name="Test Program", status="active")
+
+        # Create staff user with program role
+        self.staff_user = User.objects.create_user(
+            username="staff", password="testpass123", display_name="Staff User"
+        )
+        UserProgramRole.objects.create(
+            user=self.staff_user, program=self.program, role="staff"
+        )
+
+        # Create receptionist user
+        self.receptionist = User.objects.create_user(
+            username="receptionist", password="testpass123", display_name="Receptionist"
+        )
+        UserProgramRole.objects.create(
+            user=self.receptionist, program=self.program, role="receptionist"
+        )
+
+        # Create a client enrolled in the program
+        self.client_file = ClientFile.objects.create(
+            record_id="PIPEDA-001", status="active",
+        )
+        self.client_file.first_name = "Alice"
+        self.client_file.last_name = "Smith"
+        self.client_file.birth_date = "1985-06-15"
+        self.client_file.save()
+
+        ClientProgramEnrolment.objects.create(
+            client_file=self.client_file, program=self.program, status="enrolled",
+        )
+
+        self.export_url = f"/reports/client/{self.client_file.pk}/export/"
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    # --- Access control ---
+
+    def test_login_required(self):
+        """Anonymous users should be redirected to login."""
+        resp = self.client.get(self.export_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/auth/login/", resp.url)
+
+    def test_staff_can_access_export_form(self):
+        """Staff with program role can access the individual client export."""
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.get(self.export_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Export Client Data")
+
+    def test_receptionist_gets_403_on_export(self):
+        """Receptionists should be blocked from the individual client export (EXP-FIX5).
+
+        The export button is hidden in the template for receptionists, but
+        they could still access the URL directly. The server must return 403.
+        """
+        self.client.login(username="receptionist", password="testpass123")
+        resp = self.client.get(self.export_url)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_receptionist_cannot_post_export(self):
+        """Receptionists should also be blocked from POSTing to the export endpoint."""
+        self.client.login(username="receptionist", password="testpass123")
+        resp = self.client.post(self.export_url, {
+            "format": "csv",
+            "include_plans": True,
+            "include_notes": True,
+            "include_metrics": True,
+            "include_events": True,
+            "include_custom_fields": True,
+            "recipient": "self",
+        })
+        self.assertEqual(resp.status_code, 403)
+
+    def test_client_name_shown_on_form(self):
+        """The client's name should appear on the export form."""
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.get(self.export_url)
+        self.assertContains(resp, "Alice Smith")
+
+    # --- CSV export ---
+
+    def test_csv_export_returns_csv_file(self):
+        """POST with format=csv should return a CSV attachment."""
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.post(self.export_url, {
+            "format": "csv",
+            "include_plans": True,
+            "include_notes": True,
+            "include_metrics": True,
+            "include_events": True,
+            "include_custom_fields": True,
+            "recipient": "self",
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "text/csv")
+        self.assertIn("attachment", resp["Content-Disposition"])
+        self.assertIn("client_export", resp["Content-Disposition"])
+
+    def test_csv_contains_client_info(self):
+        """CSV export should include the client's name and record ID."""
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.post(self.export_url, {
+            "format": "csv",
+            "include_plans": True,
+            "include_notes": True,
+            "include_metrics": True,
+            "include_events": True,
+            "include_custom_fields": True,
+            "recipient": "self",
+        })
+        content = resp.content.decode("utf-8")
+        self.assertIn("Alice", content)
+        self.assertIn("Smith", content)
+        self.assertIn("PIPEDA-001", content)
+
+    def test_csv_without_notes_omits_notes_section(self):
+        """When include_notes is unchecked, CSV should not have the notes section."""
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.post(self.export_url, {
+            "format": "csv",
+            "include_plans": True,
+            "include_metrics": True,
+            "include_events": True,
+            "include_custom_fields": True,
+            "recipient": "self",
+            # include_notes NOT checked
+        })
+        content = resp.content.decode("utf-8")
+        self.assertNotIn("PROGRESS NOTES", content)
+
+    # --- Form validation ---
+
+    def test_recipient_required(self):
+        """Export without recipient should fail validation."""
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.post(self.export_url, {
+            "format": "csv",
+            "include_plans": True,
+            # No recipient
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("recipient", resp.context["form"].errors)
+
+    # --- Audit logging ---
+
+    def test_csv_export_creates_audit_log(self):
+        """Individual client export should create an audit log entry."""
+        from apps.audit.models import AuditLog
+
+        self.client.login(username="staff", password="testpass123")
+        self.client.post(self.export_url, {
+            "format": "csv",
+            "include_plans": True,
+            "include_notes": True,
+            "include_metrics": True,
+            "include_events": True,
+            "include_custom_fields": True,
+            "recipient": "self",
+        })
+        log = AuditLog.objects.using("audit").filter(
+            resource_type="individual_client_export",
+            resource_id=self.client_file.pk,
+        ).first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.action, "export")
+        self.assertEqual(log.metadata["format"], "csv")
+        self.assertEqual(log.metadata["client_id"], self.client_file.pk)
+
+    # --- Demo data separation ---
+
+    def test_demo_user_cannot_export_real_client(self):
+        """Demo users should not be able to access real client exports."""
+        demo_user = User.objects.create_user(
+            username="demo", password="testpass123", display_name="Demo",
+            is_demo=True,
+        )
+        UserProgramRole.objects.create(
+            user=demo_user, program=self.program, role="staff",
+        )
+        self.client.login(username="demo", password="testpass123")
+        resp = self.client.get(self.export_url)
+        self.assertEqual(resp.status_code, 403)
+
+    # --- Button on client detail page ---
+
+    def test_export_button_on_client_detail(self):
+        """The client detail page should show an 'Export All Data' button for staff."""
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.get(f"/clients/{self.client_file.pk}/")
+        self.assertContains(resp, "Export All Data")
+        self.assertContains(resp, self.export_url)
+
+
+# =================================================================
+# CSV Injection & Filename Sanitisation (EXP-FIX2, EXP-FIX4)
+# =================================================================
+
+
+class CsvSanitisationTests(TestCase):
+    """Tests for CSV injection protection (EXP-FIX2)."""
+
+    def test_sanitise_csv_value_equals(self):
+        """Values starting with = should be prefixed with a tab."""
+        from apps.reports.csv_utils import sanitise_csv_value
+        result = sanitise_csv_value("=SUM(A1:A10)")
+        self.assertTrue(result.startswith("\t"))
+        self.assertIn("=SUM(A1:A10)", result)
+
+    def test_sanitise_csv_value_plus(self):
+        """Values starting with + should be prefixed with a tab."""
+        from apps.reports.csv_utils import sanitise_csv_value
+        result = sanitise_csv_value("+cmd|'/C calc'!A0")
+        self.assertTrue(result.startswith("\t"))
+
+    def test_sanitise_csv_value_minus(self):
+        """Values starting with - should be prefixed with a tab."""
+        from apps.reports.csv_utils import sanitise_csv_value
+        result = sanitise_csv_value("-1+1")
+        self.assertTrue(result.startswith("\t"))
+
+    def test_sanitise_csv_value_at(self):
+        """Values starting with @ should be prefixed with a tab."""
+        from apps.reports.csv_utils import sanitise_csv_value
+        result = sanitise_csv_value("@SUM(A1:A10)")
+        self.assertTrue(result.startswith("\t"))
+
+    def test_sanitise_csv_value_safe_string(self):
+        """Safe strings should pass through unchanged."""
+        from apps.reports.csv_utils import sanitise_csv_value
+        self.assertEqual(sanitise_csv_value("Hello World"), "Hello World")
+        self.assertEqual(sanitise_csv_value("John Smith"), "John Smith")
+        self.assertEqual(sanitise_csv_value(""), "")
+
+    def test_sanitise_csv_value_none(self):
+        """None values should pass through unchanged."""
+        from apps.reports.csv_utils import sanitise_csv_value
+        self.assertIsNone(sanitise_csv_value(None))
+
+    def test_sanitise_csv_value_number(self):
+        """Numeric values should pass through unchanged (not converted to strings)."""
+        from apps.reports.csv_utils import sanitise_csv_value
+        self.assertEqual(sanitise_csv_value(42), 42)
+        self.assertEqual(sanitise_csv_value(3.14), 3.14)
+
+    def test_sanitise_csv_row(self):
+        """sanitise_csv_row should sanitise all string values in a list."""
+        from apps.reports.csv_utils import sanitise_csv_row
+        row = ["Name", "=HYPERLINK(\"http://evil.com\")", 42, "+attack", "safe"]
+        result = sanitise_csv_row(row)
+        self.assertEqual(result[0], "Name")
+        self.assertTrue(result[1].startswith("\t"))
+        self.assertEqual(result[2], 42)
+        self.assertTrue(result[3].startswith("\t"))
+        self.assertEqual(result[4], "safe")
+
+
+class FilenameSanitisationTests(TestCase):
+    """Tests for Content-Disposition filename sanitisation (EXP-FIX4)."""
+
+    def test_sanitise_filename_simple(self):
+        """Alphanumeric strings should pass through unchanged."""
+        from apps.reports.csv_utils import sanitise_filename
+        self.assertEqual(sanitise_filename("PIPEDA-001"), "PIPEDA-001")
+
+    def test_sanitise_filename_with_spaces(self):
+        """Spaces should be stripped from filenames."""
+        from apps.reports.csv_utils import sanitise_filename
+        result = sanitise_filename("my file name")
+        self.assertNotIn(" ", result)
+        self.assertEqual(result, "myfilename")
+
+    def test_sanitise_filename_path_traversal(self):
+        """Path traversal slashes should be stripped; dots are safe in filenames."""
+        from apps.reports.csv_utils import sanitise_filename
+        result = sanitise_filename("../../etc/passwd")
+        # Slashes are stripped so path traversal is impossible
+        self.assertNotIn("/", result)
+        self.assertNotIn("\\", result)
+        # Dots are kept (valid in filenames) but slashes are gone,
+        # so "../../etc/passwd" becomes "....etcpasswd" — no traversal possible
+        self.assertEqual(result, "....etcpasswd")
+
+    def test_sanitise_filename_special_chars(self):
+        """Special characters should be stripped, keeping only safe chars."""
+        from apps.reports.csv_utils import sanitise_filename
+        result = sanitise_filename("record<>:\"|?*id")
+        self.assertNotIn("<", result)
+        self.assertNotIn(">", result)
+        self.assertNotIn(":", result)
+        self.assertNotIn('"', result)
+        self.assertNotIn("|", result)
+        self.assertNotIn("?", result)
+        self.assertNotIn("*", result)
+        self.assertEqual(result, "recordid")
+
+    def test_sanitise_filename_empty(self):
+        """Empty input should return 'export' as a fallback."""
+        from apps.reports.csv_utils import sanitise_filename
+        self.assertEqual(sanitise_filename(""), "export")
+        self.assertEqual(sanitise_filename(None), "export")
+
+    def test_sanitise_filename_all_special(self):
+        """Input that is entirely special characters should return 'export'."""
+        from apps.reports.csv_utils import sanitise_filename
+        self.assertEqual(sanitise_filename("@#$%^&"), "export")
+
+    def test_sanitise_filename_preserves_hyphens_underscores(self):
+        """Hyphens and underscores should be preserved."""
+        from apps.reports.csv_utils import sanitise_filename
+        self.assertEqual(sanitise_filename("my_record-001"), "my_record-001")
+
+    def test_sanitise_filename_preserves_dots(self):
+        """Periods should be preserved (used in file extensions)."""
+        from apps.reports.csv_utils import sanitise_filename
+        self.assertEqual(sanitise_filename("file.name"), "file.name")
+
+
+@override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY, AUTH_MODE="local")
+class CsvInjectionIntegrationTests(TestCase):
+    """Integration test: verify CSV injection protection in actual export output."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module.FIELD_ENCRYPTION_KEY = TEST_KEY
+        enc_module._fernet = Fernet(TEST_KEY)
+
+        self.program = Program.objects.create(name="Test Program", status="active")
+        self.staff_user = User.objects.create_user(
+            username="csvtest", password="testpass123", display_name="CSV Tester"
+        )
+        UserProgramRole.objects.create(
+            user=self.staff_user, program=self.program, role="staff"
+        )
+
+        # Create client with a malicious-looking first name
+        self.client_file = ClientFile.objects.create(
+            record_id="INJ-001", status="active",
+        )
+        self.client_file.first_name = "=HYPERLINK(\"http://evil.com\")"
+        self.client_file.last_name = "Smith"
+        self.client_file.save()
+
+        ClientProgramEnrolment.objects.create(
+            client_file=self.client_file, program=self.program, status="enrolled",
+        )
+
+        self.export_url = f"/reports/client/{self.client_file.pk}/export/"
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_csv_export_sanitises_dangerous_values(self):
+        """CSV export should prefix dangerous cell values with a tab character."""
+        self.client.login(username="csvtest", password="testpass123")
+        resp = self.client.post(self.export_url, {
+            "format": "csv",
+            "include_plans": True,
+            "include_notes": True,
+            "include_metrics": True,
+            "include_events": True,
+            "include_custom_fields": True,
+            "recipient": "self",
+        })
+        content = resp.content.decode("utf-8")
+        # The malicious first name should be prefixed with a tab character.
+        # CSV writer may quote the value (escaping internal quotes with ""),
+        # but the tab prefix must be present before the = sign.
+        self.assertIn("\t=HYPERLINK", content)
+        # Verify no line contains the raw =HYPERLINK without the tab prefix
+        for line in content.split("\n"):
+            if "HYPERLINK" in line:
+                self.assertIn("\t=HYPERLINK", line)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY, AUTH_MODE="local")
+class FilenameSanitisationIntegrationTests(TestCase):
+    """Integration test: verify filename sanitisation in Content-Disposition headers."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module.FIELD_ENCRYPTION_KEY = TEST_KEY
+        enc_module._fernet = Fernet(TEST_KEY)
+
+        self.program = Program.objects.create(name="Test Program", status="active")
+        self.staff_user = User.objects.create_user(
+            username="fntest", password="testpass123", display_name="Filename Tester"
+        )
+        UserProgramRole.objects.create(
+            user=self.staff_user, program=self.program, role="staff"
+        )
+
+        # Create client with special characters in record_id
+        self.client_file = ClientFile.objects.create(
+            record_id='../../etc/passwd"inject', status="active",
+        )
+        self.client_file.first_name = "Test"
+        self.client_file.last_name = "Client"
+        self.client_file.save()
+
+        ClientProgramEnrolment.objects.create(
+            client_file=self.client_file, program=self.program, status="enrolled",
+        )
+
+        self.export_url = f"/reports/client/{self.client_file.pk}/export/"
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_filename_strips_dangerous_characters(self):
+        """Content-Disposition filename should not contain path traversal chars."""
+        self.client.login(username="fntest", password="testpass123")
+        resp = self.client.post(self.export_url, {
+            "format": "csv",
+            "include_plans": True,
+            "include_notes": True,
+            "include_metrics": True,
+            "include_events": True,
+            "include_custom_fields": True,
+            "recipient": "self",
+        })
+        disposition = resp["Content-Disposition"]
+        # Should not contain path traversal
+        self.assertNotIn("../", disposition)
+        self.assertNotIn("..\\", disposition)
+        # Should not contain double quotes inside the filename value
+        # (the outer quotes are the HTTP header format, inner ones would be injection)
+        filename_part = disposition.split("filename=")[1]
+        # The filename should be safely sanitised
+        self.assertNotIn("passwd", disposition.replace("..etcpasswdinject", ""))  # it's in the sanitised form
+        self.assertIn("client_export_", disposition)

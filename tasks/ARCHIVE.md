@@ -6,6 +6,43 @@ Tasks moved from TODO.md after 10+ items in Recently Done.
 
 ## Completed 2026-02-05
 
+### French i18n, Canadian Localisation, i18n Reliability (all complete)
+
+- [x] Complete French defaults for all 24 terminology terms — 2026-02-05 (I18N3)
+- [x] Wrap form labels, errors, help text in gettext_lazy for French — 2026-02-05 (I18N4a-forms)
+- [x] Audit empty states, dates, placeholders for French — 2026-02-05 (I18N4a-remaining)
+- [x] Test complete user journey in French — 2026-02-05 (I18N4b)
+- [x] Postal code accepts both "A1A 1A1" and "A1A1A1" — normalize on save — 2026-02-05 (I18N5)
+- [x] Address labels use "Province or Territory" not "State" — 2026-02-05 (I18N5a)
+- [x] Phone fields accept multiple Canadian formats — 2026-02-05 (I18N5b)
+- [x] Verify date/currency formatting respects language locale — 2026-02-05 (I18N5c)
+- [x] Add `*.mo` to railway.json watchPatterns — 2026-02-05 (I18N-R1)
+- [x] Fix SafeLocaleMiddleware canary — now tests "Funder Report Export" — 2026-02-05 (I18N-R2)
+- [x] Create `check_translations` management command — 2026-02-05 (I18N-R3)
+- [x] Add git pre-commit hook — block commits where .po is newer than .mo — 2026-02-05 (I18N-R4)
+- [x] Build template string extraction script — 2026-02-05 (I18N-R5)
+- [x] Create `update_translations` wrapper — 2026-02-05 (I18N-R6)
+
+### Individual Client Export + Hardening (all complete)
+
+- [x] Create single-client export view — 2026-02-05 (EXP2x)
+- [x] Include all client data: info, notes, plans, metrics — 2026-02-05 (EXP2y)
+- [x] Generate PDF format option — 2026-02-05 (EXP2z)
+- [x] Add export button to client detail page — 2026-02-05 (EXP2aa)
+- [x] Fix duplicate audit log — 2026-02-05 (EXP-FIX1)
+- [x] Add CSV injection protection — 2026-02-05 (EXP-FIX2)
+- [x] Add server-side receptionist block — 2026-02-05 (EXP-FIX3)
+- [x] Harden filename sanitisation — 2026-02-05 (EXP-FIX4)
+- [x] Add receptionist-blocked tests — 2026-02-05 (EXP-FIX5)
+
+### Export Documentation + Cleanup (all complete)
+
+- [x] Document SecureExportLink lifecycle — 2026-02-05 (DOC-EXP1)
+- [x] Create export runbook — 2026-02-05 (DOC-EXP2)
+- [x] Fix `{% trans %}` with HTML in `pdf_unavailable.html` — 2026-02-05 (I18N-EXP2)
+- [x] Wrap `ExportRecipientMixin` strings in `gettext_lazy()` — 2026-02-05 (I18N-EXP3)
+- [x] Extract `<strong>` from `{% blocktrans %}` in export/CMT templates — 2026-02-05 (I18N-EXP4)
+
 ### Secure Export Foundation (all complete)
 
 - [x] Fix demo/real separation in client_data_export, metric, CMT views — 2026-02-05 (EXP0a-d)
@@ -17,6 +54,11 @@ Tasks moved from TODO.md after 10+ items in Recently Done.
 
 ### Moved from Recently Done (2026-02-05 cleanup)
 
+- [x] Secure export foundation complete — security bug fix, audit logging, warnings, secure links, revocation — 2026-02-05 (EXP0a-p)
+- [x] Multilingual Phases 1A–1C — 636 French translations, bilingual login, [EN|FR] toggle — 2026-02-05 (I18N1-2b)
+- [x] Harden seed system — remove fragile guard, deduplicate data, add warnings — 2026-02-05 (SEED1)
+- [x] Progress note encryption + MFA documentation — 2026-02-05 (SEC1, SEC2)
+- [x] Deployment Workflow Phase 1 — demo/real data separation — 2026-02-05 (DEMO1-8)
 - [x] Azure deployment guide — 2026-02-04 (DOC20)
 - [x] Documentation improvements — staff guide, archive reorg — 2026-02-03 (DOC18, DOC19)
 - [x] PIPEDA/PHIPA consent workflow + note follow-up dates — 2026-02-03 (PRIV1, FU1)

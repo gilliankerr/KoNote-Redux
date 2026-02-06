@@ -11,10 +11,9 @@
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
 <body>
+    {% if not has_language_cookie %}
+    {# ── First visit: bilingual hero with language chooser ── #}
     <main class="container login-container">
-
-        {% if not has_language_cookie %}
-        {# ── First visit: bilingual hero with language chooser ── #}
         <div class="login-wordmark">{{ site.product_name|default:"KoNote2" }}</div>
         <p class="login-tagline-bilingual">
             Participant Outcome Management<br>
@@ -37,37 +36,27 @@
         </div>
 
         <hr>
-        {% else %}
-        {# ── Return visit: compact language toggle ── #}
+    {% else %}
+    {# ── Return visit: language link top-right, following canada.ca convention ── #}
+    {% get_current_language as CURRENT_LANG %}
+    <nav class="lang-nav" aria-label="{% trans 'Language selection' %}">
+        <form action="{% url 'switch_language' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            {% if CURRENT_LANG == "en" %}
+            <input type="hidden" name="language" value="fr">
+            <button type="submit" class="lang-link" lang="fr" hreflang="fr">Français</button>
+            {% else %}
+            <input type="hidden" name="language" value="en">
+            <button type="submit" class="lang-link" lang="en" hreflang="en">English</button>
+            {% endif %}
+        </form>
+    </nav>
+
+    <main class="container login-container">
         <div class="login-wordmark">{{ site.product_name|default:"KoNote2" }}</div>
         <p class="login-tagline">{% trans "Participant Outcome Management" %}</p>
-        {% endif %}
-
-        {# ── Compact [EN | FR] toggle (shown when cookie exists) ── #}
-        {% if has_language_cookie %}
-        {% get_current_language as CURRENT_LANG %}
-        <div class="lang-switcher" role="group" aria-label="{% trans 'Language' %}">
-            {% if CURRENT_LANG == "en" %}
-            <strong>EN</strong>
-            <span class="lang-divider">|</span>
-            <form action="{% url 'switch_language' %}" method="post" class="lang-switcher-form">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.path }}">
-                <input type="hidden" name="language" value="fr">
-                <button type="submit" class="lang-switcher-link">FR</button>
-            </form>
-            {% else %}
-            <form action="{% url 'switch_language' %}" method="post" class="lang-switcher-form">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.path }}">
-                <input type="hidden" name="language" value="en">
-                <button type="submit" class="lang-switcher-link">EN</button>
-            </form>
-            <span class="lang-divider">|</span>
-            <strong>FR</strong>
-            {% endif %}
-        </div>
-        {% endif %}
+    {% endif %}
 
         <article>
             {% if error %}

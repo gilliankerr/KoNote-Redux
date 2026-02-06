@@ -13,9 +13,7 @@
 <article aria-label="{% trans 'Success' %}" style="border-left: 4px solid var(--pico-color-green-500); padding: 1rem; margin-bottom: 1.5rem;">
     <strong><span aria-hidden="true">&#x2705;</span> {% trans "Export created successfully" %}</strong>
     <p style="margin-bottom: 0;">
-        {% blocktrans with expires=link.expires_at %}
-        The download link below is active and will expire on <strong>{{ expires }}</strong>.
-        {% endblocktrans %}
+        {% blocktrans with expires=link.expires_at strong_open="<strong>" strong_close="</strong>" %}The download link below is active and will expire on {{ strong_open }}{{ expires }}{{ strong_close }}.{% endblocktrans %}
     </p>
 </article>
 
@@ -24,11 +22,7 @@
 <article aria-label="{% trans 'Elevated export notice' %}" style="border-left: 4px solid var(--pico-color-yellow-500); padding: 1rem; margin-bottom: 1.5rem;">
     <strong><span aria-hidden="true">&#x23F3;</span> {% trans "Elevated Export — Delay Applied" %}</strong>
     <p>
-        {% blocktrans with time=link.available_at|date:"H:i" %}
-        This export contains a large number of clients or clinical notes. For security,
-        the download link will not become active until <strong>{{ time }}</strong>.
-        Administrators have been notified.
-        {% endblocktrans %}
+        {% blocktrans with time=link.available_at|date:"H:i" strong_open="<strong>" strong_close="</strong>" %}This export contains a large number of clients or clinical notes. For security, the download link will not become active until {{ strong_open }}{{ time }}{{ strong_close }}. Administrators have been notified.{% endblocktrans %}
     </p>
     <p style="margin-bottom: 0;">
         {% trans "You can share the link now — the recipient will be able to download after the delay period." %}
@@ -94,12 +88,7 @@
 <article aria-label="{% trans 'Audit notice' %}" style="border-left: 4px solid var(--pico-color-yellow-500); padding: 1rem; margin-bottom: 1.5rem;">
     <strong><span aria-hidden="true">&#x1F6C8;</span> {% trans "Sharing Notice" %}</strong>
     <p style="margin-bottom: 0;">
-        {% blocktrans %}
-        This link can be shared with others in your organisation. All downloads are
-        <strong>logged for audit purposes</strong>, including the time of access and the
-        identity of the person downloading. Handle the exported data according to your
-        organisation's data protection policies.
-        {% endblocktrans %}
+        {% blocktrans with strong_open="<strong>" strong_close="</strong>" %}This link can be shared with others in your organisation. All downloads are {{ strong_open }}logged for audit purposes{{ strong_close }}, including the time of access and the identity of the person downloading. Handle the exported data according to your organisation's data protection policies.{% endblocktrans %}
     </p>
 </article>
 

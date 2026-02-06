@@ -1,5 +1,6 @@
-<div class="ai-suggestions" role="region" aria-label="Suggested note structure">
-    <small><strong>Suggested note sections for {{ target_name }}:</strong></small>
+{% load i18n %}
+<div class="ai-suggestions" role="region" aria-label="{% trans 'Suggested note structure' %}">
+    <small><strong>{% blocktrans with target=target_name %}Suggested note sections for {{ target }}:{% endblocktrans %}</strong></small>
     <ol>
     {% for s in sections %}
         <li>

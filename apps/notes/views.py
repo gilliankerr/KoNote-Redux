@@ -13,6 +13,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +226,7 @@ def quick_note_create(request, client_id):
                     status="default",
                 ).update(follow_up_completed_at=timezone.now())
 
-            messages.success(request, "Quick note saved.")
+            messages.success(request, _("Quick note saved."))
             return redirect("notes:note_list", client_id=client.pk)
     else:
         form = QuickNoteForm()
@@ -326,7 +327,7 @@ def note_create(request, client_id):
                     status="default",
                 ).exclude(pk=note.pk).update(follow_up_completed_at=timezone.now())
 
-            messages.success(request, "Progress note saved.")
+            messages.success(request, _("Progress note saved."))
             return redirect("notes:note_list", client_id=client.pk)
     else:
         form = FullNoteForm(initial={"session_date": timezone.localdate()})
@@ -444,7 +445,7 @@ def note_cancel(request, note_id):
             return HttpResponseForbidden("Notes can only be cancelled within 24 hours.")
 
     if note.status == "cancelled":
-        messages.info(request, "This note is already cancelled.")
+        messages.info(request, _("This note is already cancelled."))
         return redirect("notes:note_list", client_id=client.pk)
 
     if request.method == "POST":
@@ -464,7 +465,7 @@ def note_cancel(request, note_id):
                 resource_id=note.pk,
                 metadata={"reason": form.cleaned_data["status_reason"]},
             )
-            messages.success(request, "Note cancelled.")
+            messages.success(request, _("Note cancelled."))
             return redirect("notes:note_list", client_id=client.pk)
     else:
         form = NoteCancelForm()

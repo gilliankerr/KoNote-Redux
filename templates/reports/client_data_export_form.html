@@ -19,11 +19,7 @@
 <article aria-label="{% trans 'Client Count' %}" style="margin-bottom: 1.5rem;">
     <strong><span aria-hidden="true">📋</span> {% trans "Export Preview" %}</strong>
     <p style="margin-bottom: 0;">
-        {% blocktrans count count=total_client_count %}
-        You have access to <strong>{{ count }}</strong> client record.
-        {% plural %}
-        You have access to <strong>{{ count }}</strong> client records.
-        {% endblocktrans %}
+        {% blocktrans with strong_open="<strong>" strong_close="</strong>" count count=total_client_count %}You have access to {{ strong_open }}{{ count }}{{ strong_close }} client record.{% plural %}You have access to {{ strong_open }}{{ count }}{{ strong_close }} client records.{% endblocktrans %}
         {% trans "Use the filters below to narrow down the export." %}
     </p>
 </article>

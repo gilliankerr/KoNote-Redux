@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.urls import path
 from django.utils import timezone
 
-from . import views
+from . import erasure_views, views
 
 
 @login_required
@@ -121,4 +121,6 @@ urlpatterns = [
     path("admin/fields/groups/<int:group_id>/edit/", views.custom_field_group_edit, name="custom_field_group_edit"),
     path("admin/fields/create/", views.custom_field_def_create, name="custom_field_def_create"),
     path("admin/fields/<int:field_id>/edit/", views.custom_field_def_edit, name="custom_field_def_edit"),
+    # Erasure request (ERASE4)
+    path("<int:client_id>/erase/", erasure_views.erasure_request_create, name="client_erasure_request"),
 ]

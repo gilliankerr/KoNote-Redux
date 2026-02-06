@@ -1,0 +1,454 @@
+"""Views for client data erasure workflow."""
+import logging
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
+
+from apps.auth_app.decorators import minimum_role
+from apps.events.models import Alert
+from apps.programs.models import UserProgramRole
+
+from .erasure import (
+    build_data_summary,
+    get_required_programs,
+    is_deadlocked,
+    record_approval,
+)
+from .forms import ErasureApprovalForm, ErasureRejectForm, ErasureRequestForm
+from .models import ErasureRequest
+from .views import get_client_queryset
+
+logger = logging.getLogger(__name__)
+
+
+def _get_client_ip(request):
+    """Get client IP, respecting X-Forwarded-For from reverse proxy."""
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "")
+
+
+def _user_is_pm_or_admin(user):
+    """Check if user is a PM in any program or a system admin."""
+    if user.is_admin:
+        return True
+    return UserProgramRole.objects.filter(
+        user=user, role="program_manager", status="active",
+    ).exists()
+
+
+def _get_user_pm_program_ids(user):
+    """Get program IDs where user is an active program manager."""
+    return list(
+        UserProgramRole.objects.filter(
+            user=user, role="program_manager", status="active",
+        ).values_list("program_id", flat=True)
+    )
+
+
+def _get_visible_requests(user, status_filter=None):
+    """Get erasure requests visible to this user (PM-scoped or admin-all)."""
+    qs = ErasureRequest.objects.all()
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    if user.is_admin:
+        return qs  # Admins see all
+
+    # PMs see requests for clients in their programs
+    pm_program_ids = _get_user_pm_program_ids(user)
+    if not pm_program_ids:
+        return qs.none()
+
+    # Filter to requests where at least one required program is in the PM's programs
+    matching_pks = []
+    for er in qs:
+        if set(er.programs_required) & set(pm_program_ids):
+            matching_pks.append(er.pk)
+    return qs.filter(pk__in=matching_pks)
+
+
+# --- Request creation (staff+) ---
+
+@login_required
+@minimum_role("staff")
+def erasure_request_create(request, client_id):
+    """Create an erasure request for a client."""
+    base_qs = get_client_queryset(request.user)
+    client = get_object_or_404(base_qs, pk=client_id)
+
+    # Check for existing pending request
+    existing = ErasureRequest.objects.filter(
+        client_file=client, status="pending",
+    ).first()
+    if existing:
+        messages.info(request, _("An erasure request already exists for this client."))
+        return redirect("erasure_request_detail", pk=existing.pk)
+
+    if request.method == "POST":
+        form = ErasureRequestForm(request.POST)
+        if form.is_valid():
+            programs = get_required_programs(client)
+            summary = build_data_summary(client)
+
+            er = ErasureRequest.objects.create(
+                client_file=client,
+                client_pk=client.pk,
+                client_record_id=client.record_id,
+                data_summary=summary,
+                requested_by=request.user,
+                requested_by_display=request.user.get_display_name(),
+                reason_category=form.cleaned_data["reason_category"],
+                request_reason=form.cleaned_data["request_reason"],
+                programs_required=programs,
+            )
+
+            # Set convenience flag on client
+            client.erasure_requested = True
+            client.save(update_fields=["erasure_requested"])
+
+            # Send email notification to PMs
+            _notify_pms_erasure_request(er, request)
+
+            messages.success(request, _("Erasure request created. Program managers have been notified."))
+            return redirect("erasure_request_detail", pk=er.pk)
+    else:
+        form = ErasureRequestForm()
+
+    summary = build_data_summary(client)
+    active_alerts = Alert.objects.filter(client_file=client, status="default")
+
+    return render(request, "clients/erasure/erasure_request_form.html", {
+        "client": client,
+        "form": form,
+        "data_summary": summary,
+        "active_alerts": active_alerts,
+        "nav_active": "clients",
+    })
+
+
+# --- Pending list (PM+ or admin) ---
+
+@login_required
+def erasure_pending_list(request):
+    """List pending erasure requests."""
+    if not _user_is_pm_or_admin(request.user):
+        return HttpResponseForbidden(_("Access denied."))
+
+    pending = _get_visible_requests(request.user, status_filter="pending")
+
+    # Flag stuck requests
+    for er in pending:
+        er.is_stuck = is_deadlocked(er)
+
+    return render(request, "clients/erasure/erasure_pending_list.html", {
+        "pending_requests": pending,
+        "nav_active": "admin",
+    })
+
+
+# --- Request detail (PM+ or admin) ---
+
+@login_required
+def erasure_request_detail(request, pk):
+    """View details of an erasure request."""
+    if not _user_is_pm_or_admin(request.user):
+        return HttpResponseForbidden(_("Access denied."))
+
+    er = get_object_or_404(ErasureRequest, pk=pk)
+
+    # Build per-program approval status
+    from apps.programs.models import Program
+    program_status = []
+    approved_program_ids = set(er.approvals.values_list("program_id", flat=True))
+    user_pm_ids = set(_get_user_pm_program_ids(request.user))
+
+    for prog_pk in er.programs_required:
+        try:
+            program = Program.objects.get(pk=prog_pk)
+            program_name = program.name
+        except Program.DoesNotExist:
+            program_name = f"Program #{prog_pk} (deleted)"
+
+        approval = er.approvals.filter(program_id=prog_pk).first()
+        can_approve = (
+            er.status == "pending"
+            and prog_pk not in approved_program_ids
+            and prog_pk in user_pm_ids
+            and request.user != er.requested_by
+        )
+        program_status.append({
+            "pk": prog_pk,
+            "name": program_name,
+            "approved": approval is not None,
+            "approval": approval,
+            "can_approve": can_approve,
+        })
+
+    # Current data counts (if client still exists)
+    current_summary = None
+    active_alerts = []
+    if er.client_file:
+        current_summary = build_data_summary(er.client_file)
+        active_alerts = Alert.objects.filter(client_file=er.client_file, status="default")
+
+    # Deadlock check — admin fallback
+    deadlocked = is_deadlocked(er)
+    admin_can_approve = deadlocked and request.user.is_admin and er.status == "pending"
+
+    approval_form = ErasureApprovalForm()
+    reject_form = ErasureRejectForm()
+
+    return render(request, "clients/erasure/erasure_request_detail.html", {
+        "er": er,
+        "program_status": program_status,
+        "current_summary": current_summary,
+        "active_alerts": active_alerts,
+        "deadlocked": deadlocked,
+        "admin_can_approve": admin_can_approve,
+        "approval_form": approval_form,
+        "reject_form": reject_form,
+        "nav_active": "admin",
+    })
+
+
+# --- Approve (PM+ or admin fallback) ---
+
+@login_required
+@minimum_role("program_manager")
+def erasure_approve(request, pk):
+    """Record approval for a program within an erasure request."""
+    if request.method != "POST":
+        return redirect("erasure_request_detail", pk=pk)
+
+    er = get_object_or_404(ErasureRequest, pk=pk)
+
+    # Determine which program this PM is approving for
+    program_id = request.POST.get("program_id")
+    if not program_id:
+        messages.error(request, _("No program specified."))
+        return redirect("erasure_request_detail", pk=pk)
+
+    from apps.programs.models import Program
+    program = get_object_or_404(Program, pk=program_id)
+
+    # Permission check: must be PM in this program, or admin fallback
+    user_pm_ids = _get_user_pm_program_ids(request.user)
+    deadlocked = is_deadlocked(er)
+    is_admin_fb = deadlocked and request.user.is_admin
+
+    if program.pk not in user_pm_ids and not is_admin_fb:
+        return HttpResponseForbidden(_("You are not a program manager for this program."))
+
+    form = ErasureApprovalForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, _("Invalid form data."))
+        return redirect("erasure_request_detail", pk=pk)
+
+    try:
+        approval, executed = record_approval(
+            erasure_request=er,
+            user=request.user,
+            program=program,
+            ip_address=_get_client_ip(request),
+            review_notes=form.cleaned_data.get("review_notes", ""),
+        )
+    except ValueError as e:
+        messages.error(request, str(e))
+        return redirect("erasure_request_detail", pk=pk)
+
+    if executed:
+        _notify_erasure_completed(er, request)
+        messages.success(request, _("All approvals received. Client data has been permanently erased."))
+        return redirect("erasure_history")
+    else:
+        messages.success(request, _("Approval recorded. Waiting for remaining program managers."))
+        return redirect("erasure_request_detail", pk=pk)
+
+
+# --- Reject (PM+) ---
+
+@login_required
+@minimum_role("program_manager")
+def erasure_reject(request, pk):
+    """Reject an erasure request. One rejection = whole request rejected."""
+    if request.method != "POST":
+        return redirect("erasure_request_detail", pk=pk)
+
+    er = get_object_or_404(ErasureRequest, pk=pk, status="pending")
+    form = ErasureRejectForm(request.POST)
+
+    if not form.is_valid() or not form.cleaned_data["review_notes"].strip():
+        messages.error(request, _("A reason for rejection is required."))
+        return redirect("erasure_request_detail", pk=pk)
+
+    # Must be PM in one of the required programs
+    user_pm_ids = set(_get_user_pm_program_ids(request.user))
+    if not (set(er.programs_required) & user_pm_ids):
+        return HttpResponseForbidden(_("You are not a program manager for this client's programs."))
+
+    er.status = "rejected"
+    er.save(update_fields=["status"])
+
+    # Clear the convenience flag on the client (if still exists)
+    if er.client_file:
+        er.client_file.erasure_requested = False
+        er.client_file.save(update_fields=["erasure_requested"])
+
+    # Audit log
+    from .erasure import _log_audit
+    _log_audit(
+        user=request.user,
+        action="update",
+        resource_type="erasure_request_rejected",
+        resource_id=er.pk,
+        ip_address=_get_client_ip(request),
+        metadata={
+            "client_pk": er.client_pk,
+            "record_id": er.client_record_id,
+            "review_notes": form.cleaned_data["review_notes"],
+            "rejected_by": request.user.get_display_name(),
+        },
+    )
+
+    messages.success(request, _("Erasure request rejected. Client data has been preserved."))
+    return redirect("erasure_pending_list")
+
+
+# --- Cancel (requester or PM) ---
+
+@login_required
+@minimum_role("staff")
+def erasure_cancel(request, pk):
+    """Cancel a pending erasure request."""
+    if request.method != "POST":
+        return redirect("erasure_request_detail", pk=pk)
+
+    er = get_object_or_404(ErasureRequest, pk=pk, status="pending")
+
+    # Permission: requester or PM in one of the required programs
+    is_requester = (request.user == er.requested_by)
+    user_pm_ids = set(_get_user_pm_program_ids(request.user))
+    is_pm_for_client = bool(set(er.programs_required) & user_pm_ids)
+
+    if not is_requester and not is_pm_for_client:
+        return HttpResponseForbidden(_("You cannot cancel this request."))
+
+    er.status = "cancelled"
+    er.save(update_fields=["status"])
+
+    # Clear the convenience flag on the client (if still exists)
+    if er.client_file:
+        er.client_file.erasure_requested = False
+        er.client_file.save(update_fields=["erasure_requested"])
+
+    messages.success(request, _("Erasure request cancelled."))
+    return redirect("erasure_pending_list")
+
+
+# --- History (PM+ or admin) ---
+
+@login_required
+def erasure_history(request):
+    """Show history of all erasure requests."""
+    if not _user_is_pm_or_admin(request.user):
+        return HttpResponseForbidden(_("Access denied."))
+
+    requests = _get_visible_requests(request.user)
+    return render(request, "clients/erasure/erasure_history.html", {
+        "erasure_requests": requests,
+        "nav_active": "admin",
+    })
+
+
+# --- Email notifications ---
+
+def _notify_pms_erasure_request(erasure_request, request):
+    """Email all PMs in the client's programs about a new erasure request."""
+    from django.core.mail import send_mail
+    from django.template.loader import render_to_string
+    from django.urls import reverse
+
+    pm_users = (
+        UserProgramRole.objects.filter(
+            program_id__in=erasure_request.programs_required,
+            role="program_manager",
+            status="active",
+        )
+        .exclude(user=erasure_request.requested_by)
+        .select_related("user")
+    )
+    emails = [upr.user.email for upr in pm_users if upr.user.email]
+    if not emails:
+        return
+
+    review_url = request.build_absolute_uri(
+        reverse("erasure_request_detail", args=[erasure_request.pk])
+    )
+    context = {
+        "erasure_request": erasure_request,
+        "requester_name": erasure_request.requested_by_display,
+        "review_url": review_url,
+    }
+
+    subject = _("Action Required: Client Erasure Request")
+    try:
+        text_body = render_to_string("clients/email/erasure_request_alert.txt", context)
+        html_body = render_to_string("clients/email/erasure_request_alert.html", context)
+        send_mail(
+            subject=subject, message=text_body, html_message=html_body,
+            from_email=None, recipient_list=emails,
+        )
+    except Exception:
+        logger.warning(
+            "Failed to send erasure request notification for request %s",
+            erasure_request.pk, exc_info=True,
+        )
+
+
+def _notify_erasure_completed(erasure_request, request):
+    """Email all involved parties that erasure has been completed."""
+    from django.core.mail import send_mail
+
+    # Collect all involved users: requester + all approvers
+    involved_users = set()
+    if erasure_request.requested_by and erasure_request.requested_by.email:
+        involved_users.add(erasure_request.requested_by.email)
+    for approval in erasure_request.approvals.select_related("approved_by"):
+        if approval.approved_by and approval.approved_by.email:
+            involved_users.add(approval.approved_by.email)
+
+    if not involved_users:
+        return
+
+    record_ref = erasure_request.client_record_id or _("Client #%(pk)s") % {"pk": erasure_request.client_pk}
+    subject = _("Client Data Erased — %(record)s") % {"record": record_ref}
+    body = (
+        _("Client data erasure has been completed for %(record)s.") % {"record": record_ref}
+        + "\n\n"
+        + _("Reason: %(category)s — %(reason)s") % {
+            "category": erasure_request.get_reason_category_display(),
+            "reason": erasure_request.request_reason,
+        }
+        + "\n"
+        + _("Requested by: %(name)s") % {"name": erasure_request.requested_by_display}
+        + "\n"
+        + _("All program manager approvals were received.")
+        + "\n\n"
+        + _("This action cannot be undone.")
+    )
+
+    try:
+        send_mail(
+            subject=subject, message=body,
+            from_email=None, recipient_list=list(involved_users),
+        )
+    except Exception:
+        logger.warning(
+            "Failed to send erasure completion notification for request %s",
+            erasure_request.pk, exc_info=True,
+        )

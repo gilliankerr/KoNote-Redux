@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Erasure Request" %} #{{ er.pk }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{% trans "Erasure Request" %} #{{ er.pk }}</h1>
+    <p>
+        {% if er.client_record_id %}{{ er.client_record_id }} — {% endif %}
+        <span class="badge badge-{{ er.status }}">{{ er.get_status_display }}</span>
+    </p>
+</hgroup>
+
+{% if er.status == "pending" %}
+<article aria-label="warning" class="warning" style="border-left: 4px solid var(--pico-del-color); background: var(--pico-del-color-bg, rgba(255,0,0,0.05));">
+    <strong>{% trans "This action cannot be undone." %}</strong>
+    {% trans "Once all program managers approve, the client's data will be permanently deleted. Recovery requires a database backup." %}
+</article>
+{% endif %}
+
+{% if active_alerts and er.status == "pending" %}
+<article aria-label="active alerts" class="warning">
+    <strong>{% trans "Active Alerts" %}</strong>
+    <p>{% trans "This client has active alerts. Consider reviewing them before approving." %}</p>
+    <ul>
+        {% for alert in active_alerts %}
+        <li>{{ alert.content|truncatewords:20 }} <small>({{ alert.created_at|date:"Y-m-d" }})</small></li>
+        {% endfor %}
+    </ul>
+</article>
+{% endif %}
+
+{% if deadlocked and er.status == "pending" %}
+<article aria-label="deadlock notice" class="warning" style="border-left: 4px solid var(--pico-color-orange-500, orange);">
+    <strong>{% trans "Deadlock Detected" %}</strong>
+    <p>{% trans "The person who requested this erasure is the only program manager for the remaining programs. An admin can approve as a fallback." %}</p>
+</article>
+{% endif %}
+
+<article>
+    <header>
+        <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Request Details" %}</h2>
+    </header>
+    <dl>
+        <dt>{% trans "Client" %}</dt>
+        <dd>
+            {% if er.client_file %}
+            <a href="{% url 'clients:client_detail' client_id=er.client_file.pk %}">{{ er.client_file }}</a>
+            {% else %}
+            {% blocktrans with pk=er.client_pk %}Client #{{ pk }} (deleted){% endblocktrans %}
+            {% endif %}
+        </dd>
+
+        <dt>{% trans "Record ID" %}</dt>
+        <dd>{{ er.client_record_id|default:"—" }}</dd>
+
+        <dt>{% trans "Requested By" %}</dt>
+        <dd>{{ er.requested_by_display }}</dd>
+
+        <dt>{% trans "Date" %}</dt>
+        <dd>{{ er.requested_at|date:"Y-m-d H:i" }}</dd>
+
+        <dt>{% trans "Reason" %}</dt>
+        <dd>{{ er.get_reason_category_display }} — {{ er.request_reason }}</dd>
+
+        {% if er.completed_at %}
+        <dt>{% trans "Completed" %}</dt>
+        <dd>{{ er.completed_at|date:"Y-m-d H:i" }}</dd>
+        {% endif %}
+    </dl>
+</article>
+
+{# Data summary: original snapshot vs current counts #}
+<article>
+    <header>
+        <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Data Summary" %}</h2>
+    </header>
+    <figure>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th scope="col">{% trans "Record Type" %}</th>
+                    <th scope="col">{% trans "At Request Time" %}</th>
+                    {% if current_summary %}
+                    <th scope="col">{% trans "Current" %}</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{% trans "Progress Notes" %}</td><td>{{ er.data_summary.progress_notes|default:"0" }}</td>{% if current_summary %}<td>{{ current_summary.progress_notes|default:"0" }}</td>{% endif %}</tr>
+                <tr><td>{% trans "Plan Sections" %}</td><td>{{ er.data_summary.plan_sections|default:"0" }}</td>{% if current_summary %}<td>{{ current_summary.plan_sections|default:"0" }}</td>{% endif %}</tr>
+                <tr><td>{% trans "Plan Targets" %}</td><td>{{ er.data_summary.plan_targets|default:"0" }}</td>{% if current_summary %}<td>{{ current_summary.plan_targets|default:"0" }}</td>{% endif %}</tr>
+                <tr><td>{% trans "Events" %}</td><td>{{ er.data_summary.events|default:"0" }}</td>{% if current_summary %}<td>{{ current_summary.events|default:"0" }}</td>{% endif %}</tr>
+                <tr><td>{% trans "Alerts" %}</td><td>{{ er.data_summary.alerts|default:"0" }}</td>{% if current_summary %}<td>{{ current_summary.alerts|default:"0" }}</td>{% endif %}</tr>
+                <tr><td>{% trans "Custom Field Values" %}</td><td>{{ er.data_summary.custom_field_values|default:"0" }}</td>{% if current_summary %}<td>{{ current_summary.custom_field_values|default:"0" }}</td>{% endif %}</tr>
+                <tr><td>{% trans "Program Enrolments" %}</td><td>{{ er.data_summary.enrolments|default:"0" }}</td>{% if current_summary %}<td>{{ current_summary.enrolments|default:"0" }}</td>{% endif %}</tr>
+                <tr><td>{% trans "Metric Values" %}</td><td>{{ er.data_summary.metric_values|default:"0" }}</td>{% if current_summary %}<td>{{ current_summary.metric_values|default:"0" }}</td>{% endif %}</tr>
+            </tbody>
+        </table>
+    </figure>
+    {% if current_summary %}
+    <small>{% trans "Current counts may differ from the request snapshot if records were added or removed since the request was created." %}</small>
+    {% endif %}
+</article>
+
+{# Approval progress #}
+<article>
+    <header>
+        <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Approval Progress" %}</h2>
+    </header>
+
+    {% for ps in program_status %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--pico-muted-border-color);">
+        <div>
+            <strong>{{ ps.name }}</strong>
+            {% if ps.approved %}
+            <br><small>{% blocktrans with name=ps.approval.approved_by_display date=ps.approval.approved_at|date:"Y-m-d H:i" %}Approved by {{ name }} on {{ date }}{% endblocktrans %}</small>
+            {% if ps.approval.review_notes %}
+            <br><small><em>{{ ps.approval.review_notes }}</em></small>
+            {% endif %}
+            {% endif %}
+        </div>
+        <div>
+            {% if ps.approved %}
+            <span class="badge badge-success" aria-label="{% trans 'Approved' %}">&#10003; {% trans "Approved" %}</span>
+            {% elif ps.can_approve %}
+            <form method="post" action="{% url 'erasure_approve' pk=er.pk %}" style="display: inline;" aria-label="{% blocktrans with name=ps.name %}Approve erasure for {{ name }}{% endblocktrans %}">
+                {% csrf_token %}
+                <input type="hidden" name="program_id" value="{{ ps.pk }}">
+                {{ approval_form.review_notes }}
+                <button type="submit" style="background-color: var(--pico-del-color); padding: 0.25rem 0.75rem; font-size: 0.875rem;" {% trans "Are you sure you want to approve this erasure? This cannot be undone." as approve_msg %}onclick="return confirm('{{ approve_msg|escapejs }}')">{% trans "Approve" %}</button>
+            </form>
+            {% elif admin_can_approve %}
+            <form method="post" action="{% url 'erasure_approve' pk=er.pk %}" style="display: inline;" aria-label="{% blocktrans with name=ps.name %}Admin fallback approval for {{ name }}{% endblocktrans %}">
+                {% csrf_token %}
+                <input type="hidden" name="program_id" value="{{ ps.pk }}">
+                {{ approval_form.review_notes }}
+                <button type="submit" class="outline" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;" {% trans "Admin fallback: Are you sure? The requester is the only PM for this program." as admin_msg %}onclick="return confirm('{{ admin_msg|escapejs }}')">{% trans "Approve (Admin Fallback)" %}</button>
+            </form>
+            {% else %}
+            <span class="badge badge-secondary">{% trans "Awaiting" %}</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</article>
+
+{# Action buttons #}
+{% if er.status == "pending" %}
+<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+    {# Reject button — expandable form #}
+    <details style="flex: 1; min-width: 250px;">
+        <summary role="button" class="outline secondary">{% trans "Reject Request" %}</summary>
+        <form method="post" action="{% url 'erasure_reject' pk=er.pk %}" style="margin-top: 0.5rem;" aria-label="{% trans 'Reject erasure request' %}">
+            {% csrf_token %}
+            <label for="id_reject_notes">{{ reject_form.review_notes.label }}</label>
+            {{ reject_form.review_notes }}
+            {% if reject_form.review_notes.help_text %}
+            <small>{{ reject_form.review_notes.help_text }}</small>
+            {% endif %}
+            <button type="submit" class="secondary" {% trans "Are you sure you want to reject this erasure request?" as reject_msg %}onclick="return confirm('{{ reject_msg|escapejs }}')">{% trans "Reject" %}</button>
+        </form>
+    </details>
+
+    {# Cancel button — only for requester or PM #}
+    <form method="post" action="{% url 'erasure_cancel' pk=er.pk %}" style="display: inline;" aria-label="{% trans 'Cancel erasure request' %}">
+        {% csrf_token %}
+        <button type="submit" class="outline secondary" {% trans "Are you sure you want to cancel this erasure request?" as cancel_msg %}onclick="return confirm('{{ cancel_msg|escapejs }}')">{% trans "Cancel Request" %}</button>
+    </form>
+</div>
+{% endif %}
+
+<div style="margin-top: 1rem;">
+    <a href="{% url 'erasure_pending_list' %}" role="button" class="outline secondary">{% trans "Back to Pending List" %}</a>
+</div>
+{% endblock %}

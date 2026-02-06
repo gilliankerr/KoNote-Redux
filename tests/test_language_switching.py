@@ -153,16 +153,19 @@ class BilingualLoginPageTest(TestCase):
         self.assertContains(resp, "Gestion des r\u00e9sultats des participants")
         self.assertContains(resp, "lang-chooser")
 
-    def test_return_visit_shows_compact_toggle(self):
-        """With language cookie → compact [EN | FR] toggle, no bilingual hero."""
+    def test_return_visit_shows_language_link(self):
+        """With language cookie → top-right language link, no bilingual hero."""
         self.http.cookies[settings.LANGUAGE_COOKIE_NAME] = "en"
         resp = self.http.get("/auth/login/")
         self.assertNotContains(resp, "lang-chooser")
-        self.assertContains(resp, "lang-switcher")
+        self.assertContains(resp, "lang-nav")
+        # English page should show link to switch to French
+        self.assertContains(resp, "Français")
 
-    def test_french_cookie_shows_french_page(self):
-        """French cookie → login page rendered in French."""
+    def test_french_cookie_shows_english_link(self):
+        """French cookie → language link shows 'English' to switch back."""
         self.http.cookies[settings.LANGUAGE_COOKIE_NAME] = "fr"
         resp = self.http.get("/auth/login/")
-        # The compact toggle should show FR as bold (current)
-        self.assertContains(resp, "<strong>FR</strong>", html=False)
+        # The language link should offer English as the alternative
+        self.assertContains(resp, 'lang="en"')
+        self.assertContains(resp, "English")

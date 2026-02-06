@@ -101,7 +101,7 @@ class BilingualTerminologyTest(TestCase):
     def test_get_default_terms_french(self):
         """Default terms in French use second value of tuple."""
         terms = get_default_terms_for_language("fr")
-        self.assertEqual(terms["client"], "Client")  # Same in both languages
+        self.assertEqual(terms["client"], "Client(e)")
         self.assertEqual(terms["target"], "Objectif")
         self.assertEqual(terms["progress_note"], "Note de suivi")
 

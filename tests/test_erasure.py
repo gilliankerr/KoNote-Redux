@@ -1,0 +1,917 @@
+"""Tests for client data erasure workflow (ERASE9).
+
+Covers: models, service functions, views, permissions, edge cases.
+~40 tests organised into groups matching the implementation plan.
+"""
+from unittest.mock import patch
+
+from django.test import TestCase, override_settings
+
+from apps.auth_app.models import User
+from apps.clients.erasure import (
+    build_data_summary,
+    check_all_approved,
+    execute_erasure,
+    get_required_programs,
+    is_deadlocked,
+    record_approval,
+)
+from apps.clients.models import (
+    ClientDetailValue,
+    ClientFile,
+    ClientProgramEnrolment,
+    CustomFieldDefinition,
+    CustomFieldGroup,
+    ErasureApproval,
+    ErasureRequest,
+)
+from apps.events.models import Alert, Event, EventType
+from apps.notes.models import ProgressNote
+from apps.plans.models import PlanSection
+from apps.programs.models import Program, UserProgramRole
+from konote import encryption as enc_module
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class ErasureModelTests(TestCase):
+    """Test ErasureRequest and ErasureApproval model creation."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.admin = User.objects.create_user(username="admin", password="testpass123", is_admin=True)
+        self.prog = Program.objects.create(name="Program A", colour_hex="#10B981")
+        self.client_file = ClientFile()
+        self.client_file.first_name = "Test"
+        self.client_file.last_name = "Client"
+        self.client_file.record_id = "REC-001"
+        self.client_file.save()
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_create_erasure_request(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.client_file,
+            client_pk=self.client_file.pk,
+            client_record_id="REC-001",
+            requested_by=self.admin,
+            requested_by_display="Admin User",
+            reason_category="client_requested",
+            request_reason="Client asked to have data removed.",
+            programs_required=[self.prog.pk],
+        )
+        self.assertEqual(er.status, "pending")
+        self.assertEqual(er.client_pk, self.client_file.pk)
+        self.assertEqual(str(er), f"Erasure #{er.pk} — Client #{self.client_file.pk} (Pending Approval)")
+
+    def test_erasure_request_survives_client_deletion(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.client_file,
+            client_pk=self.client_file.pk,
+            requested_by=self.admin,
+            requested_by_display="Admin",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        saved_pk = self.client_file.pk
+        self.client_file.delete()
+        er.refresh_from_db()
+        self.assertIsNone(er.client_file)
+        self.assertEqual(er.client_pk, saved_pk)
+
+    def test_erasure_approval_unique_per_program(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.client_file,
+            client_pk=self.client_file.pk,
+            requested_by=self.admin,
+            requested_by_display="Admin",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        ErasureApproval.objects.create(
+            erasure_request=er,
+            program=self.prog,
+            approved_by=self.admin,
+            approved_by_display="Admin",
+        )
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            ErasureApproval.objects.create(
+                erasure_request=er,
+                program=self.prog,
+                approved_by=self.admin,
+                approved_by_display="Admin",
+            )
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class BuildDataSummaryTests(TestCase):
+    """Test build_data_summary counts."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.admin = User.objects.create_user(username="admin", password="testpass123", is_admin=True)
+        self.prog = Program.objects.create(name="Program A", colour_hex="#10B981")
+        self.cf = ClientFile()
+        self.cf.first_name = "Jane"
+        self.cf.last_name = "Doe"
+        self.cf.save()
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_empty_client_returns_zero_counts(self):
+        summary = build_data_summary(self.cf)
+        self.assertEqual(summary["progress_notes"], 0)
+        self.assertEqual(summary["events"], 0)
+        self.assertEqual(summary["alerts"], 0)
+        self.assertEqual(summary["enrolments"], 0)
+
+    def test_counts_related_records(self):
+        # Create some related records
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog)
+        et = EventType.objects.create(name="Test Event Type")
+        from django.utils import timezone
+        Event.objects.create(client_file=self.cf, event_type=et, start_timestamp=timezone.now())
+        Alert.objects.create(client_file=self.cf, content="Safety concern")
+
+        summary = build_data_summary(self.cf)
+        self.assertEqual(summary["enrolments"], 1)
+        self.assertEqual(summary["events"], 1)
+        self.assertEqual(summary["alerts"], 1)
+
+    def test_summary_contains_only_integers(self):
+        summary = build_data_summary(self.cf)
+        for key, value in summary.items():
+            self.assertIsInstance(value, int, f"{key} should be an integer, got {type(value)}")
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class GetRequiredProgramsTests(TestCase):
+    """Test get_required_programs with 3-tier fallback."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.prog_a = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+        self.prog_b = Program.objects.create(name="Program B", colour_hex="#3B82F6", status="active")
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_active_enrolments_returned(self):
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog_a, status="enrolled")
+        result = get_required_programs(self.cf)
+        self.assertEqual(result, [self.prog_a.pk])
+
+    def test_discharged_client_uses_historical(self):
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog_a, status="unenrolled")
+        result = get_required_programs(self.cf)
+        self.assertIn(self.prog_a.pk, result)
+
+    def test_no_enrolments_falls_back_to_any_program(self):
+        # No enrolments at all — should still return at least one program
+        result = get_required_programs(self.cf)
+        self.assertTrue(len(result) > 0, "Must never return empty list")
+
+    def test_never_returns_empty(self):
+        result = get_required_programs(self.cf)
+        self.assertIsInstance(result, list)
+        self.assertTrue(len(result) > 0)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class MultiProgramApprovalTests(TestCase):
+    """Test multi-program approval workflow."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.staff = User.objects.create_user(username="staff", password="testpass123")
+        self.pm_a = User.objects.create_user(username="pm_a", password="testpass123")
+        self.pm_b = User.objects.create_user(username="pm_b", password="testpass123")
+
+        self.prog_a = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+        self.prog_b = Program.objects.create(name="Program B", colour_hex="#3B82F6", status="active")
+
+        UserProgramRole.objects.create(user=self.staff, program=self.prog_a, role="staff")
+        UserProgramRole.objects.create(user=self.pm_a, program=self.prog_a, role="program_manager")
+        UserProgramRole.objects.create(user=self.pm_b, program=self.prog_b, role="program_manager")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog_a, status="enrolled")
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog_b, status="enrolled")
+
+        self.er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            client_record_id="REC-001",
+            requested_by=self.staff,
+            requested_by_display="Staff User",
+            reason_category="client_requested",
+            request_reason="Client requested.",
+            data_summary=build_data_summary(self.cf),
+            programs_required=[self.prog_a.pk, self.prog_b.pk],
+        )
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_single_approval_does_not_execute(self):
+        approval, executed = record_approval(self.er, self.pm_a, self.prog_a, "127.0.0.1")
+        self.assertFalse(executed)
+        self.er.refresh_from_db()
+        self.assertEqual(self.er.status, "pending")
+
+    def test_all_approvals_triggers_execution(self):
+        record_approval(self.er, self.pm_a, self.prog_a, "127.0.0.1")
+        approval, executed = record_approval(self.er, self.pm_b, self.prog_b, "127.0.0.1")
+        self.assertTrue(executed)
+        self.er.refresh_from_db()
+        self.assertEqual(self.er.status, "approved")
+
+    def test_check_all_approved_false_when_partial(self):
+        ErasureApproval.objects.create(
+            erasure_request=self.er,
+            program=self.prog_a,
+            approved_by=self.pm_a,
+            approved_by_display="PM A",
+        )
+        self.assertFalse(check_all_approved(self.er))
+
+    def test_check_all_approved_true_when_all(self):
+        ErasureApproval.objects.create(
+            erasure_request=self.er, program=self.prog_a,
+            approved_by=self.pm_a, approved_by_display="PM A",
+        )
+        ErasureApproval.objects.create(
+            erasure_request=self.er, program=self.prog_b,
+            approved_by=self.pm_b, approved_by_display="PM B",
+        )
+        self.assertTrue(check_all_approved(self.er))
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class RejectionTests(TestCase):
+    """Test rejection after partial approval."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.staff = User.objects.create_user(username="staff", password="testpass123")
+        self.pm_a = User.objects.create_user(username="pm_a", password="testpass123")
+        self.pm_b = User.objects.create_user(username="pm_b", password="testpass123")
+
+        self.prog_a = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+        self.prog_b = Program.objects.create(name="Program B", colour_hex="#3B82F6", status="active")
+
+        UserProgramRole.objects.create(user=self.pm_a, program=self.prog_a, role="program_manager")
+        UserProgramRole.objects.create(user=self.pm_b, program=self.prog_b, role="program_manager")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog_a, status="enrolled")
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog_b, status="enrolled")
+
+        self.er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog_a.pk, self.prog_b.pk],
+        )
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_rejection_after_partial_approval_preserves_data(self):
+        # PM-A approves, PM-B rejects
+        record_approval(self.er, self.pm_a, self.prog_a, "127.0.0.1")
+
+        self.er.status = "rejected"
+        self.er.save(update_fields=["status"])
+
+        # Client data should still exist
+        self.assertTrue(ClientFile.objects.filter(pk=self.cf.pk).exists())
+        # PM-A's approval should still exist for audit trail
+        self.assertEqual(self.er.approvals.count(), 1)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class ExecuteErasureTests(TestCase):
+    """Test the actual erasure execution logic."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.staff = User.objects.create_user(username="staff", password="testpass123")
+        self.pm = User.objects.create_user(username="pm", password="testpass123")
+
+        self.prog = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+        UserProgramRole.objects.create(user=self.pm, program=self.prog, role="program_manager")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Jane"
+        self.cf.last_name = "Doe"
+        self.cf.record_id = "REC-001"
+        self.cf.save()
+
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog, status="enrolled")
+        Alert.objects.create(client_file=self.cf, content="Test alert")
+
+        # Create a custom field value
+        grp = CustomFieldGroup.objects.create(title="Contact")
+        fd = CustomFieldDefinition.objects.create(group=grp, name="Phone", input_type="text")
+        cdv = ClientDetailValue.objects.create(client_file=self.cf, field_def=fd)
+        cdv.set_value("555-1234")
+        cdv.save()
+
+        self.er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            client_record_id="REC-001",
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="client_requested",
+            request_reason="Client request.",
+            data_summary=build_data_summary(self.cf),
+            programs_required=[self.prog.pk],
+        )
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_execute_deletes_client_and_cascades(self):
+        cf_pk = self.cf.pk
+        execute_erasure(self.er, "127.0.0.1")
+
+        self.assertFalse(ClientFile.objects.filter(pk=cf_pk).exists())
+        self.assertFalse(Alert.objects.filter(client_file_id=cf_pk).exists())
+        self.assertFalse(ClientProgramEnrolment.objects.filter(client_file_id=cf_pk).exists())
+        self.assertFalse(ClientDetailValue.objects.filter(client_file_id=cf_pk).exists())
+
+    def test_execute_updates_erasure_request(self):
+        execute_erasure(self.er, "127.0.0.1")
+        self.er.refresh_from_db()
+        self.assertEqual(self.er.status, "approved")
+        self.assertIsNotNone(self.er.completed_at)
+        self.assertIsNone(self.er.client_file)
+
+    def test_execute_scrubs_registration_pii(self):
+        from apps.registration.models import RegistrationLink, RegistrationSubmission
+
+        link = RegistrationLink.objects.create(
+            program=self.prog, title="Test Link",
+            created_by=self.staff,
+        )
+        sub = RegistrationSubmission()
+        sub.registration_link = link
+        sub.first_name = "Jane"
+        sub.last_name = "Doe"
+        sub.email = "jane@example.com"
+        sub.client_file = self.cf
+        sub.save()
+
+        execute_erasure(self.er, "127.0.0.1")
+
+        sub.refresh_from_db()
+        # Submission should still exist but PII scrubbed
+        self.assertTrue(RegistrationSubmission.objects.filter(pk=sub.pk).exists())
+        self.assertEqual(sub._first_name_encrypted, b"")
+        self.assertEqual(sub._last_name_encrypted, b"")
+        self.assertEqual(sub._email_encrypted, b"")
+        self.assertEqual(sub.email_hash, "")
+
+    def test_execute_raises_if_client_already_deleted(self):
+        self.cf.delete()
+        self.er.refresh_from_db()
+        with self.assertRaises(ValueError):
+            execute_erasure(self.er, "127.0.0.1")
+
+    def test_audit_log_created_on_erasure(self):
+        from apps.audit.models import AuditLog
+
+        execute_erasure(self.er, "127.0.0.1")
+        logs = AuditLog.objects.using("audit").filter(resource_type="client_erasure")
+        self.assertTrue(logs.exists())
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class DeadlockTests(TestCase):
+    """Test PM-as-requester deadlock detection and admin fallback."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.pm = User.objects.create_user(username="pm", password="testpass123")
+        self.admin = User.objects.create_user(username="admin", password="testpass123", is_admin=True)
+
+        self.prog = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+        UserProgramRole.objects.create(user=self.pm, program=self.prog, role="program_manager")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog, status="enrolled")
+
+        self.er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.pm,
+            requested_by_display="PM",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_is_deadlocked_when_requester_is_only_pm(self):
+        self.assertTrue(is_deadlocked(self.er))
+
+    def test_not_deadlocked_when_other_pm_exists(self):
+        other_pm = User.objects.create_user(username="other_pm", password="testpass123")
+        UserProgramRole.objects.create(user=other_pm, program=self.prog, role="program_manager")
+        self.assertFalse(is_deadlocked(self.er))
+
+    def test_admin_can_approve_in_deadlock(self):
+        approval, executed = record_approval(self.er, self.admin, self.prog, "127.0.0.1")
+        self.assertTrue(executed)
+        self.er.refresh_from_db()
+        self.assertEqual(self.er.status, "approved")
+
+    def test_requester_cannot_self_approve_without_deadlock(self):
+        other_pm = User.objects.create_user(username="other_pm", password="testpass123")
+        UserProgramRole.objects.create(user=other_pm, program=self.prog, role="program_manager")
+        with self.assertRaises(ValueError):
+            record_approval(self.er, self.pm, self.prog, "127.0.0.1")
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class ErasureViewPermissionTests(TestCase):
+    """Test view permissions for erasure workflow."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.staff = User.objects.create_user(username="staff", password="testpass123")
+        self.pm = User.objects.create_user(username="pm", password="testpass123")
+        self.receptionist = User.objects.create_user(username="recep", password="testpass123")
+        self.admin = User.objects.create_user(username="admin", password="testpass123", is_admin=True)
+
+        self.prog = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+
+        UserProgramRole.objects.create(user=self.staff, program=self.prog, role="staff")
+        UserProgramRole.objects.create(user=self.pm, program=self.prog, role="program_manager")
+        UserProgramRole.objects.create(user=self.receptionist, program=self.prog, role="receptionist")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog, status="enrolled")
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_staff_can_access_request_form(self):
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.get(f"/clients/{self.cf.pk}/erase/")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_receptionist_cannot_access_request_form(self):
+        self.client.login(username="recep", password="testpass123")
+        resp = self.client.get(f"/clients/{self.cf.pk}/erase/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_pm_can_access_pending_list(self):
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.get("/erasure/")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_can_access_pending_list(self):
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.get("/erasure/")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_staff_cannot_access_pending_list(self):
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.get("/erasure/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_unauthenticated_redirected(self):
+        resp = self.client.get("/erasure/")
+        self.assertEqual(resp.status_code, 302)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class ErasureViewWorkflowTests(TestCase):
+    """Test the full view-level workflow: request → approve → delete."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.staff = User.objects.create_user(username="staff", password="testpass123")
+        self.pm = User.objects.create_user(username="pm", password="testpass123")
+
+        self.prog = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+
+        UserProgramRole.objects.create(user=self.staff, program=self.prog, role="staff")
+        UserProgramRole.objects.create(user=self.pm, program=self.prog, role="program_manager")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.record_id = "REC-099"
+        self.cf.save()
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog, status="enrolled")
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_create_request_via_post(self):
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.post(f"/clients/{self.cf.pk}/erase/", {
+            "reason_category": "client_requested",
+            "request_reason": "Client asked for data removal.",
+        })
+        self.assertEqual(resp.status_code, 302)
+        er = ErasureRequest.objects.last()
+        self.assertIsNotNone(er)
+        self.assertEqual(er.status, "pending")
+        self.assertEqual(er.client_file, self.cf)
+
+    def test_duplicate_request_redirects(self):
+        ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.post(f"/clients/{self.cf.pk}/erase/", {
+            "reason_category": "client_requested",
+            "request_reason": "Another attempt.",
+        })
+        # Should redirect to existing request, not create a new one
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(ErasureRequest.objects.filter(client_file=self.cf, status="pending").count(), 1)
+
+    @patch("apps.clients.erasure_views._notify_pms_erasure_request")
+    def test_approve_via_post(self, mock_notify):
+        self.client.login(username="staff", password="testpass123")
+        self.client.post(f"/clients/{self.cf.pk}/erase/", {
+            "reason_category": "client_requested",
+            "request_reason": "Client asked.",
+        })
+        er = ErasureRequest.objects.last()
+
+        # PM approves
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.post(f"/erasure/{er.pk}/approve/", {
+            "program_id": self.prog.pk,
+            "review_notes": "Confirmed with client.",
+        })
+        self.assertEqual(resp.status_code, 302)
+        er.refresh_from_db()
+        self.assertEqual(er.status, "approved")
+        self.assertFalse(ClientFile.objects.filter(pk=self.cf.pk).exists())
+
+    def test_reject_via_post(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.post(f"/erasure/{er.pk}/reject/", {
+            "review_notes": "Not appropriate at this time.",
+        })
+        self.assertEqual(resp.status_code, 302)
+        er.refresh_from_db()
+        self.assertEqual(er.status, "rejected")
+        # Client data should still exist
+        self.assertTrue(ClientFile.objects.filter(pk=self.cf.pk).exists())
+
+    def test_reject_requires_notes(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.post(f"/erasure/{er.pk}/reject/", {
+            "review_notes": "",
+        })
+        self.assertEqual(resp.status_code, 302)  # Redirects back with error
+        er.refresh_from_db()
+        self.assertEqual(er.status, "pending")  # Should NOT have been rejected
+
+    def test_cancel_by_requester(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.post(f"/erasure/{er.pk}/cancel/")
+        self.assertEqual(resp.status_code, 302)
+        er.refresh_from_db()
+        self.assertEqual(er.status, "cancelled")
+
+    def test_cancel_by_pm(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.post(f"/erasure/{er.pk}/cancel/")
+        self.assertEqual(resp.status_code, 302)
+        er.refresh_from_db()
+        self.assertEqual(er.status, "cancelled")
+
+    def test_cancel_by_unrelated_staff_forbidden(self):
+        other_staff = User.objects.create_user(username="other_staff", password="testpass123")
+        other_prog = Program.objects.create(name="Other Prog", colour_hex="#000000", status="active")
+        UserProgramRole.objects.create(user=other_staff, program=other_prog, role="staff")
+
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="other_staff", password="testpass123")
+        resp = self.client.post(f"/erasure/{er.pk}/cancel/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_approve_non_pending_blocked(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            status="rejected",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.post(f"/erasure/{er.pk}/approve/", {
+            "program_id": self.prog.pk,
+        })
+        self.assertEqual(resp.status_code, 302)  # Redirects with error message
+        self.assertEqual(ErasureApproval.objects.filter(erasure_request=er).count(), 0)
+
+    def test_requester_cannot_approve_own_request(self):
+        # Upgrade staff's existing role to PM for this test
+        UserProgramRole.objects.filter(user=self.staff, program=self.prog).update(role="program_manager")
+        # Also add another PM so it's not deadlocked
+        other_pm = User.objects.create_user(username="other_pm", password="testpass123")
+        UserProgramRole.objects.create(user=other_pm, program=self.prog, role="program_manager")
+
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="staff", password="testpass123")
+        resp = self.client.post(f"/erasure/{er.pk}/approve/", {
+            "program_id": self.prog.pk,
+        })
+        self.assertEqual(resp.status_code, 302)  # Redirects with error
+        self.assertEqual(ErasureApproval.objects.filter(erasure_request=er).count(), 0)
+
+    def test_history_view_accessible(self):
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.get("/erasure/history/")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_detail_view_accessible(self):
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.get(f"/erasure/{er.pk}/")
+        self.assertEqual(resp.status_code, 200)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class DemoDataSeparationTests(TestCase):
+    """Test that demo users can only erase demo clients."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.demo_staff = User.objects.create_user(username="demo_staff", password="testpass123", is_demo=True)
+        self.real_staff = User.objects.create_user(username="real_staff", password="testpass123", is_demo=False)
+
+        self.prog = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+        UserProgramRole.objects.create(user=self.demo_staff, program=self.prog, role="staff")
+        UserProgramRole.objects.create(user=self.real_staff, program=self.prog, role="staff")
+
+        self.demo_client = ClientFile(is_demo=True)
+        self.demo_client.first_name = "Demo"
+        self.demo_client.last_name = "Client"
+        self.demo_client.save()
+
+        self.real_client = ClientFile(is_demo=False)
+        self.real_client.first_name = "Real"
+        self.real_client.last_name = "Client"
+        self.real_client.save()
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_demo_user_cannot_erase_real_client(self):
+        self.client.login(username="demo_staff", password="testpass123")
+        resp = self.client.get(f"/clients/{self.real_client.pk}/erase/")
+        # 403 (middleware blocks — no program overlap) or 404 (queryset filters)
+        self.assertIn(resp.status_code, [403, 404])
+
+    def test_real_user_cannot_erase_demo_client(self):
+        self.client.login(username="real_staff", password="testpass123")
+        resp = self.client.get(f"/clients/{self.demo_client.pk}/erase/")
+        self.assertIn(resp.status_code, [403, 404])
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class ContextProcessorTests(TestCase):
+    """Test the pending_erasures context processor."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        from django.core.cache import cache
+        cache.clear()
+        self.admin = User.objects.create_user(username="admin", password="testpass123", is_admin=True)
+        self.pm_a = User.objects.create_user(username="pm_a", password="testpass123")
+        self.pm_b = User.objects.create_user(username="pm_b", password="testpass123")
+        self.staff = User.objects.create_user(username="staff", password="testpass123")
+
+        self.prog_a = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+        self.prog_b = Program.objects.create(name="Program B", colour_hex="#3B82F6", status="active")
+
+        UserProgramRole.objects.create(user=self.pm_a, program=self.prog_a, role="program_manager")
+        UserProgramRole.objects.create(user=self.pm_b, program=self.prog_b, role="program_manager")
+        UserProgramRole.objects.create(user=self.staff, program=self.prog_a, role="staff")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+
+        # Create a pending erasure request for Program A
+        self.er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog_a.pk],
+        )
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_admin_sees_all_pending(self):
+        from django.test import RequestFactory
+        from konote.context_processors import pending_erasures
+
+        factory = RequestFactory()
+        request = factory.get("/")
+        request.user = self.admin
+
+        result = pending_erasures(request)
+        self.assertEqual(result.get("pending_erasure_count"), 1)
+
+    def test_pm_a_sees_their_programs(self):
+        from django.test import RequestFactory
+        from konote.context_processors import pending_erasures
+
+        factory = RequestFactory()
+        request = factory.get("/")
+        request.user = self.pm_a
+
+        result = pending_erasures(request)
+        self.assertEqual(result.get("pending_erasure_count"), 1)
+
+    def test_pm_b_does_not_see_other_programs(self):
+        from django.test import RequestFactory
+        from konote.context_processors import pending_erasures
+
+        factory = RequestFactory()
+        request = factory.get("/")
+        request.user = self.pm_b
+
+        result = pending_erasures(request)
+        # PM-B has no pending requests in their programs
+        self.assertIsNone(result.get("pending_erasure_count"))
+
+    def test_staff_gets_no_count(self):
+        from django.test import RequestFactory
+        from konote.context_processors import pending_erasures
+
+        factory = RequestFactory()
+        request = factory.get("/")
+        request.user = self.staff
+
+        result = pending_erasures(request)
+        self.assertEqual(result, {})
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class StuckRequestTests(TestCase):
+    """Test stuck request detection (no active PM for required program)."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.staff = User.objects.create_user(username="staff", password="testpass123")
+        self.prog = Program.objects.create(name="Program A", colour_hex="#10B981", status="active")
+        UserProgramRole.objects.create(user=self.staff, program=self.prog, role="staff")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_request_stuck_when_no_pm_exists(self):
+        # No PM exists for the required program — deadlocked because no one can approve
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        # is_deadlocked returns True — no PM can approve, admin fallback needed
+        self.assertTrue(is_deadlocked(er))

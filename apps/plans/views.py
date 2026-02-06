@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 
 from apps.audit.models import AuditLog
 from apps.clients.models import ClientFile, ClientProgramEnrolment
@@ -36,9 +37,12 @@ from .models import (
 def _can_edit_plan(user, client_file):
     """
     Return True if the user may modify this client's plan.
-    Only programme managers can edit plan structure (sections, targets, metrics).
-    Staff and front desk cannot edit plans.
+    Admins can always edit. Programme managers can edit plan structure
+    (sections, targets, metrics). Staff and front desk cannot edit plans.
     """
+    # Admins can always edit plans
+    if user.is_admin:
+        return True
     # Get programmes this client is enrolled in
     enrolled_program_ids = ClientProgramEnrolment.objects.filter(
         client_file=client_file, status="enrolled"
@@ -105,7 +109,7 @@ def section_create(request, client_id):
             section = form.save(commit=False)
             section.client_file = client
             section.save()
-            messages.success(request, "Section added.")
+            messages.success(request, _("Section added."))
             return redirect("plans:plan_view", client_id=client.pk)
     else:
         form = PlanSectionForm()
@@ -131,7 +135,7 @@ def section_edit(request, section_id):
         form = PlanSectionForm(request.POST, instance=section)
         if form.is_valid():
             form.save()
-            messages.success(request, "Section updated.")
+            messages.success(request, _("Section updated."))
             return render(request, "plans/_section.html", {
                 "section": section,
                 "can_edit": True,
@@ -156,7 +160,7 @@ def section_status(request, section_id):
         form = PlanSectionStatusForm(request.POST, instance=section)
         if form.is_valid():
             form.save()
-            messages.success(request, "Section status updated.")
+            messages.success(request, _("Section status updated."))
             return render(request, "plans/_section.html", {
                 "section": section,
                 "can_edit": True,
@@ -197,7 +201,7 @@ def target_create(request, section_id):
                 status_reason=target.status_reason,
                 changed_by=request.user,
             )
-            messages.success(request, "Target added.")
+            messages.success(request, _("Target added."))
             return redirect("plans:plan_view", client_id=section.client_file.pk)
     else:
         form = PlanTargetForm()
@@ -230,7 +234,7 @@ def target_edit(request, target_id):
         form = PlanTargetForm(request.POST, instance=target)
         if form.is_valid():
             form.save()
-            messages.success(request, "Target updated.")
+            messages.success(request, _("Target updated."))
             return redirect("plans:plan_view", client_id=target.client_file.pk)
     else:
         form = PlanTargetForm(instance=target)
@@ -264,7 +268,7 @@ def target_status(request, target_id):
         form = PlanTargetStatusForm(request.POST, instance=target)
         if form.is_valid():
             form.save()
-            messages.success(request, "Target status updated.")
+            messages.success(request, _("Target status updated."))
             return render(request, "plans/_target.html", {
                 "target": target,
                 "can_edit": True,
@@ -300,7 +304,7 @@ def target_metrics(request, target_id):
                 PlanTargetMetric.objects.create(
                     plan_target=target, metric_def=metric_def, sort_order=i
                 )
-            messages.success(request, "Metrics updated.")
+            messages.success(request, _("Metrics updated."))
             return redirect("plans:plan_view", client_id=target.client_file.pk)
     else:
         current_ids = PlanTargetMetric.objects.filter(plan_target=target).values_list("metric_def_id", flat=True)
@@ -367,7 +371,7 @@ def metric_create(request):
             metric = form.save(commit=False)
             metric.is_library = False
             metric.save()
-            messages.success(request, "Metric created.")
+            messages.success(request, _("Metric created."))
             return redirect("plans:metric_library")
     else:
         form = MetricDefinitionForm()
@@ -389,7 +393,7 @@ def metric_edit(request, metric_id):
         form = MetricDefinitionForm(request.POST, instance=metric)
         if form.is_valid():
             form.save()
-            messages.success(request, "Metric updated.")
+            messages.success(request, _("Metric updated."))
             return redirect("plans:metric_library")
     else:
         form = MetricDefinitionForm(instance=metric)
@@ -537,7 +541,7 @@ def metric_import(request):
             # Retrieve cached data from session
             cached_rows = request.session.pop("metric_import_rows", None)
             if not cached_rows:
-                messages.error(request, "Import session expired. Please upload the file again.")
+                messages.error(request, _("Import session expired. Please upload the file again."))
                 return redirect("plans:metric_import")
 
             # Create the metrics
@@ -566,7 +570,7 @@ def metric_import(request):
                 details=f"Imported {created_count} metric definitions from CSV",
             )
 
-            messages.success(request, f"Successfully imported {created_count} metric definitions.")
+            messages.success(request, _("Successfully imported %(count)d metric definitions.") % {"count": created_count})
             return redirect("plans:metric_library")
 
         # This is the upload step - parse the CSV

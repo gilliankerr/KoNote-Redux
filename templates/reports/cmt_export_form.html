@@ -23,11 +23,7 @@
 <article aria-label="{% trans 'Data Contents' %}" style="margin-bottom: 1.5rem;">
     <strong><span aria-hidden="true">📊</span> {% trans "Aggregate Data Export" %}</strong>
     <p style="margin-bottom: 0;">
-        {% blocktrans %}
-        This report contains <strong>aggregate statistics only</strong> — counts and percentages grouped by category,
-        including <strong>total individuals served</strong>.
-        It does <strong>not</strong> include individual client names, birth dates, or other personally identifiable information (PII).
-        {% endblocktrans %}
+        {% blocktrans with strong_open="<strong>" strong_close="</strong>" %}This report contains {{ strong_open }}aggregate statistics only{{ strong_close }} — counts and percentages grouped by category, including {{ strong_open }}total individuals served{{ strong_close }}. It does {{ strong_open }}not{{ strong_close }} include individual client names, birth dates, or other personally identifiable information (PII).{% endblocktrans %}
     </p>
 </article>
 
@@ -125,11 +121,7 @@
         {% endblocktrans %}
     </p>
     <p>
-        {% blocktrans %}
-        <strong>Important:</strong> Your funder may require different formats, additional fields,
-        or specific calculations. Always verify this template matches your funder's actual
-        reporting template before submission. You may need to adjust or supplement this data.
-        {% endblocktrans %}
+        {% blocktrans with strong_open="<strong>" strong_close="</strong>" %}{{ strong_open }}Important:{{ strong_close }} Your funder may require different formats, additional fields, or specific calculations. Always verify this template matches your funder's actual reporting template before submission. You may need to adjust or supplement this data.{% endblocktrans %}
     </p>
     <h4>{% trans "Default Age Categories" %}</h4>
     <p>{% trans "This template uses these common age groupings (adjust if your funder requires different categories):" %}</p>

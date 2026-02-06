@@ -2,6 +2,9 @@
 from django import forms
 
 from apps.clients.models import CustomFieldDefinition, CustomFieldGroup
+from apps.clients.validators import (
+    normalize_phone_number, validate_phone_number,
+)
 from apps.programs.models import Program
 
 from .models import RegistrationLink
@@ -137,6 +140,14 @@ class PublicRegistrationForm(forms.Form):
                     attrs={"placeholder": field_def.placeholder or ""}
                 ),
             )
+
+    def clean_phone(self):
+        """Validate and normalise the phone number to (XXX) XXX-XXXX format."""
+        value = self.cleaned_data.get("phone", "")
+        if value:
+            validate_phone_number(value)
+            value = normalize_phone_number(value)
+        return value
 
     def get_custom_field_values(self):
         """Extract custom field values from cleaned data.

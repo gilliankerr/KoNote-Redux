@@ -2115,3 +2115,364 @@ msgstr "Service direct"
 
 msgid "Executive"
 msgstr "Direction"
+
+#: templates/clients/erasure/ — Erasure feature
+msgid "Erase Client Data"
+msgstr "Effacer les données du client"
+
+msgid "All client data will be permanently deleted once all program managers approve. Recovery requires a database backup."
+msgstr "Toutes les données du client seront définitivement supprimées une fois que tous les gestionnaires de programme auront approuvé. La récupération nécessite une sauvegarde de la base de données."
+
+msgid "This client has active alerts. Review them before proceeding."
+msgstr "Ce client a des alertes actives. Consultez-les avant de procéder."
+
+msgid "Data that will be erased"
+msgstr "Données qui seront effacées"
+
+msgid "Record Type"
+msgstr "Type de dossier"
+
+msgid "Count"
+msgstr "Nombre"
+
+msgid "Progress Notes"
+msgstr "Notes de suivi"
+
+msgid "Plan Sections"
+msgstr "Sections du plan"
+
+msgid "Plan Targets"
+msgstr "Cibles du plan"
+
+msgid "Custom Field Values"
+msgstr "Valeurs des champs personnalisés"
+
+msgid "Program Enrolments"
+msgstr "Inscriptions aux programmes"
+
+msgid "Metric Values"
+msgstr "Valeurs de mesures"
+
+msgid "Previously exported files expire within 24 hours."
+msgstr "Les fichiers précédemment exportés expirent dans les 24 heures."
+
+msgid "Request Details"
+msgstr "Détails de la demande"
+
+msgid "Are you sure? This will start the erasure approval process."
+msgstr "Êtes-vous sûr? Cela lancera le processus d'approbation de l'effacement."
+
+msgid "Submit Erasure Request"
+msgstr "Soumettre la demande d'effacement"
+
+msgid "Pending Erasure Requests"
+msgstr "Demandes d'effacement en attente"
+
+msgid "Requests awaiting program manager approval."
+msgstr "Demandes en attente d'approbation des gestionnaires de programme."
+
+msgid "Erasure request views"
+msgstr "Vues des demandes d'effacement"
+
+msgid "Approvals"
+msgstr "Approbations"
+
+msgid "Requested By"
+msgstr "Demandé par"
+
+msgid "This request may be stuck — a required program has no active PM."
+msgstr "Cette demande pourrait être bloquée — un programme requis n'a pas de gestionnaire actif."
+
+msgid "No pending erasure requests."
+msgstr "Aucune demande d'effacement en attente."
+
+msgid "Erasure History"
+msgstr "Historique des effacements"
+
+msgid "All erasure requests and their outcomes."
+msgstr "Toutes les demandes d'effacement et leurs résultats."
+
+msgid "No erasure requests have been made."
+msgstr "Aucune demande d'effacement n'a été faite."
+
+msgid "Erasure Request"
+msgstr "Demande d'effacement"
+
+msgid "Once all program managers approve, the client's data will be permanently deleted. Recovery requires a database backup."
+msgstr "Une fois que tous les gestionnaires de programme auront approuvé, les données du client seront définitivement supprimées. La récupération nécessite une sauvegarde de la base de données."
+
+msgid "This client has active alerts. Consider reviewing them before approving."
+msgstr "Ce client a des alertes actives. Pensez à les consulter avant d'approuver."
+
+msgid "Deadlock Detected"
+msgstr "Impasse détectée"
+
+msgid "The person who requested this erasure is the only program manager for the remaining programs. An admin can approve as a fallback."
+msgstr "La personne qui a demandé cet effacement est le seul gestionnaire de programme pour les programmes restants. Un administrateur peut approuver en remplacement."
+
+msgid "Client"
+msgstr "Client"
+
+#, python-format
+msgid "Client #%(pk)s (deleted)"
+msgstr "Client nº %(pk)s (supprimé)"
+
+msgid "Data Summary"
+msgstr "Résumé des données"
+
+msgid "At Request Time"
+msgstr "Au moment de la demande"
+
+msgid "Current"
+msgstr "Actuel"
+
+msgid "Current counts may differ from the request snapshot if records were added or removed since the request was created."
+msgstr "Les totaux actuels peuvent différer de l'instantané de la demande si des dossiers ont été ajoutés ou supprimés depuis la création de la demande."
+
+msgid "Approval Progress"
+msgstr "Progrès des approbations"
+
+#, python-format
+msgid "Approved by %(name)s on %(date)s"
+msgstr "Approuvé par %(name)s le %(date)s"
+
+#, python-format
+msgid "Approve erasure for %(name)s"
+msgstr "Approuver l'effacement pour %(name)s"
+
+msgid "Are you sure you want to approve this erasure? This cannot be undone."
+msgstr "Êtes-vous sûr de vouloir approuver cet effacement? Cette action ne peut pas être annulée."
+
+#, python-format
+msgid "Admin fallback approval for %(name)s"
+msgstr "Approbation de remplacement par l'administrateur pour %(name)s"
+
+msgid "Admin fallback: Are you sure? The requester is the only PM for this program."
+msgstr "Remplacement admin : Êtes-vous sûr? Le demandeur est le seul gestionnaire de ce programme."
+
+msgid "Approve (Admin Fallback)"
+msgstr "Approuver (remplacement admin)"
+
+msgid "Awaiting"
+msgstr "En attente"
+
+msgid "Reject Request"
+msgstr "Rejeter la demande"
+
+msgid "Reject erasure request"
+msgstr "Rejeter la demande d'effacement"
+
+msgid "Are you sure you want to reject this erasure request?"
+msgstr "Êtes-vous sûr de vouloir rejeter cette demande d'effacement?"
+
+msgid "Cancel erasure request"
+msgstr "Annuler la demande d'effacement"
+
+msgid "Are you sure you want to cancel this erasure request?"
+msgstr "Êtes-vous sûr de vouloir annuler cette demande d'effacement?"
+
+msgid "Cancel Request"
+msgstr "Annuler la demande"
+
+msgid "Back to Pending List"
+msgstr "Retour à la liste en attente"
+
+#: apps/clients/forms.py — Erasure forms
+msgid "Reason for erasure"
+msgstr "Raison de l'effacement"
+
+msgid "Client requested"
+msgstr "Demande du client"
+
+msgid "Retention period expired"
+msgstr "Période de conservation expirée"
+
+msgid "Client discharged"
+msgstr "Client congédié"
+
+msgid "Other"
+msgstr "Autre"
+
+msgid "Explain why this data should be erased. Do not include client names."
+msgstr "Expliquez pourquoi ces données doivent être effacées. N'incluez pas de noms de clients."
+
+msgid "Required. Provide context such as client request date, retention policy reference, etc."
+msgstr "Requis. Fournissez le contexte tel que la date de la demande du client, la référence de la politique de conservation, etc."
+
+msgid "Review notes"
+msgstr "Notes de révision"
+
+msgid "Optional notes."
+msgstr "Notes facultatives."
+
+msgid "Reason for rejection"
+msgstr "Raison du rejet"
+
+msgid "Explain why this erasure request is being rejected."
+msgstr "Expliquez pourquoi cette demande d'effacement est rejetée."
+
+msgid "Required. This will be visible to the person who requested the erasure."
+msgstr "Requis. Cela sera visible par la personne qui a demandé l'effacement."
+
+#: apps/clients/erasure_views.py — Erasure view messages
+msgid "An erasure request already exists for this client."
+msgstr "Une demande d'effacement existe déjà pour ce client."
+
+msgid "Erasure request created. Program managers have been notified."
+msgstr "Demande d'effacement créée. Les gestionnaires de programme ont été avisés."
+
+msgid "Access denied."
+msgstr "Accès refusé."
+
+msgid "No program specified."
+msgstr "Aucun programme spécifié."
+
+msgid "You are not a program manager for this program."
+msgstr "Vous n'êtes pas gestionnaire de programme pour ce programme."
+
+msgid "Invalid form data."
+msgstr "Données de formulaire invalides."
+
+msgid "All approvals received. Client data has been permanently erased."
+msgstr "Toutes les approbations reçues. Les données du client ont été définitivement effacées."
+
+msgid "Approval recorded. Waiting for remaining program managers."
+msgstr "Approbation enregistrée. En attente des gestionnaires de programme restants."
+
+msgid "A reason for rejection is required."
+msgstr "Une raison de rejet est requise."
+
+msgid "You are not a program manager for this client's programs."
+msgstr "Vous n'êtes pas gestionnaire de programme pour les programmes de ce client."
+
+msgid "Erasure request rejected. Client data has been preserved."
+msgstr "Demande d'effacement rejetée. Les données du client ont été préservées."
+
+msgid "You cannot cancel this request."
+msgstr "Vous ne pouvez pas annuler cette demande."
+
+msgid "Erasure request cancelled."
+msgstr "Demande d'effacement annulée."
+
+msgid "Action Required: Client Erasure Request"
+msgstr "Action requise : Demande d'effacement de données client"
+
+#: apps/clients/models.py — Erasure model strings
+msgid "Deleted program"
+msgstr "Programme supprimé"
+
+msgid "Pending Approval"
+msgstr "Approbation en attente"
+
+msgid "Approved — Data Erased"
+msgstr "Approuvé — Données effacées"
+
+msgid "Client Requested"
+msgstr "Demande du client"
+
+msgid "Retention Period Expired"
+msgstr "Période de conservation expirée"
+
+msgid "Client Discharged"
+msgstr "Client congédié"
+
+#: templates/clients/email/ — Erasure email templates (ERASE-I18N1)
+msgid "Client Erasure Request"
+msgstr "Demande d'effacement de données client"
+
+msgid "A new client data erasure request has been submitted and requires your approval."
+msgstr "Une nouvelle demande d'effacement de données client a été soumise et requiert votre approbation."
+
+msgid "Client:"
+msgstr "Client :"
+
+msgid "Requested by:"
+msgstr "Demandé par :"
+
+msgid "Review Request"
+msgstr "Examiner la demande"
+
+msgid "This action is permanent."
+msgstr "Cette action est permanente."
+
+msgid "Once all program managers approve, the client's data will be permanently deleted."
+msgstr "Une fois que tous les gestionnaires de programme auront approuvé, les données du client seront définitivement supprimées."
+
+msgid "Review and approve or reject this request:"
+msgstr "Examinez et approuvez ou rejetez cette demande :"
+
+#: apps/clients/erasure_views.py — Erasure completion email (ERASE-I18N2)
+#, python-format
+msgid "Client #%(pk)s"
+msgstr "Client no %(pk)s"
+
+#, python-format
+msgid "Client Data Erased — %(record)s"
+msgstr "Données client effacées — %(record)s"
+
+#, python-format
+msgid "Client data erasure has been completed for %(record)s."
+msgstr "L'effacement des données client a été complété pour %(record)s."
+
+#, python-format
+msgid "Reason: %(category)s — %(reason)s"
+msgstr "Raison : %(category)s — %(reason)s"
+
+#, python-format
+msgid "Requested by: %(name)s"
+msgstr "Demandé par : %(name)s"
+
+msgid "All program manager approvals were received."
+msgstr "Toutes les approbations des gestionnaires de programme ont été reçues."
+
+#: apps/clients/erasure.py — Erasure error message (ERASE-I18N3)
+msgid "You cannot approve your own erasure request."
+msgstr "Vous ne pouvez pas approuver votre propre demande d'effacement."
+
+#: templates/base.html — Footer links
+msgid "Privacy"
+msgstr "Confidentialité"
+
+msgid "Help"
+msgstr "Aide"
+
+msgid "Support:"
+msgstr "Soutien :"
+
+#: templates/base.html — Footer session info
+msgid "Logged in as"
+msgstr "Connecté en tant que"
+
+msgid "Session:"
+msgstr "Session :"
+
+msgid "min"
+msgstr "min"
+
+#: templates/base.html — Keyboard shortcuts modal
+msgid "Keyboard shortcuts"
+msgstr "Raccourcis clavier"
+
+msgid "Keyboard Shortcuts"
+msgstr "Raccourcis clavier"
+
+msgid "Close"
+msgstr "Fermer"
+
+msgid "Focus search"
+msgstr "Recherche"
+
+msgid "Go to Home"
+msgstr "Aller à l'accueil"
+
+msgid "New quick note (on client page)"
+msgstr "Nouvelle note rapide (sur la page client)"
+
+msgid "Save current form"
+msgstr "Enregistrer le formulaire"
+
+msgid "Close modal / Cancel"
+msgstr "Fermer / Annuler"
+
+msgid "Show this help"
+msgstr "Afficher cette aide"

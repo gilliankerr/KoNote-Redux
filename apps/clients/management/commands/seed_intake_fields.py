@@ -25,6 +25,8 @@ from apps.clients.models import CustomFieldDefinition, CustomFieldGroup
 # Field groups and their fields
 # Format: (group_title, sort_order, fields_list)
 # Each field: (name, input_type, is_required, is_sensitive, receptionist_access, placeholder, options)
+#             or (name, input_type, is_required, is_sensitive, receptionist_access, placeholder, options, validation_type)
+# validation_type is optional — if omitted, auto-detection in model.save() handles it.
 #
 # receptionist_access values (controls front desk visibility):
 #   "edit" — front desk can view and edit (contact info, emergency, admin fields)
@@ -62,11 +64,36 @@ INTAKE_FIELD_GROUPS = [
         10,
         [
             ("Preferred Name", "text", False, False, "edit", "Name the client prefers to be called", []),
-            ("Primary Phone", "text", True, True, "edit", "(416) 555-0123", []),
-            ("Secondary Phone", "text", False, True, "edit", "", []),
+            # Pronouns — per HL7 Personal Pronouns ValueSet v2.0.0 + common combinations
+            # from Trevor Project 2024 National Survey. Agencies can customise options.
+            ("Pronouns", "select_other", False, True, "view", "", [
+                "He/him",
+                "He/they",
+                "She/her",
+                "She/they",
+                "They/them",
+                "Prefer not to answer",
+            ]),
+            ("Primary Phone", "text", True, True, "edit", "(416) 555-0123", [], "phone"),
+            ("Secondary Phone", "text", False, True, "edit", "", [], "phone"),
             ("Email", "text", False, True, "edit", "email@example.com", []),
             ("Mailing Address", "textarea", False, True, "edit", "Street address, city, postal code", []),
-            ("Postal Code", "text", False, False, "edit", "A1A 1A1", []),
+            ("Postal Code", "text", False, False, "edit", "A1A 1A1", [], "postal_code"),
+            ("Province or Territory", "select", False, False, "edit", "", [
+                "Alberta",
+                "British Columbia",
+                "Manitoba",
+                "New Brunswick",
+                "Newfoundland and Labrador",
+                "Northwest Territories",
+                "Nova Scotia",
+                "Nunavut",
+                "Ontario",
+                "Prince Edward Island",
+                "Quebec",
+                "Saskatchewan",
+                "Yukon",
+            ]),
             ("Preferred Contact Method", "select", False, False, "edit", "", [
                 "Phone call",
                 "Text message",
@@ -107,7 +134,7 @@ INTAKE_FIELD_GROUPS = [
                 "Case worker",
                 "Other",
             ]),
-            ("Emergency Contact Phone", "text", True, True, "edit", "(416) 555-0123", []),
+            ("Emergency Contact Phone", "text", True, True, "edit", "(416) 555-0123", [], "phone"),
         ],
     ),
     # -------------------------------------------------------------------------
@@ -345,10 +372,10 @@ INTAKE_FIELD_GROUPS = [
                 "Other family member",
                 "Other",
             ]),
-            ("Parent/Guardian Phone", "text", False, True, "edit", "(416) 555-0123", []),
+            ("Parent/Guardian Phone", "text", False, True, "edit", "(416) 555-0123", [], "phone"),
             ("Parent/Guardian Email", "text", False, True, "edit", "email@example.com", []),
             ("Secondary Parent/Guardian Name", "text", False, True, "edit", "", []),
-            ("Secondary Parent/Guardian Phone", "text", False, True, "edit", "", []),
+            ("Secondary Parent/Guardian Phone", "text", False, True, "edit", "", [], "phone"),
             ("Custody/Access Notes", "textarea", False, True, "view", "Any custody arrangements staff should know about", []),
         ],
     ),
@@ -440,24 +467,35 @@ class Command(BaseCommand):
 
             # Create fields within the group
             for field_idx, field_data in enumerate(fields):
-                (
-                    name, input_type, is_required, is_sensitive,
-                    receptionist_access, placeholder, options
-                ) = field_data
+                # Unpack with optional validation_type (8th element)
+                name = field_data[0]
+                input_type = field_data[1]
+                is_required = field_data[2]
+                is_sensitive = field_data[3]
+                receptionist_access = field_data[4]
+                placeholder = field_data[5]
+                options = field_data[6]
+                validation_type = field_data[7] if len(field_data) > 7 else "none"
+
+                defaults = {
+                    "input_type": input_type,
+                    "is_required": is_required,
+                    "is_sensitive": is_sensitive,
+                    "receptionist_access": receptionist_access,
+                    "placeholder": placeholder,
+                    "options_json": options if options else [],
+                    "sort_order": field_idx * 10,
+                    "status": "active",
+                }
+                # Only set validation_type if explicitly specified,
+                # otherwise let model.save() auto-detect it.
+                if validation_type != "none":
+                    defaults["validation_type"] = validation_type
 
                 _, was_field_created = CustomFieldDefinition.objects.get_or_create(
                     group=group,
                     name=name,
-                    defaults={
-                        "input_type": input_type,
-                        "is_required": is_required,
-                        "is_sensitive": is_sensitive,
-                        "receptionist_access": receptionist_access,
-                        "placeholder": placeholder,
-                        "options_json": options if options else [],
-                        "sort_order": field_idx * 10,
-                        "status": "active",
-                    },
+                    defaults=defaults,
                 )
                 if was_field_created:
                     fields_created += 1

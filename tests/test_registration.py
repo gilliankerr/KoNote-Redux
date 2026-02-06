@@ -88,7 +88,7 @@ class PublicRegistrationFormViewTest(TestCase):
             "first_name": "John",
             "last_name": "Doe",
             "email": "john.doe@example.com",
-            "phone": "555-1234",
+            "phone": "(613) 555-1234",
             "consent": "on",
         })
 

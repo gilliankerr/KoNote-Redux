@@ -1,5 +1,6 @@
-<div class="ai-suggestions" role="region" aria-label="AI metric suggestions">
-    <small><strong>Suggested {{ term.metric_plural|default:"Metrics" }}:</strong></small>
+{% load i18n %}
+<div class="ai-suggestions" role="region" aria-label="{% trans 'AI metric suggestions' %}">
+    <small><strong>{% blocktrans with metrics=term.metric_plural|default:"Metrics" %}Suggested {{ metrics }}:{% endblocktrans %}</strong></small>
     <ol>
     {% for s in suggestions %}
         <li>

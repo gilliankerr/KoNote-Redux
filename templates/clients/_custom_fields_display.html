@@ -1,7 +1,8 @@
+{% load i18n %}
 {# Partial: Read-only display of custom fields with edit toggle #}
 {# Empty fields are filtered out in the view — only fields with values shown #}
 <div class="custom-fields-header">
-    <h2 id="custom-fields-heading">Additional Details</h2>
+    <h2 id="custom-fields-heading">{% trans "Additional Details" %}</h2>
     {% if has_editable_fields %}
     <button type="button"
             class="outline secondary"
@@ -9,8 +10,8 @@
             hx-target="#custom-fields-section"
             hx-swap="innerHTML"
             aria-describedby="custom-fields-heading"
-            aria-label="Edit additional details">
-        Edit
+            aria-label="{% trans 'Edit additional details' %}">
+        {% trans "Edit" %}
     </button>
     {% endif %}
 </div>
@@ -23,7 +24,7 @@
         <div class="info-field">
             <dt>
                 {{ item.field_def.name }}
-                {% if item.field_def.is_sensitive %}<small class="secondary">(encrypted)</small>{% endif %}
+                {% if item.field_def.is_sensitive %}<small class="secondary">({% trans "encrypted" %})</small>{% endif %}
             </dt>
             <dd>{{ item.value }}</dd>
         </div>
@@ -33,5 +34,5 @@
 {% endfor %}
 
 {% if not custom_data %}
-<p class="secondary" style="margin-top: var(--kn-space-base);">No additional details recorded. Click Edit to add information.</p>
+<p class="secondary" style="margin-top: var(--kn-space-base);">{% trans "No additional details recorded. Click Edit to add information." %}</p>
 {% endif %}

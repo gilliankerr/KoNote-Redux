@@ -95,6 +95,7 @@ TEMPLATES = [
                 "konote.context_processors.user_roles",
                 "konote.context_processors.document_storage",
                 "konote.context_processors.pending_submissions",
+                "konote.context_processors.pending_erasures",
             ],
         },
     },
@@ -182,6 +183,10 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
+
+# Canadian locale format overrides (I18N5c)
+# Uses ISO 8601 dates (YYYY-MM-DD) and CAD currency formatting
+FORMAT_MODULE_PATH = ["konote.formats"]
 
 # Available languages for the UI
 LANGUAGES = [

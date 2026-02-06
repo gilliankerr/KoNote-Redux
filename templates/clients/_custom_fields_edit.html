@@ -1,14 +1,15 @@
+{% load i18n %}
 {# Partial: Editable form for custom fields with cancel toggle #}
 <div class="custom-fields-header">
-    <h2 id="custom-fields-heading">Additional Details</h2>
+    <h2 id="custom-fields-heading">{% trans "Additional Details" %}</h2>
     <button type="button"
             class="outline secondary"
             hx-get="{% url 'clients:client_custom_fields_display' client_id=client.pk %}"
             hx-target="#custom-fields-section"
             hx-swap="innerHTML"
             aria-describedby="custom-fields-heading"
-            aria-label="Cancel editing and return to read-only view">
-        Cancel
+            aria-label="{% trans 'Cancel editing and return to read-only view' %}">
+        {% trans "Cancel" %}
     </button>
 </div>
 
@@ -25,8 +26,8 @@
         <div class="form-row">
             <label for="custom_{{ item.field_def.pk }}">
                 {{ item.field_def.name }}
-                {% if item.is_editable and item.field_def.is_required %}<abbr title="required">*</abbr>{% endif %}
-                {% if item.field_def.is_sensitive %}<small class="secondary">(encrypted)</small>{% endif %}
+                {% if item.is_editable and item.field_def.is_required %}<abbr title="{% trans 'required' %}">*</abbr>{% endif %}
+                {% if item.field_def.is_sensitive %}<small class="secondary">({% trans "encrypted" %})</small>{% endif %}
             </label>
             {% if item.is_editable %}
                 {# Editable field: show input #}
@@ -40,11 +41,32 @@
                     <select name="custom_{{ item.field_def.pk }}"
                             id="custom_{{ item.field_def.pk }}"
                             {% if item.field_def.is_required %}required aria-required="true"{% endif %}>
-                        <option value="">Select…</option>
+                        <option value="">{% trans "Select…" %}</option>
                         {% for opt in item.field_def.options_json %}
                         <option value="{{ opt }}" {% if item.value == opt %}selected{% endif %}>{{ opt }}</option>
                         {% endfor %}
                     </select>
+                {% elif item.field_def.input_type == "select_other" %}
+                    {# Dropdown with free-text "Other" option #}
+                    <select name="custom_{{ item.field_def.pk }}"
+                            id="custom_{{ item.field_def.pk }}"
+                            {% if item.field_def.is_required %}required aria-required="true"{% endif %}
+                            onchange="document.getElementById('other_wrap_{{ item.field_def.pk }}').style.display = this.value === '__other__' ? '' : 'none';">
+                        <option value="">{% trans "Select…" %}</option>
+                        {% for opt in item.field_def.options_json %}
+                        <option value="{{ opt }}" {% if item.value == opt %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                        <option value="__other__" {% if item.value and item.is_other_value %}selected{% endif %}>{% trans "Other" %}</option>
+                    </select>
+                    <div id="other_wrap_{{ item.field_def.pk }}"
+                         style="margin-top: 0.5rem;{% if not item.is_other_value %} display: none;{% endif %}">
+                        <label for="custom_{{ item.field_def.pk }}_other" class="sr-only">{% trans "Other (please specify)" %}</label>
+                        <input type="text"
+                               name="custom_{{ item.field_def.pk }}_other"
+                               id="custom_{{ item.field_def.pk }}_other"
+                               value="{% if item.is_other_value %}{{ item.value }}{% endif %}"
+                               placeholder="{% trans 'Please specify…' %}">
+                    </div>
                 {% elif item.field_def.input_type == "date" %}
                     <input type="date"
                            name="custom_{{ item.field_def.pk }}"
@@ -72,20 +94,20 @@
                        id="custom_{{ item.field_def.pk }}_readonly"
                        value="{{ item.value|default:'—' }}"
                        disabled
-                       aria-label="{{ item.field_def.name }} (read-only)">
+                       aria-label="{{ item.field_def.name }} ({% trans 'read-only' %})">
             {% endif %}
         </div>
         {% endfor %}
     </fieldset>
     {% endfor %}
     <div role="group">
-        <button type="submit">Save</button>
+        <button type="submit">{% trans "Save" %}</button>
         <button type="button"
                 class="outline secondary"
                 hx-get="{% url 'clients:client_custom_fields_display' client_id=client.pk %}"
                 hx-target="#custom-fields-section"
                 hx-swap="innerHTML">
-            Cancel
+            {% trans "Cancel" %}
         </button>
     </div>
 </form>

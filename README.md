@@ -164,19 +164,27 @@ Then open http://localhost:8000 in your browser.
    cd KoNote2-web
    ```
 
-2. **Create a virtual environment**
+2. **Activate the pre-commit hook**
+
+   Run the setup script to enable the pre-commit hook that keeps translation files in sync:
+   ```bash
+   scripts\setup.bat        # Windows
+   # Or manually: git config core.hooksPath .githooks
+   ```
+
+3. **Create a virtual environment**
    ```bash
    python -m venv venv
    venv\Scripts\activate  # Windows
    # source venv/bin/activate  # macOS/Linux
    ```
 
-3. **Install dependencies**
+4. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Create environment file**
+5. **Create environment file**
 
    Copy the example file:
    ```bash
@@ -205,18 +213,18 @@ Then open http://localhost:8000 in your browser.
    > **Getting `KoNote2.E001` error?** Your encryption key is missing or invalid.
    > See [Deploying KoNote2](docs/deploying-KoNote2.md#troubleshooting) for help.
 
-5. **Run migrations**
+6. **Run migrations**
    ```bash
    python manage.py migrate
    python manage.py migrate --database=audit
    ```
 
-6. **Create admin user**
+7. **Create admin user**
    ```bash
    python manage.py createsuperuser
    ```
 
-7. **Start the server**
+8. **Start the server**
    ```bash
    python manage.py runserver
    ```

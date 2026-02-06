@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Erase Client Data" %} — {{ client }}{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{% trans "Erase Client Data" %}</h1>
+    <p>{{ client }}</p>
+</hgroup>
+
+<article aria-label="warning" class="warning" style="border-left: 4px solid var(--pico-del-color); background: var(--pico-del-color-bg, rgba(255,0,0,0.05));">
+    <strong>{% trans "This action cannot be undone." %}</strong>
+    {% trans "All client data will be permanently deleted once all program managers approve. Recovery requires a database backup." %}
+</article>
+
+{% if active_alerts %}
+<article aria-label="active alerts" class="warning">
+    <strong>{% trans "Active Alerts" %}</strong>
+    <p>{% trans "This client has active alerts. Review them before proceeding." %}</p>
+    <ul>
+        {% for alert in active_alerts %}
+        <li>{{ alert.content|truncatewords:20 }} <small>({{ alert.created_at|date:"Y-m-d" }})</small></li>
+        {% endfor %}
+    </ul>
+</article>
+{% endif %}
+
+<article>
+    <header>
+        <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Data that will be erased" %}</h2>
+    </header>
+    <figure>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th scope="col">{% trans "Record Type" %}</th>
+                    <th scope="col">{% trans "Count" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{% trans "Progress Notes" %}</td><td>{{ data_summary.progress_notes|default:"0" }}</td></tr>
+                <tr><td>{% trans "Plan Sections" %}</td><td>{{ data_summary.plan_sections|default:"0" }}</td></tr>
+                <tr><td>{% trans "Plan Targets" %}</td><td>{{ data_summary.plan_targets|default:"0" }}</td></tr>
+                <tr><td>{% trans "Events" %}</td><td>{{ data_summary.events|default:"0" }}</td></tr>
+                <tr><td>{% trans "Alerts" %}</td><td>{{ data_summary.alerts|default:"0" }}</td></tr>
+                <tr><td>{% trans "Custom Field Values" %}</td><td>{{ data_summary.custom_field_values|default:"0" }}</td></tr>
+                <tr><td>{% trans "Program Enrolments" %}</td><td>{{ data_summary.enrolments|default:"0" }}</td></tr>
+                <tr><td>{% trans "Metric Values" %}</td><td>{{ data_summary.metric_values|default:"0" }}</td></tr>
+            </tbody>
+        </table>
+    </figure>
+    <small>{% trans "Previously exported files expire within 24 hours." %}</small>
+</article>
+
+<article>
+    <header>
+        <h2 style="margin: 0; font-size: 1.1rem;">{% trans "Request Details" %}</h2>
+    </header>
+    <form method="post">
+        {% csrf_token %}
+        <label for="id_reason_category">{{ form.reason_category.label }}</label>
+        {{ form.reason_category }}
+        {% if form.reason_category.errors %}
+        <small class="error">{{ form.reason_category.errors.0 }}</small>
+        {% endif %}
+
+        <label for="id_request_reason">{{ form.request_reason.label }}</label>
+        {{ form.request_reason }}
+        {% if form.request_reason.help_text %}
+        <small>{{ form.request_reason.help_text }}</small>
+        {% endif %}
+        {% if form.request_reason.errors %}
+        <small class="error">{{ form.request_reason.errors.0 }}</small>
+        {% endif %}
+
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+            <button type="submit" style="background-color: var(--pico-del-color);" {% trans "Are you sure? This will start the erasure approval process." as confirm_msg %}onclick="return confirm('{{ confirm_msg|escapejs }}')">{% trans "Submit Erasure Request" %}</button>
+            <a href="{% url 'clients:client_detail' client_id=client.pk %}" role="button" class="outline secondary">{% trans "Cancel" %}</a>
+        </div>
+    </form>
+</article>
+{% endblock %}

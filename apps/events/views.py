@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.clients.models import ClientFile, ClientProgramEnrolment
 from apps.programs.models import UserProgramRole
@@ -74,7 +75,7 @@ def event_type_create(request):
         form = EventTypeForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Event type created.")
+            messages.success(request, _("Event type created."))
             return redirect("events:event_type_list")
     else:
         form = EventTypeForm()
@@ -91,7 +92,7 @@ def event_type_edit(request, type_id):
         form = EventTypeForm(request.POST, instance=event_type)
         if form.is_valid():
             form.save()
-            messages.success(request, "Event type updated.")
+            messages.success(request, _("Event type updated."))
             return redirect("events:event_type_list")
     else:
         form = EventTypeForm(instance=event_type)
@@ -161,7 +162,7 @@ def event_create(request, client_id):
             event.client_file = client
             event.author_program = _get_author_program(request.user, client)
             event.save()
-            messages.success(request, "Event created.")
+            messages.success(request, _("Event created."))
             return redirect("events:event_list", client_id=client.pk)
     else:
         form = EventForm()
@@ -190,7 +191,7 @@ def alert_create(request, client_id):
                 author=request.user,
                 author_program=_get_author_program(request.user, client),
             )
-            messages.success(request, "Alert created.")
+            messages.success(request, _("Alert created."))
             return redirect("events:event_list", client_id=client.pk)
     else:
         form = AlertForm()
@@ -214,7 +215,7 @@ def alert_cancel(request, alert_id):
         return HttpResponseForbidden("You can only cancel your own alerts.")
 
     if alert.status == "cancelled":
-        messages.info(request, "This alert is already cancelled.")
+        messages.info(request, _("This alert is already cancelled."))
         return redirect("events:event_list", client_id=client.pk)
 
     if request.method == "POST":
@@ -234,7 +235,7 @@ def alert_cancel(request, alert_id):
                 resource_id=alert.pk,
                 metadata={"reason": form.cleaned_data["status_reason"]},
             )
-            messages.success(request, "Alert cancelled.")
+            messages.success(request, _("Alert cancelled."))
             return redirect("events:event_list", client_id=client.pk)
     else:
         form = AlertCancelForm()

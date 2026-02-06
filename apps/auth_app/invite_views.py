@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.programs.models import UserProgramRole
 
@@ -40,7 +41,7 @@ def invite_create(request):
             if form.cleaned_data["role"] != "admin":
                 invite.programs.set(form.cleaned_data["programs"])
             invite_url = request.build_absolute_uri(f"/auth/join/{invite.code}/")
-            messages.success(request, f"Invite created. Share this link: {invite_url}")
+            messages.success(request, _("Invite created. Share this link: %(url)s") % {"url": invite_url})
             return redirect("auth_app:invite_list")
     else:
         form = InviteCreateForm()
@@ -53,9 +54,9 @@ def invite_accept(request, code):
 
     if not invite.is_valid:
         if invite.is_used:
-            error = "This invite has already been used."
+            error = _("This invite has already been used.")
         else:
-            error = "This invite has expired. Please ask your administrator for a new one."
+            error = _("This invite has expired. Please ask your administrator for a new one.")
         return render(request, "auth_app/invite_expired.html", {"error": error})
 
     if request.method == "POST":
@@ -88,7 +89,7 @@ def invite_accept(request, code):
 
             # Log the user in
             login(request, user)
-            messages.success(request, f"Welcome, {user.display_name}! Your account has been created.")
+            messages.success(request, _("Welcome, %(name)s! Your account has been created.") % {"name": user.display_name})
             return redirect("/")
     else:
         form = InviteAcceptForm()

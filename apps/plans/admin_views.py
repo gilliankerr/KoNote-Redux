@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 
 from apps.clients.models import ClientFile
 from apps.plans.admin_forms import (
@@ -53,7 +54,7 @@ def template_create(request):
         form = PlanTemplateForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Template created.")
+            messages.success(request, _("Template created."))
             return redirect("plan_templates:template_list")
     else:
         form = PlanTemplateForm()
@@ -77,7 +78,7 @@ def template_edit(request, template_id):
         form = PlanTemplateForm(request.POST, instance=template)
         if form.is_valid():
             form.save()
-            messages.success(request, "Template updated.")
+            messages.success(request, _("Template updated."))
             return redirect("plan_templates:template_detail", template_id=template.pk)
     else:
         form = PlanTemplateForm(instance=template)
@@ -120,7 +121,7 @@ def template_section_create(request, template_id):
             section = form.save(commit=False)
             section.plan_template = template
             section.save()
-            messages.success(request, "Section added.")
+            messages.success(request, _("Section added."))
             return redirect("plan_templates:template_detail", template_id=template.pk)
     else:
         form = PlanTemplateSectionForm()
@@ -146,7 +147,7 @@ def template_section_edit(request, section_id):
         form = PlanTemplateSectionForm(request.POST, instance=section)
         if form.is_valid():
             form.save()
-            messages.success(request, "Section updated.")
+            messages.success(request, _("Section updated."))
             return redirect("plan_templates:template_detail", template_id=template.pk)
     else:
         form = PlanTemplateSectionForm(instance=section)
@@ -171,7 +172,7 @@ def template_section_delete(request, section_id):
 
     if request.method == "POST":
         section.delete()
-        messages.success(request, "Section deleted.")
+        messages.success(request, _("Section deleted."))
         return redirect("plan_templates:template_detail", template_id=template.pk)
 
     # GET — show confirmation page
@@ -199,7 +200,7 @@ def template_target_create(request, section_id):
             target = form.save(commit=False)
             target.template_section = section
             target.save()
-            messages.success(request, "Target added.")
+            messages.success(request, _("Target added."))
             return redirect("plan_templates:template_detail", template_id=template.pk)
     else:
         form = PlanTemplateTargetForm()
@@ -227,7 +228,7 @@ def template_target_edit(request, target_id):
         form = PlanTemplateTargetForm(request.POST, instance=target)
         if form.is_valid():
             form.save()
-            messages.success(request, "Target updated.")
+            messages.success(request, _("Target updated."))
             return redirect("plan_templates:template_detail", template_id=template.pk)
     else:
         form = PlanTemplateTargetForm(instance=target)
@@ -254,7 +255,7 @@ def template_target_delete(request, target_id):
 
     if request.method == "POST":
         target.delete()
-        messages.success(request, "Target deleted.")
+        messages.success(request, _("Target deleted."))
         return redirect("plan_templates:template_detail", template_id=template.pk)
 
     return render(request, "plans/template_target_delete_confirm.html", {
@@ -318,5 +319,5 @@ def template_apply(request, client_id, template_id):
                     sort_order=tmpl_target.sort_order,
                 )
 
-    messages.success(request, f'Template "{template.name}" applied successfully.')
+    messages.success(request, _('Template "%(name)s" applied successfully.') % {"name": template.name})
     return redirect("plans:plan_view", client_id=client_file.pk)

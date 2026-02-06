@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+# Activate custom git hooks (harmless if .git doesn't exist in container)
+if [ -d ".git" ]; then
+    git config core.hooksPath .githooks 2>/dev/null || true
+fi
+
 echo "Running migrations..."
 python manage.py migrate --noinput
 echo "Migrations complete."

@@ -115,3 +115,43 @@ def pending_submissions(request):
         count = RegistrationSubmission.objects.filter(status="pending").count()
         cache.set("pending_submissions_count", count, 60)  # 1 min cache
     return {"pending_submissions_count": count if count > 0 else None}
+
+
+def pending_erasures(request):
+    """Inject pending erasure request count for admin/PM nav badge.
+
+    PMs see count for their programs; admins see all. Cached 1 minute.
+    """
+    if not hasattr(request, "user") or not request.user.is_authenticated:
+        return {}
+
+    from apps.programs.models import UserProgramRole
+
+    is_pm = UserProgramRole.objects.filter(
+        user=request.user, role="program_manager", status="active",
+    ).exists()
+
+    if not request.user.is_admin and not is_pm:
+        return {}
+
+    cache_key = f"pending_erasure_count_{request.user.pk}"
+    count = cache.get(cache_key)
+    if count is None:
+        from apps.clients.models import ErasureRequest
+
+        if request.user.is_admin:
+            count = ErasureRequest.objects.filter(status="pending").count()
+        else:
+            # PM-scoped: count requests where at least one required program is theirs
+            pm_program_ids = set(
+                UserProgramRole.objects.filter(
+                    user=request.user, role="program_manager", status="active",
+                ).values_list("program_id", flat=True)
+            )
+            all_pending = ErasureRequest.objects.filter(status="pending")
+            count = sum(
+                1 for er in all_pending
+                if set(er.programs_required) & pm_program_ids
+            )
+        cache.set(cache_key, count, 60)  # 1 min cache
+    return {"pending_erasure_count": count if count > 0 else None}

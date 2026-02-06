@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from apps.auth_app.decorators import minimum_role
 from apps.programs.models import Program, UserProgramRole
@@ -12,6 +13,21 @@ from apps.programs.models import Program, UserProgramRole
 from .forms import ClientFileForm, ConsentRecordForm, CustomFieldDefinitionForm, CustomFieldGroupForm, CustomFieldValuesForm
 from .helpers import get_client_tab_counts, get_document_folder_url
 from .models import ClientDetailValue, ClientFile, ClientProgramEnrolment, CustomFieldGroup
+from .validators import (
+    normalize_phone_number, normalize_postal_code,
+    validate_phone_number, validate_postal_code,
+)
+
+
+def get_client_queryset(user):
+    """Return filtered ClientFile queryset based on user's demo status.
+
+    Security requirement: is_demo is read ONLY from request.user.is_demo.
+    Never read from query params, form data, or cookies.
+    """
+    if user.is_demo:
+        return ClientFile.objects.demo()
+    return ClientFile.objects.real()
 
 
 def get_client_queryset(user):
@@ -130,7 +146,7 @@ def client_create(request):
             # Enrol in selected programs
             for program in form.cleaned_data["programs"]:
                 ClientProgramEnrolment.objects.create(client_file=client, program=program)
-            messages.success(request, "Client file created.")
+            messages.success(request, _("Client file created."))
             return redirect("clients:client_detail", client_id=client.pk)
     else:
         form = ClientFileForm(available_programs=available_programs)
@@ -171,7 +187,7 @@ def client_edit(request, client_id):
                         client_file=client, program_id=program_id,
                         defaults={"status": "enrolled"},
                     )
-            messages.success(request, "Client file updated.")
+            messages.success(request, _("Client file updated."))
             return redirect("clients:client_detail", client_id=client.pk)
     else:
         form = ClientFileForm(
@@ -247,6 +263,12 @@ def client_detail(request, client_id):
     # Tab counts for badges (only for non-front-desk roles, only for full page loads)
     tab_counts = {} if is_receptionist else get_client_tab_counts(client)
 
+    # Check for pending erasure request (ERASE8)
+    from .models import ErasureRequest
+    pending_erasure = ErasureRequest.objects.filter(
+        client_file=client, status="pending",
+    ).exists()
+
     context = {
         "client": client,
         "enrolments": enrolments,
@@ -255,6 +277,7 @@ def client_detail(request, client_id):
         "active_tab": "info",
         "user_role": user_role,
         "is_receptionist": is_receptionist,
+        "pending_erasure": pending_erasure,
         "document_folder_url": get_document_folder_url(client),
         "breadcrumbs": breadcrumbs,
         **tab_counts,  # notes_count, events_count, targets_count
@@ -299,7 +322,14 @@ def _get_custom_fields_context(client, user_role, hide_empty=False):
             # In display mode (hide_empty=True), skip fields without values
             if hide_empty and not value:
                 continue
-            field_values.append({"field_def": field_def, "value": value, "is_editable": is_editable})
+            # For select_other fields, detect if stored value is a custom "Other" entry
+            is_other_value = False
+            if field_def.input_type == "select_other" and value and field_def.options_json:
+                is_other_value = value not in field_def.options_json
+            field_values.append({
+                "field_def": field_def, "value": value,
+                "is_editable": is_editable, "is_other_value": is_other_value,
+            })
         # Only include groups that have visible fields
         if field_values:
             custom_data.append({"group": group, "fields": field_values})
@@ -371,16 +401,40 @@ def client_save_custom_fields(request, client_id):
 
         form = CustomFieldValuesForm(request.POST, field_definitions=editable_field_defs)
         if form.is_valid():
+            # Validate and normalise Canadian-specific fields (I18N5, I18N5b)
+            validation_errors = []
             for field_def in editable_field_defs:
                 raw_value = form.cleaned_data.get(f"custom_{field_def.pk}", "")
-                cdv, _ = ClientDetailValue.objects.get_or_create(
+                # For select_other: if "Other" was chosen, use the free-text value
+                if field_def.input_type == "select_other" and raw_value == "__other__":
+                    raw_value = form.cleaned_data.get(f"custom_{field_def.pk}_other", "").strip()
+                # Validate and normalise based on field's validation_type (I18N-FIX2)
+                if field_def.validation_type == "postal_code" and raw_value:
+                    try:
+                        validate_postal_code(raw_value)
+                        raw_value = normalize_postal_code(raw_value)
+                    except Exception as e:
+                        validation_errors.append(f"{field_def.name}: {e.message}")
+                        continue
+                if field_def.validation_type == "phone" and raw_value:
+                    try:
+                        validate_phone_number(raw_value)
+                        raw_value = normalize_phone_number(raw_value)
+                    except Exception as e:
+                        validation_errors.append(f"{field_def.name}: {e.message}")
+                        continue
+                cdv, _created = ClientDetailValue.objects.get_or_create(
                     client_file=client, field_def=field_def,
                 )
                 cdv.set_value(raw_value)
                 cdv.save()
-            messages.success(request, "Saved.")
+            if validation_errors:
+                for err in validation_errors:
+                    messages.error(request, err)
+            else:
+                messages.success(request, _("Saved."))
         else:
-            messages.error(request, "Please correct the errors.")
+            messages.error(request, _("Please correct the errors."))
 
     # For HTMX requests, return the read-only display partial
     if request.headers.get("HX-Request"):
@@ -447,9 +501,9 @@ def client_consent_save(request, client_id):
             )
             client.consent_type = form.cleaned_data["consent_type"]
             client.save(update_fields=["consent_given_at", "consent_type"])
-            messages.success(request, "Consent recorded.")
+            messages.success(request, _("Consent recorded."))
         else:
-            messages.error(request, "Please correct the errors.")
+            messages.error(request, _("Please correct the errors."))
             # Return to edit form on error
             if request.headers.get("HX-Request"):
                 return render(request, "clients/_consent_edit.html", {
@@ -568,7 +622,7 @@ def custom_field_group_create(request):
         form = CustomFieldGroupForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Field group created.")
+            messages.success(request, _("Field group created."))
             return redirect("clients:custom_field_admin")
     else:
         form = CustomFieldGroupForm()
@@ -584,7 +638,7 @@ def custom_field_group_edit(request, group_id):
         form = CustomFieldGroupForm(request.POST, instance=group)
         if form.is_valid():
             form.save()
-            messages.success(request, "Field group updated.")
+            messages.success(request, _("Field group updated."))
             return redirect("clients:custom_field_admin")
     else:
         form = CustomFieldGroupForm(instance=group)
@@ -599,7 +653,7 @@ def custom_field_def_create(request):
         form = CustomFieldDefinitionForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Field created.")
+            messages.success(request, _("Field created."))
             return redirect("clients:custom_field_admin")
     else:
         form = CustomFieldDefinitionForm()
@@ -616,7 +670,7 @@ def custom_field_def_edit(request, field_id):
         form = CustomFieldDefinitionForm(request.POST, instance=field_def)
         if form.is_valid():
             form.save()
-            messages.success(request, "Field updated.")
+            messages.success(request, _("Field updated."))
             return redirect("clients:custom_field_admin")
     else:
         form = CustomFieldDefinitionForm(instance=field_def)

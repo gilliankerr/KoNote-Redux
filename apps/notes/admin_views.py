@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.forms import inlineformset_factory
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 
 from .forms import NoteTemplateForm, NoteTemplateSectionForm
 from .models import ProgressNoteTemplate, ProgressNoteTemplateSection
@@ -43,7 +44,7 @@ def template_create(request):
             template = form.save()
             formset.instance = template
             formset.save()
-            messages.success(request, "Note template created.")
+            messages.success(request, _("Note template created."))
             return redirect("note_templates:template_list")
     else:
         form = NoteTemplateForm()
@@ -64,7 +65,7 @@ def template_edit(request, pk):
         if form.is_valid() and formset.is_valid():
             form.save()
             formset.save()
-            messages.success(request, "Note template updated.")
+            messages.success(request, _("Note template updated."))
             return redirect("note_templates:template_list")
     else:
         form = NoteTemplateForm(instance=template)

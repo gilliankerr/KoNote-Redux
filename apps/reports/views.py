@@ -26,6 +26,7 @@ from apps.plans.models import PlanTarget, PlanTargetMetric
 from apps.programs.models import UserProgramRole
 from .achievements import get_achievement_summary, format_achievement_summary
 from .cmt_export import generate_cmt_data, generate_cmt_csv_rows
+from .csv_utils import sanitise_csv_row, sanitise_filename
 from .demographics import aggregate_by_demographic, get_age_range, parse_grouping_choice
 from .forms import CMTExportForm, ClientDataExportForm, MetricExportForm
 from .models import SecureExportLink
@@ -371,7 +372,7 @@ def export_form(request):
             grouping_label=grouping_label,
             achievement_summary=achievement_summary,
         )
-        safe_name = program.name.replace(" ", "_").replace("/", "-")
+        safe_name = sanitise_filename(program.name.replace(" ", "_"))
         filename = f"funder_report_{safe_name}_{date_from}_{date_to}.pdf"
         content = pdf_response.content
     else:
@@ -379,67 +380,68 @@ def export_form(request):
         csv_buffer = io.StringIO()
         writer = csv.writer(csv_buffer)
         # Summary header rows (prefixed with # so spreadsheet apps treat them as comments)
-        writer.writerow([f"# Programme: {program.name}"])
-        writer.writerow([f"# Date Range: {date_from} to {date_to}"])
-        writer.writerow([f"# Total Clients: {len(unique_clients)}"])
-        writer.writerow([f"# Total Data Points: {len(rows)}"])
+        writer.writerow(sanitise_csv_row([f"# Programme: {program.name}"]))
+        writer.writerow(sanitise_csv_row([f"# Date Range: {date_from} to {date_to}"]))
+        writer.writerow(sanitise_csv_row([f"# Total Clients: {len(unique_clients)}"]))
+        writer.writerow(sanitise_csv_row([f"# Total Data Points: {len(rows)}"]))
         if grouping_type != "none":
-            writer.writerow([f"# Grouped By: {grouping_label}"])
+            writer.writerow(sanitise_csv_row([f"# Grouped By: {grouping_label}"]))
 
         # Achievement rate summary if requested
         if achievement_summary:
             writer.writerow([])  # blank separator
-            writer.writerow(["# ===== ACHIEVEMENT RATE SUMMARY ====="])
+            writer.writerow(sanitise_csv_row(["# ===== ACHIEVEMENT RATE SUMMARY ====="]))
             if achievement_summary["total_clients"] > 0:
-                writer.writerow([
+                writer.writerow(sanitise_csv_row([
                     f"# Overall: {achievement_summary['clients_met_any_target']} of "
                     f"{achievement_summary['total_clients']} clients "
                     f"({achievement_summary['overall_rate']}%) met at least one target"
-                ])
+                ]))
             else:
-                writer.writerow(["# No client data available for achievement calculation"])
+                writer.writerow(sanitise_csv_row(["# No client data available for achievement calculation"]))
 
             for metric in achievement_summary.get("by_metric", []):
                 if metric["has_target"]:
-                    writer.writerow([
+                    writer.writerow(sanitise_csv_row([
                         f"# {metric['metric_name']}: {metric['clients_met_target']} of "
                         f"{metric['total_clients']} clients ({metric['achievement_rate']}%) "
                         f"met target of {metric['target_value']}"
-                    ])
+                    ]))
                 else:
-                    writer.writerow([
+                    writer.writerow(sanitise_csv_row([
                         f"# {metric['metric_name']}: {metric['total_clients']} clients "
                         "(no target defined)"
-                    ])
+                    ]))
 
         writer.writerow([])  # blank separator
 
         # Column headers — include demographic column if grouping enabled
         if grouping_type != "none":
-            writer.writerow([grouping_label, "Client Record ID", "Metric Name", "Value", "Date", "Author"])
+            writer.writerow(sanitise_csv_row([grouping_label, "Client Record ID", "Metric Name", "Value", "Date", "Author"]))
         else:
-            writer.writerow(["Client Record ID", "Metric Name", "Value", "Date", "Author"])
+            writer.writerow(sanitise_csv_row(["Client Record ID", "Metric Name", "Value", "Date", "Author"]))
 
         for row in rows:
             if grouping_type != "none":
-                writer.writerow([
+                writer.writerow(sanitise_csv_row([
                     row.get("demographic_group", "Unknown"),
                     row["record_id"],
                     row["metric_name"],
                     row["value"],
                     row["date"],
                     row["author"],
-                ])
+                ]))
             else:
-                writer.writerow([
+                writer.writerow(sanitise_csv_row([
                     row["record_id"],
                     row["metric_name"],
                     row["value"],
                     row["date"],
                     row["author"],
-                ])
+                ]))
 
-        filename = f"metric_export_{program.name.replace(' ', '_')}_{date_from}_{date_to}.csv"
+        safe_prog = sanitise_filename(program.name.replace(" ", "_"))
+        filename = f"metric_export_{safe_prog}_{date_from}_{date_to}.csv"
         content = csv_buffer.getvalue()
 
     # Save to file and create secure download link
@@ -630,12 +632,13 @@ def cmt_export_form(request):
     )
 
     recipient = form.get_recipient_display()
-    safe_name = program.name.replace(" ", "_").replace("/", "-")
+    safe_name = sanitise_filename(program.name.replace(" ", "_"))
+    safe_fy = sanitise_filename(fiscal_year_label.replace(" ", "_"))
 
     if export_format == "pdf":
         from .pdf_views import generate_cmt_pdf
         pdf_response = generate_cmt_pdf(request, cmt_data)
-        filename = f"CMT_Report_{safe_name}_{fiscal_year_label.replace(' ', '_')}.pdf"
+        filename = f"CMT_Report_{safe_name}_{safe_fy}.pdf"
         content = pdf_response.content
     else:
         # Build CSV in memory buffer
@@ -643,8 +646,8 @@ def cmt_export_form(request):
         writer = csv.writer(csv_buffer)
         csv_rows = generate_cmt_csv_rows(cmt_data)
         for row in csv_rows:
-            writer.writerow(row)
-        filename = f"CMT_Report_{safe_name}_{fiscal_year_label.replace(' ', '_')}.csv"
+            writer.writerow(sanitise_csv_row(row))
+        filename = f"CMT_Report_{safe_name}_{safe_fy}.csv"
         content = csv_buffer.getvalue()
 
     # Save to file and create secure download link
@@ -788,17 +791,17 @@ def client_data_export(request):
     export_date = timezone.now().strftime("%Y-%m-%d")
     filename = f"client_data_export_{export_date}.csv"
     if program:
-        safe_name = program.name.replace(" ", "_").replace("/", "-")
+        safe_name = sanitise_filename(program.name.replace(" ", "_"))
         filename = f"client_data_export_{safe_name}_{export_date}.csv"
 
     # Summary header rows
-    writer.writerow([f"# Client Data Export"])
-    writer.writerow([f"# Export Date: {export_date}"])
-    writer.writerow([f"# Total Clients: {len(clients)}"])
+    writer.writerow(sanitise_csv_row([f"# Client Data Export"]))
+    writer.writerow(sanitise_csv_row([f"# Export Date: {export_date}"]))
+    writer.writerow(sanitise_csv_row([f"# Total Clients: {len(clients)}"]))
     if program:
-        writer.writerow([f"# Programme Filter: {program.name}"])
+        writer.writerow(sanitise_csv_row([f"# Programme Filter: {program.name}"]))
     if status_filter:
-        writer.writerow([f"# Status Filter: {status_filter}"])
+        writer.writerow(sanitise_csv_row([f"# Status Filter: {status_filter}"]))
     writer.writerow([])
 
     # Build column headers
@@ -829,7 +832,7 @@ def client_data_export(request):
         for field in custom_fields:
             headers.append(f"{field.group.title}: {field.name}")
 
-    writer.writerow(headers)
+    writer.writerow(sanitise_csv_row(headers))
 
     # Preload custom field values and enrolments for efficiency
     client_ids = [c.pk for c in clients]
@@ -857,7 +860,7 @@ def client_data_export(request):
                 f"{enrol.program.name} ({status_label})"
             )
 
-    # Write data rows
+    # Write data rows — sanitise all values to prevent CSV injection
     for client in clients:
         row = [
             client.record_id,
@@ -888,7 +891,7 @@ def client_data_export(request):
             for field in custom_fields:
                 row.append(client_values.get(field.pk, ""))
 
-        writer.writerow(row)
+        writer.writerow(sanitise_csv_row(row))
 
     # Save to file and create secure download link
     recipient = form.get_recipient_display()
@@ -1056,6 +1059,7 @@ def revoke_export_link(request, link_id):
     from django.contrib import messages
     from django.http import HttpResponseNotAllowed
     from django.shortcuts import redirect
+    from django.utils.translation import gettext as _
 
     if not request.user.is_admin:
         return HttpResponseForbidden("You do not have permission to revoke export links.")
@@ -1066,7 +1070,7 @@ def revoke_export_link(request, link_id):
     link = get_object_or_404(SecureExportLink, id=link_id)
 
     if link.revoked:
-        messages.info(request, "This link was already revoked.")
+        messages.info(request, _("This link was already revoked."))
         return redirect("reports:manage_export_links")
 
     # Revoke the link
@@ -1098,5 +1102,5 @@ def revoke_export_link(request, link_id):
         },
     )
 
-    messages.success(request, "Export link revoked successfully.")
+    messages.success(request, _("Export link revoked successfully."))
     return redirect("reports:manage_export_links")

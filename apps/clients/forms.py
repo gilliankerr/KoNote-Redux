@@ -92,6 +92,21 @@ class CustomFieldValuesForm(forms.Form):
                         required=field_def.is_required,
                         label=field_def.name,
                     )
+                elif field_def.input_type == "select_other" and field_def.options_json:
+                    choices = [("", _("— Select —"))] + [
+                        (opt, opt) for opt in field_def.options_json
+                    ] + [("__other__", _("Other"))]
+                    self.fields[field_key] = forms.ChoiceField(
+                        choices=choices,
+                        required=field_def.is_required,
+                        label=field_def.name,
+                    )
+                    # Additional text field for "Other" free-text entry
+                    self.fields[f"{field_key}_other"] = forms.CharField(
+                        required=False,
+                        label=_("Other (please specify)"),
+                        widget=forms.TextInput(attrs={"placeholder": field_def.placeholder or ""}),
+                    )
                 else:
                     self.fields[field_key] = forms.CharField(
                         required=field_def.is_required,
@@ -115,3 +130,52 @@ class CustomFieldDefinitionForm(forms.ModelForm):
         help_texts = {
             "receptionist_access": _("Set front desk access to 'View and edit' for contact info, emergency contacts, and safety alerts."),
         }
+
+
+# --- Erasure forms ---
+
+class ErasureRequestForm(forms.Form):
+    """Form for requesting client data erasure."""
+
+    REASON_CATEGORY_CHOICES = [
+        ("client_requested", _("Client requested")),
+        ("retention_expired", _("Retention period expired")),
+        ("discharged", _("Client discharged")),
+        ("other", _("Other")),
+    ]
+
+    reason_category = forms.ChoiceField(
+        choices=REASON_CATEGORY_CHOICES,
+        label=_("Reason for erasure"),
+    )
+    request_reason = forms.CharField(
+        widget=forms.Textarea(attrs={
+            "rows": 3,
+            "placeholder": _("Explain why this data should be erased. Do not include client names."),
+        }),
+        label=_("Details"),
+        help_text=_("Required. Provide context such as client request date, retention policy reference, etc."),
+    )
+
+
+class ErasureApprovalForm(forms.Form):
+    """Form for approving an erasure request (optional notes)."""
+
+    review_notes = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 2, "placeholder": _("Optional notes.")}),
+        label=_("Review notes"),
+        required=False,
+    )
+
+
+class ErasureRejectForm(forms.Form):
+    """Form for rejecting an erasure request (notes required)."""
+
+    review_notes = forms.CharField(
+        widget=forms.Textarea(attrs={
+            "rows": 3,
+            "placeholder": _("Explain why this erasure request is being rejected."),
+        }),
+        label=_("Reason for rejection"),
+        help_text=_("Required. This will be visible to the person who requested the erasure."),
+    )

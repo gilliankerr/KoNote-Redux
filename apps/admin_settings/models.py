@@ -5,22 +5,36 @@ from django.db import models
 # Default terminology — keys must match template usage
 # Format: { key: (English, French) }
 DEFAULT_TERMS = {
-    "client": ("Client", "Client"),
-    "client_plural": ("Clients", "Clients"),
+    # People & files
+    "client": ("Client", "Client(e)"),
+    "client_plural": ("Clients", "Client(e)s"),
     "file": ("File", "Dossier"),
+    "file_plural": ("Files", "Dossiers"),
+    # Plans & structure
     "plan": ("Plan", "Plan"),
+    "plan_plural": ("Plans", "Plans"),
     "section": ("Section", "Section"),
+    "section_plural": ("Sections", "Sections"),
     "target": ("Target", "Objectif"),
     "target_plural": ("Targets", "Objectifs"),
+    # Measurement
     "metric": ("Metric", "Indicateur"),
     "metric_plural": ("Metrics", "Indicateurs"),
+    # Notes
     "progress_note": ("Progress Note", "Note de suivi"),
     "progress_note_plural": ("Progress Notes", "Notes de suivi"),
     "quick_note": ("Quick Note", "Note rapide"),
+    "quick_note_plural": ("Quick Notes", "Notes rapides"),
+    # Events & alerts
     "event": ("Event", "Événement"),
+    "event_plural": ("Events", "Événements"),
+    "alert": ("Alert", "Alerte"),
+    "alert_plural": ("Alerts", "Alertes"),
+    # Programs & enrolment
     "program": ("Program", "Programme"),
     "program_plural": ("Programs", "Programmes"),
-    "alert": ("Alert", "Alerte"),
+    "enrolment": ("Enrolment", "Inscription"),
+    "enrolment_plural": ("Enrolments", "Inscriptions"),
 }
 
 

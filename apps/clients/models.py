@@ -1,5 +1,7 @@
 """Client file and custom field models."""
+from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from konote.encryption import decrypt_field, encrypt_field
 
@@ -166,8 +168,16 @@ class CustomFieldDefinition(models.Model):
         ("text", "Text"),
         ("textarea", "Text Area"),
         ("select", "Dropdown"),
+        ("select_other", "Dropdown with Other option"),
         ("date", "Date"),
         ("number", "Number"),
+    ]
+
+    VALIDATION_TYPE_CHOICES = [
+        ("none", "None"),
+        ("postal_code", "Canadian Postal Code"),
+        ("phone", "Phone Number"),
+        ("email", "Email Address"),
     ]
 
     group = models.ForeignKey(CustomFieldGroup, on_delete=models.CASCADE, related_name="fields")
@@ -186,6 +196,14 @@ class CustomFieldDefinition(models.Model):
         ],
         help_text="What access front desk staff have to this field.",
     )
+    # Determines which validation and normalisation rules apply (I18N-FIX2).
+    # Auto-detected from field name on first save if not explicitly set.
+    validation_type = models.CharField(
+        max_length=20,
+        choices=VALIDATION_TYPE_CHOICES,
+        default="none",
+        help_text="Determines which validation and normalisation rules apply to this field.",
+    )
     options_json = models.JSONField(default=list, blank=True, help_text="Options for select fields.")
     sort_order = models.IntegerField(default=0)
     status = models.CharField(
@@ -201,6 +219,15 @@ class CustomFieldDefinition(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        # Auto-detect validation type on first save if not explicitly set
+        if not self.validation_type or self.validation_type == "none":
+            from .validators import detect_validation_type
+            detected = detect_validation_type(self.name)
+            if detected != "none":
+                self.validation_type = detected
+        super().save(*args, **kwargs)
 
 
 class ClientDetailValue(models.Model):
@@ -231,3 +258,103 @@ class ClientDetailValue(models.Model):
         else:
             self.value = val
             self._value_encrypted = b""
+
+
+class ErasureRequest(models.Model):
+    """
+    Tracks a client data erasure request through a multi-PM approval workflow.
+
+    Workflow: Staff requests → all program managers approve → data erased.
+    Survives after the ClientFile is deleted (client_file becomes NULL).
+    Stores enough non-PII metadata to serve as a permanent audit record.
+    """
+
+    STATUS_CHOICES = [
+        ("pending", _("Pending Approval")),
+        ("approved", _("Approved — Data Erased")),
+        ("rejected", _("Rejected")),
+        ("cancelled", _("Cancelled")),
+    ]
+
+    REASON_CATEGORY_CHOICES = [
+        ("client_requested", _("Client Requested")),
+        ("retention_expired", _("Retention Period Expired")),
+        ("discharged", _("Client Discharged")),
+        ("other", _("Other")),
+    ]
+
+    # Link to the client (SET_NULL so this record survives deletion)
+    client_file = models.ForeignKey(
+        ClientFile, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="erasure_requests",
+    )
+    # Preserved identifiers (non-PII) for history after client is deleted
+    client_pk = models.IntegerField(help_text="Original ClientFile PK for audit cross-reference.")
+    client_record_id = models.CharField(max_length=100, default="", blank=True)
+
+    # Data summary — snapshot of related record counts at request time (integers only, never PII)
+    data_summary = models.JSONField(default=dict)
+
+    # Request phase
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="erasure_requests_made",
+    )
+    requested_by_display = models.CharField(max_length=255, default="")
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reason_category = models.CharField(
+        max_length=30, choices=REASON_CATEGORY_CHOICES, default="other",
+    )
+    request_reason = models.TextField(
+        help_text="Why this data should be erased. Do not include client names.",
+    )
+
+    # Approval tracking
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    # Programs that need PM approval (snapshot of program PKs at request time)
+    programs_required = models.JSONField(
+        default=list,
+        help_text="List of program PKs that need approval before erasure executes.",
+    )
+
+    class Meta:
+        app_label = "clients"
+        db_table = "erasure_requests"
+        ordering = ["-requested_at"]
+
+    def __str__(self):
+        return f"Erasure #{self.pk} — Client #{self.client_pk} ({self.get_status_display()})"
+
+
+class ErasureApproval(models.Model):
+    """
+    Tracks an individual PM's approval for one program within an erasure request.
+
+    When all required programs have an approval, the erasure auto-executes.
+    """
+
+    erasure_request = models.ForeignKey(
+        ErasureRequest, on_delete=models.CASCADE, related_name="approvals",
+    )
+    program = models.ForeignKey(
+        "programs.Program", on_delete=models.SET_NULL,
+        null=True, blank=True,
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="erasure_approvals_given",
+    )
+    approved_by_display = models.CharField(max_length=255, default="")
+    approved_at = models.DateTimeField(auto_now_add=True)
+    review_notes = models.TextField(default="", blank=True)
+
+    class Meta:
+        app_label = "clients"
+        db_table = "erasure_approvals"
+        unique_together = ["erasure_request", "program"]
+
+    def __str__(self):
+        program_name = self.program.name if self.program else _("Deleted program")
+        return f"Approval for {program_name} by {self.approved_by_display}"

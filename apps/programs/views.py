@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 
 from apps.auth_app.models import User
 
@@ -61,7 +62,7 @@ def program_create(request):
         form = ProgramForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Program created.")
+            messages.success(request, _("Program created."))
             return redirect("programs:program_list")
     else:
         form = ProgramForm()
@@ -76,7 +77,7 @@ def program_edit(request, program_id):
         form = ProgramForm(request.POST, instance=program)
         if form.is_valid():
             form.save()
-            messages.success(request, "Program updated.")
+            messages.success(request, _("Program updated."))
             return redirect("programs:program_detail", program_id=program.pk)
     else:
         form = ProgramForm(instance=program)
@@ -123,9 +124,9 @@ def program_add_role(request, program_id):
             defaults={"role": role, "status": "active"},
         )
         if not created:
-            messages.success(request, f"{user.display_name} role updated.")
+            messages.success(request, _("%(name)s role updated.") % {"name": user.display_name})
         else:
-            messages.success(request, f"{user.display_name} added.")
+            messages.success(request, _("%(name)s added.") % {"name": user.display_name})
     # Return full role list partial
     roles = UserProgramRole.objects.filter(program=program).select_related("user").order_by("status", "user__display_name")
     return render(request, "programs/_role_list.html", {"roles": roles, "program": program, "is_admin": True})
@@ -138,6 +139,6 @@ def program_remove_role(request, program_id, role_id):
     role = get_object_or_404(UserProgramRole, pk=role_id, program_id=program_id)
     role.status = "removed"
     role.save()
-    messages.success(request, f"{role.user.display_name} removed.")
+    messages.success(request, _("%(name)s removed.") % {"name": role.user.display_name})
     roles = UserProgramRole.objects.filter(program_id=program_id).select_related("user").order_by("status", "user__display_name")
     return render(request, "programs/_role_list.html", {"roles": roles, "program": role.program, "is_admin": True})

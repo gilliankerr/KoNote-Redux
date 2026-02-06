@@ -1,0 +1,78 @@
+#!/bin/sh
+# =============================================================================
+# Git pre-commit hook: Ensure .po and .mo files stay in sync
+# =============================================================================
+#
+# If a .po (translation source) file is staged for commit but the matching
+# .mo (compiled translation) file is NOT staged, the commit is blocked with
+# a clear message explaining how to fix it.
+#
+# This prevents a common mistake: editing translations but forgetting to
+# recompile them, which means the running app still shows old translations.
+#
+# Setup (run once per clone):
+#   git config core.hooksPath .githooks
+#
+# To bypass this hook in an emergency:
+#   git commit --no-verify
+# =============================================================================
+
+# Get list of staged .po files (Added, Modified, or Copied)
+STAGED_PO=$(git diff --cached --name-only --diff-filter=ACM | grep '\.po$' || true)
+
+if [ -z "$STAGED_PO" ]; then
+    # No .po files staged -- nothing to check
+    exit 0
+fi
+
+ERRORS=""
+
+for po_file in $STAGED_PO; do
+    # Derive the expected .mo path by replacing .po with .mo
+    mo_file="${po_file%.po}.mo"
+
+    # Check if the .mo file is also staged
+    MO_STAGED=$(git diff --cached --name-only | grep "^${mo_file}$" || true)
+
+    if [ -z "$MO_STAGED" ]; then
+        # .mo is not staged -- check if it exists and is newer than .po
+        if [ -f "$mo_file" ]; then
+            # File exists but wasn't staged
+            ERRORS="${ERRORS}\n  - ${po_file} is staged but ${mo_file} is NOT staged"
+        else
+            # .mo file doesn't exist at all
+            ERRORS="${ERRORS}\n  - ${po_file} is staged but ${mo_file} does NOT exist"
+        fi
+    fi
+done
+
+if [ -n "$ERRORS" ]; then
+    echo ""
+    echo "======================================================="
+    echo "  COMMIT BLOCKED: Translation files out of sync"
+    echo "======================================================="
+    echo ""
+    echo "  Translation source (.po) changed but the compiled"
+    echo "  file (.mo) is not updated or not staged."
+    echo ""
+    echo "  Problems found:"
+    printf "$ERRORS\n"
+    echo ""
+    echo "  How to fix:"
+    echo "  1. Compile:  python manage.py compilemessages"
+    echo "     (or if gettext is not installed locally:)"
+    echo "     python scripts/validate_translations.py"
+    echo "     msgfmt locale/fr/LC_MESSAGES/django.po -o locale/fr/LC_MESSAGES/django.mo"
+    echo ""
+    echo "  2. Stage:    git add locale/*/LC_MESSAGES/django.mo"
+    echo ""
+    echo "  3. Commit again."
+    echo ""
+    echo "  To skip this check (emergency only):"
+    echo "     git commit --no-verify"
+    echo ""
+    echo "======================================================="
+    exit 1
+fi
+
+exit 0

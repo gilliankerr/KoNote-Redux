@@ -20,9 +20,7 @@
         {% endblocktrans %}
     </p>
     <p style="margin-bottom: 0;">
-        {% blocktrans with time=available_at|date:"H:i" %}
-        <strong>The download will be available at {{ time }}.</strong>
-        {% endblocktrans %}
+        <strong>{% blocktrans with time=available_at|date:"H:i" %}The download will be available at {{ time }}.{% endblocktrans %}</strong>
     </p>
 </article>
 

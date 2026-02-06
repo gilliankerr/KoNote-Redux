@@ -1,0 +1,11 @@
+{% load i18n %}{% trans "Client Erasure Request" %} — {% if erasure_request.client_record_id %}{{ erasure_request.client_record_id }}{% else %}{% blocktrans with pk=erasure_request.client_pk %}Client #{{ pk }}{% endblocktrans %}{% endif %}
+
+{% trans "A new client data erasure request has been submitted and requires your approval." %}
+
+{% trans "Requested by:" %} {{ requester_name }}
+{% trans "Reason:" %} {{ erasure_request.get_reason_category_display }} — {{ erasure_request.request_reason }}
+
+{% trans "Review and approve or reject this request:" %}
+{{ review_url }}
+
+{% trans "This action is permanent." %} {% trans "Once all program managers approve, the client's data will be permanently deleted." %}

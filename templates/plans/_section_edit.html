@@ -1,4 +1,5 @@
-<header><h3>Edit {{ term.section|default:"Section" }}</h3></header>
+{% load i18n %}
+<header><h3>{% blocktrans with section=term.section|default:"Section" %}Edit {{ section }}{% endblocktrans %}</h3></header>
 <form method="post"
       hx-post="{% url 'plans:section_edit' section_id=section.pk %}"
       hx-target="#section-{{ section.pk }}"
@@ -12,14 +13,14 @@
     {% endif %}
     {% endfor %}
     <div role="group">
-        <button type="submit">Save</button>
+        <button type="submit">{% trans "Save" %}</button>
         <button type="button" class="outline secondary"
                 hx-get="{% url 'plans:section_edit' section_id=section.pk %}"
                 hx-target="#section-{{ section.pk }}"
                 hx-swap="innerHTML"
                 hx-vals='{"cancel": "1"}'
                 onclick="location.reload()">
-            Cancel
+            {% trans "Cancel" %}
         </button>
     </div>
 </form>

@@ -723,47 +723,53 @@ details.search-filters-panel[open] summary {
     color: #fff;
 }
 
-/* Compact [EN | FR] toggle — login page and navbar */
-.lang-switcher {
+/* Language link — canada.ca convention (top-right text link) */
+.lang-nav {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    margin-bottom: 1rem;
-    font-size: 0.85rem;
+    justify-content: flex-end;
+    padding: 0.75rem 1.25rem 0;
+    max-width: 420px;
+    margin: 0 auto;
 }
-.lang-switcher strong {
-    color: var(--kn-primary);
-    font-weight: 700;
-}
-.lang-divider {
-    color: var(--kn-text-muted);
-    user-select: none;
-}
-.lang-switcher-form {
-    display: inline;
+.lang-nav form {
     margin: 0;
-    padding: 0;
-    /* Prevent Pico CSS from expanding the form to full width */
-    width: auto;
 }
-.lang-switcher-link {
+.lang-link {
     background: none;
     border: none;
-    padding: 0;
-    margin: 0;
-    font-size: inherit;
-    color: var(--kn-text-muted);
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    /* Prevent Pico CSS from expanding the button to full width */
-    width: auto;
-    display: inline;
-}
-.lang-switcher-link:hover,
-.lang-switcher-link:focus-visible {
     color: var(--kn-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--kn-radius-sm);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.2em;
+    transition: text-decoration-color 0.15s, background 0.15s;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    width: auto;
+    line-height: 1.4;
+}
+.lang-link:hover,
+.lang-link:focus-visible {
+    text-decoration-color: var(--kn-primary);
+    background: var(--kn-primary-subtle);
+}
+.lang-link:focus-visible {
+    outline: 2px solid var(--kn-primary);
+    outline-offset: 2px;
+}
+/* Navbar language form — inline, no extra spacing */
+.nav-lang-form {
+    display: contents;
+    margin: 0;
+    padding: 0;
 }
 
 /* Secondary buttons — ensure text is readable on dark gray background */
