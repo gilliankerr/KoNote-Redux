@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 
 from apps.auth_app.decorators import minimum_role
 from apps.clients.models import ClientFile
+from apps.clients.views import get_client_queryset
 
 from .forms import (
     GroupForm,
@@ -158,7 +159,7 @@ def session_log(request, group_id):
 
                 # 2. Record attendance for each member
                 for member in members:
-                    present = request.POST.get(f"attend_{member.pk}") == "on"
+                    present = request.POST.get(f"present_{member.pk}") == "on"
                     GroupSessionAttendance.objects.create(
                         group_session=session,
                         membership=member,
@@ -207,11 +208,16 @@ def membership_add(request, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
     if request.method == "POST":
-        client_id = request.POST.get("client_id", "").strip()
+        client_file_id = request.POST.get("client_file", "").strip()
         member_name = request.POST.get("member_name", "").strip()
+        role = request.POST.get("role", "member")
+        if role not in ("member", "leader"):
+            role = "member"
 
-        if client_id:
-            client = get_object_or_404(ClientFile, pk=client_id)
+        if client_file_id:
+            # Security: only allow adding clients the user can see
+            base_qs = get_client_queryset(request.user)
+            client = get_object_or_404(base_qs, pk=client_file_id)
             # Check for duplicate membership
             if GroupMembership.objects.filter(
                 group=group, client_file=client, status="active",
@@ -221,12 +227,14 @@ def membership_add(request, group_id):
                 GroupMembership.objects.create(
                     group=group,
                     client_file=client,
+                    role=role,
                 )
                 messages.success(request, _("Member added."))
         elif member_name:
             GroupMembership.objects.create(
                 group=group,
                 member_name=member_name,
+                role=role,
             )
             messages.success(request, _("Member added."))
         else:
@@ -234,8 +242,8 @@ def membership_add(request, group_id):
 
         return redirect("groups:group_detail", group_id=group.pk)
 
-    # GET -- show the add-member form
-    clients = ClientFile.objects.filter(status="active").order_by("pk")
+    # GET -- show the add-member form (filtered by demo/real separation)
+    clients = get_client_queryset(request.user).filter(status="active").order_by("pk")
     return render(request, "groups/membership_add.html", {
         "group": group,
         "clients": clients,
