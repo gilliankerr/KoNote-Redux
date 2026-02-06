@@ -2,6 +2,8 @@
 from django.conf import settings
 from django.db import models
 
+from konote.encryption import decrypt_field, encrypt_field
+
 
 class MetricDefinition(models.Model):
     """
@@ -90,9 +92,18 @@ class PlanTarget(models.Model):
     status = models.CharField(max_length=20, default="default", choices=STATUS_CHOICES)
     status_reason = models.TextField(default="", blank=True)
     metrics = models.ManyToManyField(MetricDefinition, through="PlanTargetMetric", blank=True)
+    _client_goal_encrypted = models.BinaryField(default=b"", blank=True)
     sort_order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def client_goal(self):
+        return decrypt_field(self._client_goal_encrypted)
+
+    @client_goal.setter
+    def client_goal(self, value):
+        self._client_goal_encrypted = encrypt_field(value)
 
     class Meta:
         app_label = "plans"
@@ -109,12 +120,21 @@ class PlanTargetRevision(models.Model):
     plan_target = models.ForeignKey(PlanTarget, on_delete=models.CASCADE, related_name="revisions")
     name = models.CharField(max_length=255)
     description = models.TextField(default="", blank=True)
+    _client_goal_encrypted = models.BinaryField(default=b"", blank=True)
     status = models.CharField(max_length=20, default="default")
     status_reason = models.TextField(default="", blank=True)
     changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def client_goal(self):
+        return decrypt_field(self._client_goal_encrypted)
+
+    @client_goal.setter
+    def client_goal(self, value):
+        self._client_goal_encrypted = encrypt_field(value)
 
     class Meta:
         app_label = "plans"

@@ -198,6 +198,7 @@ def target_create(request, section_id):
                 plan_target=target,
                 name=target.name,
                 description=target.description,
+                client_goal=target.client_goal,
                 status=target.status,
                 status_reason=target.status_reason,
                 changed_by=request.user,
@@ -228,6 +229,7 @@ def target_edit(request, target_id):
             plan_target=target,
             name=target.name,
             description=target.description,
+            client_goal=target.client_goal,
             status=target.status,
             status_reason=target.status_reason,
             changed_by=request.user,
@@ -238,7 +240,7 @@ def target_edit(request, target_id):
             messages.success(request, _("Target updated."))
             return redirect("plans:plan_view", client_id=target.client_file.pk)
     else:
-        form = PlanTargetForm(instance=target)
+        form = PlanTargetForm(instance=target, initial={"client_goal": target.client_goal})
 
     return render(request, "plans/target_form.html", {
         "form": form,
@@ -262,6 +264,7 @@ def target_status(request, target_id):
             plan_target=target,
             name=target.name,
             description=target.description,
+            client_goal=target.client_goal,
             status=target.status,
             status_reason=target.status_reason,
             changed_by=request.user,

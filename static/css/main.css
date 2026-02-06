@@ -2187,3 +2187,85 @@ article[aria-label="notification"].fading-out {
         font-size: 0.875rem;
     }
 }
+
+/* ============================================
+   CLIENT VOICE — Goal callout & progress pills
+   ============================================ */
+
+/* Blue callout showing the client's own words about their goal */
+.client-goal-callout {
+    background: var(--kn-info-bg, #e8f4fd);
+    border-left: 4px solid var(--kn-primary);
+    border-radius: var(--kn-radius-card);
+    padding: var(--kn-space-sm) var(--kn-space-base);
+    margin-bottom: var(--kn-space-base);
+    font-size: 0.9375rem;
+    color: var(--kn-text);
+    line-height: 1.5;
+}
+
+.client-goal-callout strong {
+    color: var(--kn-primary);
+    font-size: 0.8125rem;
+    display: block;
+    margin-bottom: 0.125rem;
+}
+
+/* Horizontal pill selector for progress descriptors */
+.descriptor-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: var(--kn-space-base);
+}
+
+.descriptor-pills label {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--kn-border-light, #ccc);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    min-height: 44px;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+    margin-bottom: 0;
+}
+
+.descriptor-pills input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.descriptor-pills input[type="radio"]:checked + span {
+    /* Handled by parent label :has selector below */
+}
+
+.descriptor-pills label:has(input:checked) {
+    border-color: var(--kn-primary);
+    background: var(--kn-primary-subtle, #e8f0fe);
+    font-weight: 500;
+}
+
+.descriptor-pills label:hover {
+    border-color: var(--kn-primary);
+}
+
+.descriptor-pills label:focus-within {
+    outline: 2px solid var(--kn-primary);
+    outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+    .descriptor-pills {
+        gap: 0.375rem;
+    }
+    .descriptor-pills label {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+        min-height: 40px;
+    }
+}

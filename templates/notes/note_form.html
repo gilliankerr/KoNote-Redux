@@ -57,7 +57,29 @@
         <!-- Hidden target ID -->
         {{ tf.note_form.target_id }}
 
-        <label for="{{ tf.note_form.notes.id_for_label }}">{% blocktrans with target=term.target|default:"target" %}Notes for this {{ target }}{% endblocktrans %}</label>
+        {% if tf.target.client_goal %}
+        <div class="client-goal-callout" role="note">
+            <strong>{% trans "In their words:" %}</strong> "{{ tf.target.client_goal }}"
+        </div>
+        {% endif %}
+
+        <label for="{{ tf.note_form.client_words.id_for_label }}">{% trans "In their words" %}</label>
+        {{ tf.note_form.client_words }}
+        {% if tf.note_form.client_words.help_text %}<small>{{ tf.note_form.client_words.help_text }}</small>{% endif %}
+        {% if tf.note_form.client_words.errors %}<small class="error" role="alert">{{ tf.note_form.client_words.errors.0 }}</small>{% endif %}
+
+        <label>{% trans "How are things going?" %}</label>
+        <div class="descriptor-pills">
+        {% for radio in tf.note_form.progress_descriptor %}
+            {% if radio.choice_value %}
+            <label>{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+            {% endif %}
+        {% endfor %}
+        </div>
+        {% if tf.note_form.progress_descriptor.help_text %}<small>{{ tf.note_form.progress_descriptor.help_text }}</small>{% endif %}
+        {% if tf.note_form.progress_descriptor.errors %}<small class="error" role="alert">{{ tf.note_form.progress_descriptor.errors.0 }}</small>{% endif %}
+
+        <label for="{{ tf.note_form.notes.id_for_label }}">{% blocktrans with target=term.target|default:"target" %}Your notes for this {{ target }}{% endblocktrans %}</label>
         {{ tf.note_form.notes }}
         {% if tf.note_form.notes.errors %}<small class="error" role="alert">{{ tf.note_form.notes.errors.0 }}</small>{% endif %}
 
@@ -87,6 +109,12 @@
     {{ form.follow_up_date }}
     <small>{% trans "(optional — adds to your home page reminders)" %}</small>
     {% if form.follow_up_date.errors %}<small class="error" role="alert">{{ form.follow_up_date.errors.0 }}</small>{% endif %}
+
+    <!-- Engagement observation -->
+    <label for="{{ form.engagement_observation.id_for_label }}">{% trans "How engaged was the participant?" %}</label>
+    {{ form.engagement_observation }}
+    <small>{% trans "Your observation — not a score. This is a practice tool, not a performance evaluation." %}</small>
+    {% if form.engagement_observation.errors %}<small class="error" role="alert">{{ form.engagement_observation.errors.0 }}</small>{% endif %}
 
     <!-- Participant reflection section -->
     <div class="participant-reflection" role="region" aria-labelledby="reflection-heading">

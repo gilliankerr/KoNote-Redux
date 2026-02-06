@@ -43,6 +43,14 @@ class PlanSectionStatusForm(forms.ModelForm):
 class PlanTargetForm(forms.ModelForm):
     """Form for creating/editing a plan target."""
 
+    # client_goal is an encrypted property, not a DB column — must be explicit
+    client_goal = forms.CharField(
+        required=False,
+        label="What does the client want to work on?",
+        help_text="Write what they said, in their own words.",
+        widget=forms.TextInput(attrs={"placeholder": "In their own words…"}),
+    )
+
     class Meta:
         model = PlanTarget
         fields = ["name", "description"]
@@ -50,6 +58,16 @@ class PlanTargetForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"placeholder": "Target name"}),
             "description": forms.Textarea(attrs={"rows": 4, "placeholder": "Describe this target"}),
         }
+
+    # Put client_goal first in the rendered field order
+    field_order = ["client_goal", "name", "description"]
+
+    def save(self, commit=True):
+        target = super().save(commit=False)
+        target.client_goal = self.cleaned_data.get("client_goal", "")
+        if commit:
+            target.save()
+        return target
 
 
 class PlanTargetStatusForm(forms.ModelForm):

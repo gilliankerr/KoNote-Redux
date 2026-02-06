@@ -346,6 +346,7 @@ def note_create(request, client_id):
                     template=form.cleaned_data.get("template"),
                     summary=form.cleaned_data.get("summary", ""),
                     participant_reflection=form.cleaned_data.get("participant_reflection", ""),
+                    engagement_observation=form.cleaned_data.get("engagement_observation", ""),
                     follow_up_date=form.cleaned_data.get("follow_up_date"),
                 )
                 session_date = form.cleaned_data.get("session_date")
@@ -362,18 +363,23 @@ def note_create(request, client_id):
                 for tf in target_forms:
                     nf = tf["note_form"]
                     notes_text = nf.cleaned_data.get("notes", "")
+                    client_words = nf.cleaned_data.get("client_words", "")
+                    progress_descriptor = nf.cleaned_data.get("progress_descriptor", "")
                     # Check if any data was entered for this target
                     has_metrics = any(
                         mf.cleaned_data.get("value", "") for mf in tf["metric_forms"]
                     )
-                    if not notes_text and not has_metrics:
+                    if not notes_text and not has_metrics and not client_words and not progress_descriptor:
                         continue  # Skip targets with no data entered
 
-                    pnt = ProgressNoteTarget.objects.create(
+                    pnt = ProgressNoteTarget(
                         progress_note=note,
                         plan_target_id=nf.cleaned_data["target_id"],
                         notes=notes_text,
+                        client_words=client_words,
+                        progress_descriptor=progress_descriptor,
                     )
+                    pnt.save()
                     for mf in tf["metric_forms"]:
                         val = mf.cleaned_data.get("value", "")
                         if val:
@@ -554,5 +560,69 @@ def note_cancel(request, note_id):
         "form": form,
         "note": note,
         "client": client,
+        "breadcrumbs": breadcrumbs,
+    })
+
+
+@login_required
+@minimum_role("staff")
+def qualitative_summary(request, client_id):
+    """Show qualitative progress summary — descriptor distribution and recent client words per target."""
+    client = _get_client_or_403(request, client_id)
+    if client is None:
+        return HttpResponseForbidden("You do not have access to this client.")
+
+    # Get all active plan targets for this client
+    targets = (
+        PlanTarget.objects.filter(client_file=client, status="default")
+        .select_related("plan_section")
+        .order_by("plan_section__sort_order", "sort_order")
+    )
+
+    target_data = []
+    for target in targets:
+        entries = (
+            ProgressNoteTarget.objects.filter(
+                plan_target=target,
+                progress_note__status="default",
+            )
+            .select_related("progress_note")
+            .order_by("-progress_note__created_at")
+        )
+        # Descriptor distribution
+        descriptor_counts = {}
+        for choice_val, choice_label in ProgressNoteTarget.PROGRESS_DESCRIPTOR_CHOICES:
+            if choice_val:  # Skip empty choice
+                descriptor_counts[choice_label] = 0
+        for entry in entries:
+            if entry.progress_descriptor:
+                label = entry.get_progress_descriptor_display()
+                if label in descriptor_counts:
+                    descriptor_counts[label] += 1
+
+        # Recent client words (last 5)
+        recent_words = []
+        for entry in entries[:5]:
+            if entry.client_words:
+                recent_words.append({
+                    "text": entry.client_words,
+                    "date": entry.progress_note.effective_date,
+                })
+
+        target_data.append({
+            "target": target,
+            "descriptor_counts": descriptor_counts,
+            "total_entries": entries.count(),
+            "recent_words": recent_words,
+        })
+
+    breadcrumbs = [
+        {"url": reverse("clients:client_list"), "label": "Clients"},
+        {"url": reverse("clients:client_detail", kwargs={"client_id": client.pk}), "label": f"{client.first_name} {client.last_name}"},
+        {"url": "", "label": _("Qualitative Progress")},
+    ]
+    return render(request, "notes/qualitative_summary.html", {
+        "client": client,
+        "target_data": target_data,
         "breadcrumbs": breadcrumbs,
     })
