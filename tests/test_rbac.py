@@ -258,15 +258,15 @@ class ReceptionistFieldAccessTest(TestCase):
         self.client.force_login(self.receptionist)
         response = self.client.post(
             f"/clients/{self.client_file.pk}/custom-fields/",
-            {f"custom_{self.phone_field.pk}": "555-9999"},
+            {f"custom_{self.phone_field.pk}": "6135559999"},
         )
         # Should redirect (success), not 403
         self.assertEqual(response.status_code, 302)
 
-        # Verify value was saved
+        # Verify value was saved (phone validation normalises to (XXX) XXX-XXXX)
         from apps.clients.models import ClientDetailValue
         cdv = ClientDetailValue.objects.get(client_file=self.client_file, field_def=self.phone_field)
-        self.assertEqual(cdv.value, "555-9999")
+        self.assertEqual(cdv.value, "(613) 555-9999")
 
     def test_receptionist_cannot_save_view_only_fields(self):
         """Front desk staff cannot modify fields with receptionist_access='view'."""

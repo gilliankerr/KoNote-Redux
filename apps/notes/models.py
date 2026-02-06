@@ -1,6 +1,7 @@
 """Progress notes and metric value recording."""
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from konote.encryption import decrypt_field, encrypt_field
 
@@ -9,13 +10,13 @@ class ProgressNoteTemplate(models.Model):
     """Defines the structure of a full progress note."""
 
     INTERACTION_TYPE_CHOICES = [
-        ("session", "One-on-One Session"),
-        ("group", "Group Session"),
-        ("phone", "Phone Call"),
-        ("collateral", "Contact with Others"),
-        ("home_visit", "Home Visit"),
-        ("admin", "Admin / Paperwork"),
-        ("other", "Other"),
+        ("session", _("One-on-One Session")),
+        ("group", _("Group Session")),
+        ("phone", _("Phone Call")),
+        ("collateral", _("Contact with Others")),
+        ("home_visit", _("Home Visit")),
+        ("admin", _("Admin / Paperwork")),
+        ("other", _("Other")),
     ]
 
     name = models.CharField(max_length=255)

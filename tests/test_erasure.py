@@ -601,6 +601,26 @@ class ErasureViewWorkflowTests(TestCase):
         self.assertEqual(er.client_file, self.cf)
         self.assertTrue(er.erasure_code.startswith("ER-"))
 
+    def test_full_erasure_rejected_when_retention_not_expired(self):
+        """POSTing full_erasure when retention hasn't expired must be rejected."""
+        import datetime
+        self.cf.retention_expires = datetime.date(2030, 1, 1)
+        self.cf.save()
+
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.post(f"/clients/{self.cf.pk}/erase/", {
+            "erasure_tier": "full_erasure",
+            "reason_category": "retention_expired",
+            "request_reason": "Trying to bypass retention.",
+            "ack_permanent": "on",
+            "ack_authorised": "on",
+            "ack_notify": "on",
+        })
+        # Form should re-render (200) with validation error, not redirect (302)
+        self.assertEqual(resp.status_code, 200)
+        # No erasure request should have been created
+        self.assertFalse(ErasureRequest.objects.filter(client_file=self.cf).exists())
+
     def test_duplicate_request_redirects(self):
         ErasureRequest.objects.create(
             client_file=self.cf,

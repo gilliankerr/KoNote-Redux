@@ -470,6 +470,32 @@ msgstr "Notes rapides"
 msgid "Full notes"
 msgstr "Notes complètes"
 
+#: templates/notes/_tab_notes.html
+msgid "Interaction"
+msgstr "Interaction"
+
+msgid "All interactions"
+msgstr "Toutes les interactions"
+
+#: apps/notes/models.py
+msgid "One-on-One Session"
+msgstr "Séance individuelle"
+
+msgid "Group Session"
+msgstr "Séance de groupe"
+
+msgid "Phone Call"
+msgstr "Appel téléphonique"
+
+msgid "Contact with Others"
+msgstr "Contact avec d'autres"
+
+msgid "Home Visit"
+msgstr "Visite à domicile"
+
+msgid "Admin / Paperwork"
+msgstr "Administration / Documentation"
+
 msgid "Author"
 msgstr "Auteur"
 

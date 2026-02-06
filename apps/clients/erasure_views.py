@@ -60,7 +60,7 @@ def _get_visible_requests(user, status_filter=None):
     """
     from django.db.models import Q
 
-    qs = ErasureRequest.objects.all()
+    qs = ErasureRequest.objects.all().order_by("-requested_at")
     if status_filter:
         qs = qs.filter(status=status_filter)
 

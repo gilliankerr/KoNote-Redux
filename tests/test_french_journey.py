@@ -328,7 +328,7 @@ class NotesFrenchTest(FrenchJourneyBaseTest):
         self.assertContains(resp, "consentement verbal")
 
     def test_note_list_labels_in_french(self):
-        """Note list shows French filter and type labels."""
+        """Note list shows French filter and interaction type labels."""
         ProgressNote.objects.create(
             client_file=self.client_file, note_type="quick",
             notes_text="Note de test", author=self.staff,
@@ -336,10 +336,10 @@ class NotesFrenchTest(FrenchJourneyBaseTest):
         self._login_staff_fr()
         resp = self.http.get(f"/notes/client/{self.client_file.pk}/")
         self.assertEqual(resp.status_code, 200)
-        # Filter labels
+        # Filter labels (template now uses interaction types, not note types)
         self.assertContains(resp, "Filtrer les notes")  # "Filter notes"
         self.assertContains(resp, "Auteur")  # "Author"
-        self.assertContains(resp, "Tous les types")  # "All types"
+        self.assertContains(resp, "Toutes les interactions")  # "All interactions"
 
     def test_note_filter_options_in_french(self):
         """Note filter dropdown options are in French."""
@@ -350,8 +350,10 @@ class NotesFrenchTest(FrenchJourneyBaseTest):
         self._login_staff_fr()
         resp = self.http.get(f"/notes/client/{self.client_file.pk}/")
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "Notes rapides")  # "Quick notes"
-        self.assertContains(resp, "Notes compl\u00e8tes")  # "Full notes"
+        # Interaction type options (replaced old note_type filter)
+        self.assertContains(resp, "S\u00e9ance individuelle")  # "One-on-One Session"
+        self.assertContains(resp, "Appel t\u00e9l\u00e9phonique")  # "Phone Call"
+        # Author filter options
         self.assertContains(resp, "Mes notes seulement")  # "My notes only"
         self.assertContains(resp, "Tout le personnel")  # "All staff"
 

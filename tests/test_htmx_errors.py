@@ -279,12 +279,13 @@ class CustomFieldEditHTMXTest(TestCase):
         self.client.force_login(self.staff_user)
         response = self.client.post(
             f"/clients/{self.client_file.pk}/custom-fields/",
-            {f"custom_{self.editable_field.pk}": "555-1234"},
+            {f"custom_{self.editable_field.pk}": "6135551234"},
             HTTP_HX_REQUEST="true",
         )
         self.assertEqual(response.status_code, 200)
         # Should return the display partial (not redirect)
-        self.assertContains(response, "555-1234")
+        # Phone validation normalises to (XXX) XXX-XXXX format
+        self.assertContains(response, "(613) 555-1234")
         self.assertNotContains(response, "<!DOCTYPE html>")
 
 

@@ -8,8 +8,16 @@
 
     <table style="border-collapse: collapse; margin: 1rem 0;">
         <tr>
+            <td style="padding: 0.25rem 1rem 0.25rem 0; font-weight: bold;">{% trans "Erasure code:" %}</td>
+            <td>{{ erasure_code }}</td>
+        </tr>
+        <tr>
             <td style="padding: 0.25rem 1rem 0.25rem 0; font-weight: bold;">{% trans "Client:" %}</td>
             <td>{{ erasure_request.client_record_id|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 0.25rem 1rem 0.25rem 0; font-weight: bold;">{% trans "Level:" %}</td>
+            <td>{{ erasure_tier_display }}</td>
         </tr>
         <tr>
             <td style="padding: 0.25rem 1rem 0.25rem 0; font-weight: bold;">{% trans "Requested by:" %}</td>

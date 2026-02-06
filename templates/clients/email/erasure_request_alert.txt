@@ -2,6 +2,8 @@
 
 {% trans "A new client data erasure request has been submitted and requires your approval." %}
 
+{% trans "Erasure code:" %} {{ erasure_code }}
+{% trans "Level:" %} {{ erasure_tier_display }}
 {% trans "Requested by:" %} {{ requester_name }}
 {% trans "Reason:" %} {{ erasure_request.get_reason_category_display }} — {{ erasure_request.request_reason }}
 
