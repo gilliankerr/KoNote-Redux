@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.auth_app.decorators import minimum_role
@@ -52,7 +53,13 @@ def _get_user_pm_program_ids(user):
 
 
 def _get_visible_requests(user, status_filter=None):
-    """Get erasure requests visible to this user (PM-scoped or admin-all)."""
+    """Get erasure requests visible to this user (PM-scoped or admin-all).
+
+    Uses SQL-level JSONField filtering (PostgreSQL @> operator) to avoid
+    loading all requests into memory for set intersection.
+    """
+    from django.db.models import Q
+
     qs = ErasureRequest.objects.all()
     if status_filter:
         qs = qs.filter(status=status_filter)
@@ -65,12 +72,11 @@ def _get_visible_requests(user, status_filter=None):
     if not pm_program_ids:
         return qs.none()
 
-    # Filter to requests where at least one required program is in the PM's programs
-    matching_pks = []
-    for er in qs:
-        if set(er.programs_required) & set(pm_program_ids):
-            matching_pks.append(er.pk)
-    return qs.filter(pk__in=matching_pks)
+    # Build OR query: programs_required @> [id1] OR programs_required @> [id2] ...
+    q = Q()
+    for pid in pm_program_ids:
+        q |= Q(programs_required__contains=[pid])
+    return qs.filter(q)
 
 
 # --- Request creation (PM+ only) ---
@@ -121,9 +127,16 @@ def erasure_request_create(request, client_id):
             client.save(update_fields=["erasure_requested"])
 
             # Send email notification to PMs
-            _notify_pms_erasure_request(er, request)
+            email_sent = _notify_pms_erasure_request(er, request)
 
-            messages.success(request, _("Erasure request created. Programme managers have been notified."))
+            messages.success(request, _("Erasure request created."))
+            if email_sent:
+                messages.info(request, _("Programme managers have been notified by email."))
+            else:
+                messages.warning(
+                    request,
+                    _("Email notification failed. Please notify the programme managers manually."),
+                )
             return redirect("erasure_request_detail", pk=er.pk)
     else:
         form = ErasureRequestForm(available_tiers=available_tiers)
@@ -150,9 +163,11 @@ def erasure_pending_list(request):
 
     pending = _get_visible_requests(request.user, status_filter="pending")
 
-    # Flag stuck requests
+    # Annotate each request with aging and stuck status
+    now = timezone.now()
     for er in pending:
         er.is_stuck = is_deadlocked(er)
+        er.days_pending = (now - er.requested_at).days
 
     return render(request, "clients/erasure/erasure_pending_list.html", {
         "pending_requests": pending,
@@ -209,6 +224,9 @@ def erasure_request_detail(request, pk):
     deadlocked = is_deadlocked(er)
     admin_can_approve = deadlocked and request.user.is_admin and er.status == "pending"
 
+    # PIPEDA 30-day aging
+    days_pending = (timezone.now() - er.requested_at).days if er.status == "pending" else None
+
     approval_form = ErasureApprovalForm()
     reject_form = ErasureRejectForm()
 
@@ -223,6 +241,7 @@ def erasure_request_detail(request, pk):
         "reject_form": reject_form,
         "can_download_receipt": er.status == "pending" and er.client_file is not None,
         "receipt_not_downloaded": er.status == "pending" and er.receipt_downloaded_at is None,
+        "days_pending": days_pending,
         "nav_active": "admin",
     })
 
@@ -273,11 +292,16 @@ def erasure_approve(request, pk):
         return redirect("erasure_request_detail", pk=pk)
 
     if executed:
-        _notify_erasure_completed(er, request)
+        email_sent = _notify_erasure_completed(er, request)
         if er.erasure_tier == "full_erasure":
             messages.success(request, _("All approvals received. Client data has been permanently erased."))
         else:
             messages.success(request, _("All approvals received. Client data has been anonymised."))
+        if not email_sent:
+            messages.warning(
+                request,
+                _("Email notification failed. Please notify involved programme managers manually."),
+            )
         return redirect("erasure_history")
     else:
         messages.success(request, _("Approval recorded. Waiting for remaining program managers."))
@@ -330,9 +354,14 @@ def erasure_reject(request, pk):
     )
 
     # Notify the requester
-    _notify_requester_rejection(er, request.user, form.cleaned_data["review_notes"])
+    email_sent = _notify_requester_rejection(er, request.user, form.cleaned_data["review_notes"])
 
     messages.success(request, _("Erasure request rejected. Client data has been preserved."))
+    if not email_sent:
+        messages.warning(
+            request,
+            _("Email notification to the requester failed. Please notify them manually."),
+        )
     return redirect("erasure_pending_list")
 
 
@@ -479,7 +508,7 @@ def _notify_pms_erasure_request(erasure_request, request):
     )
     emails = [upr.user.email for upr in pm_users if upr.user.email]
     if not emails:
-        return
+        return True  # No one to notify — not a failure
 
     review_url = request.build_absolute_uri(
         reverse("erasure_request_detail", args=[erasure_request.pk])
@@ -500,11 +529,13 @@ def _notify_pms_erasure_request(erasure_request, request):
             subject=subject, message=text_body, html_message=html_body,
             from_email=None, recipient_list=emails,
         )
+        return True
     except Exception:
         logger.warning(
             "Failed to send erasure request notification for request %s",
             erasure_request.pk, exc_info=True,
         )
+        return False
 
 
 def _notify_erasure_completed(erasure_request, request):
@@ -520,7 +551,7 @@ def _notify_erasure_completed(erasure_request, request):
             involved_users.add(approval.approved_by.email)
 
     if not involved_users:
-        return
+        return True  # No one to notify — not a failure
 
     code = erasure_request.erasure_code
     record_ref = erasure_request.client_record_id or _("Client #%(pk)s") % {"pk": erasure_request.client_pk}
@@ -557,11 +588,13 @@ def _notify_erasure_completed(erasure_request, request):
             subject=subject, message=body,
             from_email=None, recipient_list=list(involved_users),
         )
+        return True
     except Exception:
         logger.warning(
             "Failed to send erasure completion notification for request %s",
             erasure_request.pk, exc_info=True,
         )
+        return False
 
 
 def _notify_requester_rejection(erasure_request, rejecting_user, review_notes):
@@ -569,7 +602,7 @@ def _notify_requester_rejection(erasure_request, rejecting_user, review_notes):
     from django.core.mail import send_mail
 
     if not erasure_request.requested_by or not erasure_request.requested_by.email:
-        return
+        return True  # No one to notify — not a failure
 
     code = erasure_request.erasure_code
     subject = _("Erasure Request Rejected — %(code)s") % {"code": code}
@@ -589,8 +622,10 @@ def _notify_requester_rejection(erasure_request, rejecting_user, review_notes):
             from_email=None,
             recipient_list=[erasure_request.requested_by.email],
         )
+        return True
     except Exception:
         logger.warning(
             "Failed to send rejection notification for %s",
             code, exc_info=True,
         )
+        return False

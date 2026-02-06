@@ -1387,3 +1387,243 @@ class EnhancedDataSummaryTests(TestCase):
         summary = build_data_summary(self.cf)
         self.assertEqual(summary["progress_notes"], 0)
         self.assertEqual(summary["enrolments"], 1)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class EmailNotificationWarningTests(TestCase):
+    """Test REV-W3: user-visible warning when email notification fails."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.admin = User.objects.create_user(
+            username="admin", password="testpass123", is_admin=True,
+        )
+        self.pm = User.objects.create_user(
+            username="pm", password="testpass123", email="pm@example.com",
+        )
+        self.prog = Program.objects.create(name="Prog A", colour_hex="#10B981", status="active")
+        UserProgramRole.objects.create(user=self.pm, program=self.prog, role="program_manager", status="active")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.record_id = "REC-W3"
+        self.cf.save()
+        ClientProgramEnrolment.objects.create(client_file=self.cf, program=self.prog, status="enrolled")
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    @patch("django.core.mail.send_mail", side_effect=Exception("SMTP down"))
+    def test_notify_pms_returns_false_on_failure(self, mock_send):
+        from apps.clients.erasure_views import _notify_pms_erasure_request
+
+        er = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            client_record_id="REC-W3",
+            requested_by=self.admin, requested_by_display="Admin",
+            reason_category="other", request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.get("/")
+        result = _notify_pms_erasure_request(er, request)
+        self.assertFalse(result)
+
+    @patch("django.core.mail.send_mail")
+    def test_notify_pms_returns_true_on_success(self, mock_send):
+        from apps.clients.erasure_views import _notify_pms_erasure_request
+
+        er = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            client_record_id="REC-W3",
+            requested_by=self.admin, requested_by_display="Admin",
+            reason_category="other", request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.get("/")
+        result = _notify_pms_erasure_request(er, request)
+        self.assertTrue(result)
+
+    @patch("django.core.mail.send_mail", side_effect=Exception("SMTP down"))
+    def test_create_view_shows_warning_on_email_failure(self, mock_send):
+        self.client.login(username="pm", password="testpass123")
+        UserProgramRole.objects.create(
+            user=self.admin, program=self.prog,
+            role="program_manager", status="active",
+        )
+        resp = self.client.post(
+            f"/clients/{self.cf.pk}/erase/",
+            {
+                "erasure_tier": "anonymise",
+                "reason_category": "client_requested",
+                "request_reason": "Client asked to be forgotten.",
+                "ack_permanent": "on",
+                "ack_authorised": "on",
+                "ack_notify": "on",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        msgs = [str(m) for m in resp.context["messages"]]
+        self.assertTrue(
+            any("notify the programme managers manually" in m.lower() for m in msgs),
+            f"Expected email failure warning in messages: {msgs}",
+        )
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class SQLFilteredVisibilityTests(TestCase):
+    """Test REV-W1: SQL-level PM filtering for erasure visibility."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.admin = User.objects.create_user(
+            username="admin", password="testpass123", is_admin=True,
+        )
+        self.pm1 = User.objects.create_user(username="pm1", password="testpass123")
+        self.pm2 = User.objects.create_user(username="pm2", password="testpass123")
+
+        self.prog_a = Program.objects.create(name="Prog A", colour_hex="#10B981", status="active")
+        self.prog_b = Program.objects.create(name="Prog B", colour_hex="#3B82F6", status="active")
+
+        UserProgramRole.objects.create(user=self.pm1, program=self.prog_a, role="program_manager", status="active")
+        UserProgramRole.objects.create(user=self.pm2, program=self.prog_b, role="program_manager", status="active")
+
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+
+        # Request requiring prog_a only
+        self.er_a = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            requested_by=self.admin, requested_by_display="Admin",
+            reason_category="other", request_reason="Test A",
+            programs_required=[self.prog_a.pk],
+        )
+        # Request requiring prog_b only
+        self.er_b = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            requested_by=self.admin, requested_by_display="Admin",
+            reason_category="other", request_reason="Test B",
+            programs_required=[self.prog_b.pk],
+        )
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_pm_sees_only_their_program_requests(self):
+        from apps.clients.erasure_views import _get_visible_requests
+        visible = _get_visible_requests(self.pm1)
+        pks = list(visible.values_list("pk", flat=True))
+        self.assertIn(self.er_a.pk, pks)
+        self.assertNotIn(self.er_b.pk, pks)
+
+    def test_admin_sees_all_requests(self):
+        from apps.clients.erasure_views import _get_visible_requests
+        visible = _get_visible_requests(self.admin)
+        pks = list(visible.values_list("pk", flat=True))
+        self.assertIn(self.er_a.pk, pks)
+        self.assertIn(self.er_b.pk, pks)
+
+    def test_pm_with_no_programs_sees_nothing(self):
+        from apps.clients.erasure_views import _get_visible_requests
+        staff = User.objects.create_user(username="staff", password="testpass123")
+        visible = _get_visible_requests(staff)
+        self.assertEqual(visible.count(), 0)
+
+
+@override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
+class PIPEDAAgingTests(TestCase):
+    """Test REV-PIPEDA1: 30-day aging indicator for pending erasure requests."""
+
+    databases = {"default", "audit"}
+
+    def setUp(self):
+        enc_module._fernet = None
+        self.admin = User.objects.create_user(
+            username="admin", password="testpass123", is_admin=True,
+        )
+        self.prog = Program.objects.create(name="Prog A", colour_hex="#10B981", status="active")
+        UserProgramRole.objects.create(
+            user=self.admin, program=self.prog,
+            role="program_manager", status="active",
+        )
+        self.cf = ClientFile()
+        self.cf.first_name = "Test"
+        self.cf.last_name = "Client"
+        self.cf.save()
+
+    def tearDown(self):
+        enc_module._fernet = None
+
+    def test_pending_list_shows_days_pending(self):
+        """Pending list view includes days_pending on each request."""
+        er = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            requested_by=self.admin, requested_by_display="Admin",
+            reason_category="other", request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.get("/erasure/")
+        self.assertEqual(resp.status_code, 200)
+        pending = list(resp.context["pending_requests"])
+        self.assertTrue(len(pending) > 0)
+        self.assertTrue(hasattr(pending[0], "days_pending"))
+        self.assertEqual(pending[0].days_pending, 0)
+
+    def test_overdue_request_shows_days(self):
+        """A request older than 30 days gets correct days_pending value."""
+        from datetime import timedelta
+        er = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            requested_by=self.admin, requested_by_display="Admin",
+            reason_category="other", request_reason="Old request",
+            programs_required=[self.prog.pk],
+        )
+        # Backdate the request
+        from django.utils import timezone as tz
+        ErasureRequest.objects.filter(pk=er.pk).update(
+            requested_at=tz.now() - timedelta(days=35),
+        )
+
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.get("/erasure/")
+        pending = list(resp.context["pending_requests"])
+        self.assertEqual(pending[0].days_pending, 35)
+
+    def test_detail_view_includes_days_pending(self):
+        """Detail view passes days_pending for pending requests."""
+        er = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            requested_by=self.admin, requested_by_display="Admin",
+            reason_category="other", request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.get(f"/erasure/{er.pk}/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNotNone(resp.context["days_pending"])
+
+    def test_detail_view_no_aging_for_completed(self):
+        """Completed requests do not show days_pending."""
+        er = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            requested_by=self.admin, requested_by_display="Admin",
+            reason_category="other", request_reason="Test",
+            programs_required=[self.prog.pk],
+            status="anonymised",
+        )
+        self.client.login(username="admin", password="testpass123")
+        resp = self.client.get(f"/erasure/{er.pk}/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.context["days_pending"])

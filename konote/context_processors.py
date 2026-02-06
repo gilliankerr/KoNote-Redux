@@ -143,15 +143,17 @@ def pending_erasures(request):
             count = ErasureRequest.objects.filter(status="pending").count()
         else:
             # PM-scoped: count requests where at least one required program is theirs
-            pm_program_ids = set(
+            # Uses SQL-level JSONField filtering instead of in-memory iteration
+            from django.db.models import Q
+
+            pm_program_ids = list(
                 UserProgramRole.objects.filter(
                     user=request.user, role="program_manager", status="active",
                 ).values_list("program_id", flat=True)
             )
-            all_pending = ErasureRequest.objects.filter(status="pending")
-            count = sum(
-                1 for er in all_pending
-                if set(er.programs_required) & pm_program_ids
-            )
+            q = Q()
+            for pid in pm_program_ids:
+                q |= Q(programs_required__contains=[pid])
+            count = ErasureRequest.objects.filter(status="pending").filter(q).count()
         cache.set(cache_key, count, 60)  # 1 min cache
     return {"pending_erasure_count": count if count > 0 else None}

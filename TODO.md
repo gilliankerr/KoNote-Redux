@@ -29,9 +29,7 @@ The core app is feature-complete. These tasks prepare for production use.
 
 ### Review Follow-ups (from 2026-02-05 session review)
 
-- [ ] Add user-visible warning when erasure email notification fails — so requesters know to notify PMs manually (REV-W3)
-- [ ] Optimise in-memory PM filtering for erasure visibility — push filtering to SQL when pending requests grow (REV-W1)
-- [ ] Add 30-day aging indicator for pending erasure requests — PIPEDA requires responding within 30 days (REV-PIPEDA1)
+_All items completed — see Recently Done._
 
 ### Export Monitoring
 
@@ -121,6 +119,7 @@ See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-desig
 
 ## Recently Done
 
+- [x] Review follow-ups — email failure warnings, SQL-optimised PM filtering, 30-day PIPEDA aging indicator — 2026-02-06 (REV-W3, REV-W1, REV-PIPEDA1)
 - [x] Independent security review docs — added review section, AI prompt template, and "Trust, But Verify" to security ops + README — 2026-02-06 (SEC-DOC1-3, SEC-WEB1)
 - [x] Fix UX walkthrough issues — 500 error, heading structure, table accessibility, search page, 403 page, form validation — 2026-02-06 (UX-WALK1)
 - [x] Erasure hardening — receipt access scoping, audit-before-erasure, download tracking, rejection emails, race condition fix, pagination, 78 tests — 2026-02-06 (ERASE-H1-H7)

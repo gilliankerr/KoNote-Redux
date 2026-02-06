@@ -43,6 +43,18 @@
 </article>
 {% endif %}
 
+{% if days_pending is not None and days_pending >= 30 %}
+<article aria-label="{% trans 'PIPEDA deadline warning' %}" style="border-left: 4px solid var(--pico-del-color); background: var(--pico-del-color-bg, rgba(255,0,0,0.05));">
+    <strong>{% trans "Overdue — PIPEDA 30-Day Deadline" %}</strong>
+    <p>{% blocktrans with days=days_pending %}This request has been pending for {{ days }} days. PIPEDA requires a response within 30 days of receiving an erasure request.{% endblocktrans %}</p>
+</article>
+{% elif days_pending is not None and days_pending >= 25 %}
+<article aria-label="{% trans 'PIPEDA deadline approaching' %}" style="border-left: 4px solid var(--pico-color-orange-500, orange); background: var(--pico-ins-color-bg, rgba(255,165,0,0.05));">
+    <strong>{% trans "Approaching PIPEDA Deadline" %}</strong>
+    <p>{% blocktrans with days=days_pending %}This request has been pending for {{ days }} days. The 30-day PIPEDA response deadline is approaching.{% endblocktrans %}</p>
+</article>
+{% endif %}
+
 {% if deadlocked and er.status == "pending" %}
 <article aria-label="deadlock notice" class="warning" style="border-left: 4px solid var(--pico-color-orange-500, orange);">
     <strong>{% trans "Deadlock Detected" %}</strong>
