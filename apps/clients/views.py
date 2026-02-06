@@ -233,7 +233,7 @@ def client_detail(request, client_id):
     for group in groups:
         if is_receptionist:
             # Front desk staff only see fields with view or edit access
-            fields = group.fields.filter(status="active", receptionist_access__in=["view", "edit"])
+            fields = group.fields.filter(status="active", front_desk_access__in=["view", "edit"])
         else:
             fields = group.fields.filter(status="active")
         field_values = []
@@ -244,7 +244,7 @@ def client_detail(request, client_id):
             except ClientDetailValue.DoesNotExist:
                 value = ""
             # Track if field is editable (staff can edit all, front desk only if access=edit)
-            is_editable = not is_receptionist or field_def.receptionist_access == "edit"
+            is_editable = not is_receptionist or field_def.front_desk_access == "edit"
             if is_editable:
                 has_editable_fields = True
             # For display mode, skip empty fields — Edit button shows all fields
@@ -308,7 +308,7 @@ def _get_custom_fields_context(client, user_role, hide_empty=False):
 
     for group in groups:
         if is_receptionist:
-            fields = group.fields.filter(status="active", receptionist_access__in=["view", "edit"])
+            fields = group.fields.filter(status="active", front_desk_access__in=["view", "edit"])
         else:
             fields = group.fields.filter(status="active")
         field_values = []
@@ -318,7 +318,7 @@ def _get_custom_fields_context(client, user_role, hide_empty=False):
                 value = cdv.get_value()
             except ClientDetailValue.DoesNotExist:
                 value = ""
-            is_editable = not is_receptionist or field_def.receptionist_access == "edit"
+            is_editable = not is_receptionist or field_def.front_desk_access == "edit"
             if is_editable:
                 has_editable_fields = True
             # In display mode (hide_empty=True), skip fields without values
@@ -372,7 +372,7 @@ def client_save_custom_fields(request, client_id):
     """Save custom field values for a client.
 
     Security: Only fetch clients matching user's demo status.
-    Front desk staff can only save fields with receptionist_access='edit'.
+    Front desk staff can only save fields with front_desk_access='edit'.
     Direct service staff and managers can save all fields.
     Returns the read-only display partial for HTMX, or redirects for non-HTMX.
     """
@@ -389,7 +389,7 @@ def client_save_custom_fields(request, client_id):
         if is_receptionist:
             editable_field_defs = [
                 fd for group in groups
-                for fd in group.fields.filter(status="active", receptionist_access="edit")
+                for fd in group.fields.filter(status="active", front_desk_access="edit")
             ]
         else:
             editable_field_defs = [

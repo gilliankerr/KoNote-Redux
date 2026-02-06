@@ -24,11 +24,11 @@ from apps.clients.models import CustomFieldDefinition, CustomFieldGroup
 
 # Field groups and their fields
 # Format: (group_title, sort_order, fields_list)
-# Each field: (name, input_type, is_required, is_sensitive, receptionist_access, placeholder, options)
-#             or (name, input_type, is_required, is_sensitive, receptionist_access, placeholder, options, validation_type)
+# Each field: (name, input_type, is_required, is_sensitive, front_desk_access, placeholder, options)
+#             or (name, input_type, is_required, is_sensitive, front_desk_access, placeholder, options, validation_type)
 # validation_type is optional — if omitted, auto-detection in model.save() handles it.
 #
-# receptionist_access values (controls front desk visibility):
+# front_desk_access values (controls front desk visibility):
 #   "edit" — front desk can view and edit (contact info, emergency, admin fields)
 #   "view" — front desk can view but not edit (clinical context)
 #   "none" — hidden from front desk staff (demographics, baseline, consent)
@@ -472,7 +472,7 @@ class Command(BaseCommand):
                 input_type = field_data[1]
                 is_required = field_data[2]
                 is_sensitive = field_data[3]
-                receptionist_access = field_data[4]
+                front_desk_access = field_data[4]
                 placeholder = field_data[5]
                 options = field_data[6]
                 validation_type = field_data[7] if len(field_data) > 7 else "none"
@@ -481,7 +481,7 @@ class Command(BaseCommand):
                     "input_type": input_type,
                     "is_required": is_required,
                     "is_sensitive": is_sensitive,
-                    "receptionist_access": receptionist_access,
+                    "front_desk_access": front_desk_access,
                     "placeholder": placeholder,
                     "options_json": options if options else [],
                     "sort_order": field_idx * 10,

@@ -155,14 +155,14 @@ class UxWalkthroughBase(TestCase):
             group=cls.field_group,
             name="Phone Number",
             input_type="text",
-            receptionist_access="edit",
+            front_desk_access="edit",
             sort_order=1,
         )
         cls.case_notes_field = CustomFieldDefinition.objects.create(
             group=cls.field_group,
             name="Case Notes",
             input_type="textarea",
-            receptionist_access="none",
+            front_desk_access="none",
             sort_order=2,
         )
         ClientDetailValue.objects.create(

@@ -362,7 +362,7 @@ class SelectOtherFieldTest(TestCase):
         self.group = CustomFieldGroup.objects.create(title="Contact Information")
         self.pronouns_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Pronouns", input_type="select_other",
-            is_sensitive=True, receptionist_access="view",
+            is_sensitive=True, front_desk_access="view",
             options_json=["He/him", "He/they", "She/her", "She/they", "They/them", "Prefer not to answer"],
         )
         self.cf = ClientFile()

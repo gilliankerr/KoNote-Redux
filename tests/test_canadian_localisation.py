@@ -278,11 +278,11 @@ class CustomFieldNormalisationIntegrationTest(TestCase):
         self.group = CustomFieldGroup.objects.create(title="Contact Information")
         self.postal_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Postal Code", input_type="text",
-            is_sensitive=False, receptionist_access="edit",
+            is_sensitive=False, front_desk_access="edit",
         )
         self.phone_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Primary Phone", input_type="text",
-            is_sensitive=True, receptionist_access="edit",
+            is_sensitive=True, front_desk_access="edit",
         )
         self.cf = ClientFile()
         self.cf.first_name = "Jane"

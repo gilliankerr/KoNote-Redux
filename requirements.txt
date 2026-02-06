@@ -29,4 +29,3 @@ weasyprint>=62.0
 # Testing
 pytest>=9.0
 pytest-django>=4.11
-beautifulsoup4>=4.12

@@ -195,7 +195,7 @@ class CustomFieldDefinition(models.Model):
     placeholder = models.CharField(max_length=255, default="", blank=True)
     is_required = models.BooleanField(default=False)
     is_sensitive = models.BooleanField(default=False, help_text="Encrypt this field's values.")
-    receptionist_access = models.CharField(
+    front_desk_access = models.CharField(
         max_length=10,
         default="none",
         choices=[

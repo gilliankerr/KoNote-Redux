@@ -122,13 +122,13 @@ class CustomFieldDefinitionForm(forms.ModelForm):
         model = CustomFieldDefinition
         fields = [
             "group", "name", "input_type", "placeholder", "is_required",
-            "is_sensitive", "receptionist_access", "options_json", "sort_order", "status",
+            "is_sensitive", "front_desk_access", "options_json", "sort_order", "status",
         ]
         widgets = {
             "options_json": forms.Textarea(attrs={"rows": 3, "placeholder": '["Option 1", "Option 2"]'}),
         }
         help_texts = {
-            "receptionist_access": _("Set front desk access to 'View and edit' for contact info, emergency contacts, and safety alerts."),
+            "front_desk_access": _("Set front desk access to 'View and edit' for contact info, emergency contacts, and safety alerts."),
         }
 
 

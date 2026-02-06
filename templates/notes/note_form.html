@@ -21,7 +21,7 @@
     <!-- Interaction type — pre-fills from template's default -->
     <label for="{{ form.interaction_type.id_for_label }}">{% trans "Interaction type" %}</label>
     {{ form.interaction_type }}
-    {% if form.interaction_type.errors %}<small class="error" role="alert">{{ form.interaction_type.errors.0 }}</small>{% endif %}
+    {% if form.interaction_type.errors %}<small class="error" id="interaction-type-error" role="alert">{{ form.interaction_type.errors.0 }}</small>{% endif %}
 
     <!-- Session date — pre-filled with today -->
     <label for="{{ form.session_date.id_for_label }}">{% trans "Session Date" %}</label>

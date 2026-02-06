@@ -243,11 +243,11 @@ class CustomFieldEditHTMXTest(TestCase):
         self.group = CustomFieldGroup.objects.create(title="Contact", sort_order=1)
         self.editable_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Phone", input_type="text",
-            receptionist_access="edit", sort_order=1,
+            front_desk_access="edit", sort_order=1,
         )
         self.hidden_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Notes", input_type="textarea",
-            receptionist_access="none", sort_order=2,
+            front_desk_access="none", sort_order=2,
         )
 
     def tearDown(self):

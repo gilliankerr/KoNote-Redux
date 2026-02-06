@@ -97,19 +97,9 @@ Build after secure export is stable. See `tasks/secure-export-import-plan.md` fo
 
 See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-design.md) for full details.
 
-### Database Terminology Cleanup
-
-- [ ] Replace 'receptionist' and 'counsellor' with current role names in database migrations — do this the next time a migration is needed to avoid a standalone migration (DB-TERM1)
-
 ### UX Accessibility (low priority info items)
 
-- [ ] Add `aria-describedby` linking for quick note form error on `interaction_type` field (UX-A11Y1)
 - [ ] Investigate "Note" button not found on Direct Service client detail — may be by design (UX-A11Y2)
-
-### Code Hygiene
-
-- [ ] Move `beautifulsoup4` from `requirements.txt` to a test-only requirements file (REV2-DEPS1)
-- [ ] Make erasure email error handling more specific — distinguish template-not-found from SMTP failure (REV2-EMAIL2)
 
 ### Privacy & Security
 
@@ -119,6 +109,7 @@ See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-desig
 
 ## Recently Done
 
+- [x] Parking lot quick wins — aria-describedby on full note form, beautifulsoup4 to test-only, specific erasure email errors, rename receptionist_access → front_desk_access — 2026-02-06 (UX-A11Y1, REV2-DEPS1, REV2-EMAIL2, DB-TERM1)
 - [x] Fix 5 review follow-ups — erasure email templates, tier validation test, history ordering, French filter tests, phone validation tests — 2026-02-06 (REV2-EMAIL1, REV2-TEST1, REV2-ORDER1, TESTFIX1, TESTFIX2)
 - [x] Review follow-ups — email failure warnings, SQL-optimised PM filtering, 30-day PIPEDA aging indicator — 2026-02-06 (REV-W3, REV-W1, REV-PIPEDA1)
 - [x] Independent security review docs — added review section, AI prompt template, and "Trust, But Verify" to security ops + README — 2026-02-06 (SEC-DOC1-3, SEC-WEB1)

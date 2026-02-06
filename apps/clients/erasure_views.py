@@ -1,5 +1,6 @@
 """Views for client data erasure workflow."""
 import logging
+from smtplib import SMTPException
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -7,6 +8,8 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
+
+from django.template.exceptions import TemplateDoesNotExist
 
 from apps.auth_app.decorators import minimum_role
 from apps.events.models import Alert
@@ -530,9 +533,22 @@ def _notify_pms_erasure_request(erasure_request, request):
             from_email=None, recipient_list=emails,
         )
         return True
+    except TemplateDoesNotExist:
+        logger.error(
+            "Erasure email template not found for request %s — "
+            "check templates/clients/email/ directory",
+            erasure_request.pk, exc_info=True,
+        )
+        return False
+    except SMTPException:
+        logger.warning(
+            "SMTP error sending erasure notification for request %s",
+            erasure_request.pk, exc_info=True,
+        )
+        return False
     except Exception:
         logger.warning(
-            "Failed to send erasure request notification for request %s",
+            "Unexpected error sending erasure notification for request %s",
             erasure_request.pk, exc_info=True,
         )
         return False
@@ -589,9 +605,15 @@ def _notify_erasure_completed(erasure_request, request):
             from_email=None, recipient_list=list(involved_users),
         )
         return True
+    except SMTPException:
+        logger.warning(
+            "SMTP error sending erasure completion notification for request %s",
+            erasure_request.pk, exc_info=True,
+        )
+        return False
     except Exception:
         logger.warning(
-            "Failed to send erasure completion notification for request %s",
+            "Unexpected error sending erasure completion notification for request %s",
             erasure_request.pk, exc_info=True,
         )
         return False
@@ -623,9 +645,15 @@ def _notify_requester_rejection(erasure_request, rejecting_user, review_notes):
             recipient_list=[erasure_request.requested_by.email],
         )
         return True
+    except SMTPException:
+        logger.warning(
+            "SMTP error sending rejection notification for %s",
+            code, exc_info=True,
+        )
+        return False
     except Exception:
         logger.warning(
-            "Failed to send rejection notification for %s",
+            "Unexpected error sending rejection notification for %s",
             code, exc_info=True,
         )
         return False

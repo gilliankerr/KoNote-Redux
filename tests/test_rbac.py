@@ -143,7 +143,7 @@ class ClientAccessTest(TestCase):
 
 @override_settings(FIELD_ENCRYPTION_KEY=TEST_KEY)
 class ReceptionistFieldAccessTest(TestCase):
-    """Front desk staff should only see/edit fields based on receptionist_access setting."""
+    """Front desk staff should only see/edit fields based on front_desk_access setting."""
 
     def setUp(self):
         enc_module._fernet = None
@@ -176,7 +176,7 @@ class ReceptionistFieldAccessTest(TestCase):
         # Phone field - front desk can edit
         self.phone_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Phone", input_type="text",
-            receptionist_access="edit", sort_order=1,
+            front_desk_access="edit", sort_order=1,
         )
         ClientDetailValue.objects.create(
             client_file=self.client_file, field_def=self.phone_field, value="555-1234"
@@ -185,7 +185,7 @@ class ReceptionistFieldAccessTest(TestCase):
         # Address field - front desk can view only
         self.address_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Address", input_type="text",
-            receptionist_access="view", sort_order=2,
+            front_desk_access="view", sort_order=2,
         )
         ClientDetailValue.objects.create(
             client_file=self.client_file, field_def=self.address_field, value="123 Main St"
@@ -194,7 +194,7 @@ class ReceptionistFieldAccessTest(TestCase):
         # Case notes field - hidden from front desk
         self.notes_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Case Notes", input_type="textarea",
-            receptionist_access="none", sort_order=3,
+            front_desk_access="none", sort_order=3,
         )
         ClientDetailValue.objects.create(
             client_file=self.client_file, field_def=self.notes_field, value="Sensitive info here"
@@ -218,7 +218,7 @@ class ReceptionistFieldAccessTest(TestCase):
         self.assertNotContains(response, "Case Notes")
 
     def test_staff_sees_all_fields(self):
-        """Staff should see all custom fields regardless of receptionist_access."""
+        """Staff should see all custom fields regardless of front_desk_access."""
         self.client.force_login(self.staff_user)
         response = self.client.get(f"/clients/{self.client_file.pk}/")
         self.assertEqual(response.status_code, 200)
@@ -254,7 +254,7 @@ class ReceptionistFieldAccessTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_receptionist_can_save_editable_fields(self):
-        """Front desk staff can save fields with receptionist_access='edit'."""
+        """Front desk staff can save fields with front_desk_access='edit'."""
         self.client.force_login(self.receptionist)
         response = self.client.post(
             f"/clients/{self.client_file.pk}/custom-fields/",
@@ -269,7 +269,7 @@ class ReceptionistFieldAccessTest(TestCase):
         self.assertEqual(cdv.value, "(613) 555-9999")
 
     def test_receptionist_cannot_save_view_only_fields(self):
-        """Front desk staff cannot modify fields with receptionist_access='view'."""
+        """Front desk staff cannot modify fields with front_desk_access='view'."""
         self.client.force_login(self.receptionist)
         # Try to save the address field (view-only for front desk)
         response = self.client.post(
@@ -285,7 +285,7 @@ class ReceptionistFieldAccessTest(TestCase):
         self.assertEqual(cdv.value, "123 Main St")
 
     def test_receptionist_cannot_save_none_access_fields(self):
-        """Front desk staff cannot modify fields with receptionist_access='none' even if they POST them."""
+        """Front desk staff cannot modify fields with front_desk_access='none' even if they POST them."""
         self.client.force_login(self.receptionist)
         # Try to save the case notes field (hidden from front desk)
         response = self.client.post(
@@ -507,7 +507,7 @@ class SensitiveFieldReceptionistAccessTest(TestCase):
         # Sensitive field with front desk edit access (e.g., emergency contact)
         self.emergency_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Emergency Contact", input_type="text",
-            receptionist_access="edit", is_sensitive=True, sort_order=1,
+            front_desk_access="edit", is_sensitive=True, sort_order=1,
         )
         cdv = ClientDetailValue.objects.create(
             client_file=self.client_file, field_def=self.emergency_field,
@@ -518,7 +518,7 @@ class SensitiveFieldReceptionistAccessTest(TestCase):
         # Sensitive field hidden from front desk (e.g., clinical assessment)
         self.assessment_field = CustomFieldDefinition.objects.create(
             group=self.group, name="Clinical Assessment", input_type="textarea",
-            receptionist_access="none", is_sensitive=True, sort_order=2,
+            front_desk_access="none", is_sensitive=True, sort_order=2,
         )
         cdv2 = ClientDetailValue.objects.create(
             client_file=self.client_file, field_def=self.assessment_field,
@@ -530,7 +530,7 @@ class SensitiveFieldReceptionistAccessTest(TestCase):
         enc_module._fernet = None
 
     def test_receptionist_sees_sensitive_field_with_edit_access(self):
-        """Front desk staff can see sensitive fields if receptionist_access='edit'."""
+        """Front desk staff can see sensitive fields if front_desk_access='edit'."""
         self.client.force_login(self.receptionist)
         response = self.client.get(f"/clients/{self.client_file.pk}/")
         self.assertEqual(response.status_code, 200)
@@ -540,7 +540,7 @@ class SensitiveFieldReceptionistAccessTest(TestCase):
         self.assertContains(response, "Emergency Contact")
 
     def test_receptionist_cannot_see_sensitive_field_with_none_access(self):
-        """Front desk staff cannot see sensitive fields if receptionist_access='none'."""
+        """Front desk staff cannot see sensitive fields if front_desk_access='none'."""
         self.client.force_login(self.receptionist)
         response = self.client.get(f"/clients/{self.client_file.pk}/")
         self.assertEqual(response.status_code, 200)
@@ -550,7 +550,7 @@ class SensitiveFieldReceptionistAccessTest(TestCase):
         self.assertNotContains(response, "Clinical Assessment")
 
     def test_staff_sees_all_sensitive_fields(self):
-        """Staff can see all sensitive fields regardless of receptionist_access."""
+        """Staff can see all sensitive fields regardless of front_desk_access."""
         self.client.force_login(self.staff_user)
         response = self.client.get(f"/clients/{self.client_file.pk}/")
         self.assertEqual(response.status_code, 200)
@@ -560,7 +560,7 @@ class SensitiveFieldReceptionistAccessTest(TestCase):
         self.assertContains(response, "Patient shows signs of improvement")
 
     def test_receptionist_can_edit_sensitive_field_with_edit_access(self):
-        """Front desk staff can edit sensitive fields if receptionist_access='edit'."""
+        """Front desk staff can edit sensitive fields if front_desk_access='edit'."""
         self.client.force_login(self.receptionist)
         response = self.client.post(
             f"/clients/{self.client_file.pk}/custom-fields/",
@@ -577,7 +577,7 @@ class SensitiveFieldReceptionistAccessTest(TestCase):
         self.assertNotEqual(cdv._value_encrypted, b"")
 
     def test_receptionist_cannot_edit_sensitive_field_with_none_access(self):
-        """Front desk staff cannot edit sensitive fields if receptionist_access='none'."""
+        """Front desk staff cannot edit sensitive fields if front_desk_access='none'."""
         self.client.force_login(self.receptionist)
         response = self.client.post(
             f"/clients/{self.client_file.pk}/custom-fields/",
