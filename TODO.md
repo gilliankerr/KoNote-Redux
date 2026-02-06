@@ -6,6 +6,15 @@
 
 ## Active Work
 
+### Demo Data Expansion
+
+- [x] Expand demo from 2 programs / 10 clients to 5 programs / 15 clients — (DEMO-EXP1)
+  - 5 programs: Supported Employment, Housing Stability, Youth Drop-In, Newcomer Connections, Community Kitchen
+  - 2 workers: Casey (individual) + Noor (group) + shared Kitchen
+  - 15 clients with realistic journeys across all programs
+  - 12 new "feedback and form" metrics (approachable, non-clinical)
+  - Participant-voiced goals, program-specific note texts, cross-enrolments
+
 ### Pre-Launch Checklist
 
 The core app is feature-complete. These tasks prepare for production use.
