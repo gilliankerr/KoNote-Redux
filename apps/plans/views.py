@@ -4,6 +4,7 @@ import io
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
@@ -101,7 +102,7 @@ def section_create(request, client_id):
     """Add a new section to a client's plan."""
     client = _get_client_or_403(client_id, request.user)
     if not _can_edit_plan(request.user, client):
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     if request.method == "POST":
         form = PlanSectionForm(request.POST)
@@ -129,7 +130,7 @@ def section_edit(request, section_id):
     """HTMX inline edit — GET returns edit form partial, POST saves and returns section partial."""
     section = get_object_or_404(PlanSection, pk=section_id)
     if not _can_edit_plan(request.user, section.client_file):
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     if request.method == "POST":
         form = PlanSectionForm(request.POST, instance=section)
@@ -154,7 +155,7 @@ def section_status(request, section_id):
     """HTMX dialog to change section status with reason."""
     section = get_object_or_404(PlanSection, pk=section_id)
     if not _can_edit_plan(request.user, section.client_file):
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     if request.method == "POST":
         form = PlanSectionStatusForm(request.POST, instance=section)
@@ -183,7 +184,7 @@ def target_create(request, section_id):
     """Add a new target to a section."""
     section = get_object_or_404(PlanSection, pk=section_id)
     if not _can_edit_plan(request.user, section.client_file):
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     if request.method == "POST":
         form = PlanTargetForm(request.POST)
@@ -219,7 +220,7 @@ def target_edit(request, target_id):
     """Edit a target. Creates a revision with OLD values before saving."""
     target = get_object_or_404(PlanTarget, pk=target_id)
     if not _can_edit_plan(request.user, target.client_file):
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     if request.method == "POST":
         # Save old values as a revision BEFORE overwriting
@@ -253,7 +254,7 @@ def target_status(request, target_id):
     """HTMX dialog to change target status with reason. Creates a revision."""
     target = get_object_or_404(PlanTarget, pk=target_id)
     if not _can_edit_plan(request.user, target.client_file):
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     if request.method == "POST":
         # Revision with old values
@@ -291,7 +292,7 @@ def target_metrics(request, target_id):
     """Assign metrics to a target — checkboxes grouped by category."""
     target = get_object_or_404(PlanTarget, pk=target_id)
     if not _can_edit_plan(request.user, target.client_file):
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     if request.method == "POST":
         form = MetricAssignmentForm(request.POST)
@@ -332,7 +333,7 @@ def target_metrics(request, target_id):
 def metric_library(request):
     """Admin-only page listing all metric definitions by category."""
     if not request.user.is_admin:
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     metrics = MetricDefinition.objects.all()
     metrics_by_category = {}
@@ -349,7 +350,7 @@ def metric_library(request):
 def metric_toggle(request, metric_id):
     """HTMX POST to toggle is_enabled on a metric definition."""
     if not request.user.is_admin:
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     metric = get_object_or_404(MetricDefinition, pk=metric_id)
     if request.method == "POST":
@@ -363,7 +364,7 @@ def metric_toggle(request, metric_id):
 def metric_create(request):
     """Admin form to create a custom metric definition."""
     if not request.user.is_admin:
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     if request.method == "POST":
         form = MetricDefinitionForm(request.POST)
@@ -386,7 +387,7 @@ def metric_create(request):
 def metric_edit(request, metric_id):
     """Admin form to edit a metric definition."""
     if not request.user.is_admin:
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     metric = get_object_or_404(MetricDefinition, pk=metric_id)
     if request.method == "POST":
@@ -529,7 +530,7 @@ def metric_import(request):
     POST with confirm: Import the metrics
     """
     if not request.user.is_admin:
-        return HttpResponseForbidden("Access denied.")
+        raise PermissionDenied(_("You don't have permission to access this page."))
 
     preview_rows = []
     parse_errors = []

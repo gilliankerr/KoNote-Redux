@@ -548,7 +548,10 @@ def client_search(request):
     has_filters = any([status_filter, program_filter, date_from, date_to])
 
     if not query and not has_filters:
-        return render(request, "clients/_search_results.html", {"results": [], "query": ""})
+        context = {"results": [], "query": ""}
+        if request.headers.get("HX-Request"):
+            return render(request, "clients/_search_results.html", context)
+        return render(request, "clients/search.html", context)
 
     clients = _get_accessible_clients(request.user)
 
@@ -603,7 +606,15 @@ def client_search(request):
         })
 
     results.sort(key=lambda c: c["name"].lower())
-    return render(request, "clients/_search_results.html", {"results": results[:50], "query": query})
+
+    context = {"results": results[:50], "query": query}
+
+    # HTMX request — return only the partial
+    if request.headers.get("HX-Request"):
+        return render(request, "clients/_search_results.html", context)
+
+    # Full page request — wrap in base template
+    return render(request, "clients/search.html", context)
 
 
 # ---- Custom Field Admin (FIELD1) — admin only ----

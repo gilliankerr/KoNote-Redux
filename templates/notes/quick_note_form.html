@@ -13,21 +13,32 @@
 <form method="post" data-autosave data-client-id="{{ client.pk }}" data-form-type="quick">
     {% csrf_token %}
 
+    <!-- Non-field errors (e.g. cross-field validation) -->
+    {% if form.non_field_errors %}
+    <div role="alert">
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
     <!-- Interaction type — radio pills -->
-    <fieldset class="interaction-pills">
+    <fieldset class="interaction-pills"{% if form.interaction_type.errors %} aria-describedby="interaction-type-errors"{% endif %}>
         <legend>{% trans "What kind of interaction?" %}</legend>
         {% for radio in form.interaction_type %}
         {{ radio }}
         {% endfor %}
     </fieldset>
     {% if form.interaction_type.errors %}
-    <small class="error" role="alert">{{ form.interaction_type.errors.0 }}</small>
+    <div id="interaction-type-errors" role="alert">
+        {{ form.interaction_type.errors }}
+    </div>
     {% endif %}
 
     <label for="{{ form.notes_text.id_for_label }}">{{ term.progress_note|default:"Note" }}</label>
     {{ form.notes_text }}
     {% if form.notes_text.errors %}
-    <small class="error" role="alert">{{ form.notes_text.errors.0 }}</small>
+    <div id="notes-text-errors" role="alert">
+        {{ form.notes_text.errors }}
+    </div>
     {% endif %}
 
     <!-- Follow-up date (optional) -->
@@ -35,7 +46,9 @@
     {{ form.follow_up_date }}
     <small>{% trans "(optional — adds to your home page reminders)" %}</small>
     {% if form.follow_up_date.errors %}
-    <small class="error" role="alert">{{ form.follow_up_date.errors.0 }}</small>
+    <div id="follow-up-errors" role="alert">
+        {{ form.follow_up_date.errors }}
+    </div>
     {% endif %}
 
     <!-- Sticky footer with consent and save -->
@@ -47,7 +60,9 @@
                     {% trans "I confirm verbal consent was obtained" %}
                 </label>
                 {% if form.consent_confirmed.errors %}
-                <small class="error" role="alert">{{ form.consent_confirmed.errors.0 }}</small>
+                <div id="consent-errors" role="alert">
+                    {{ form.consent_confirmed.errors }}
+                </div>
                 {% endif %}
             </div>
             <span class="autosave-indicator" id="autosave-status" hidden aria-live="polite" role="status">
