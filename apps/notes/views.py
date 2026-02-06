@@ -117,6 +117,52 @@ def _build_target_forms(client, post_data=None):
     return target_forms
 
 
+def _search_notes_in_memory(notes_list, query):
+    """Search encrypted note content in memory.
+
+    Encrypted fields can't be searched in SQL — we decrypt each note's text
+    fields and check for a case-insensitive substring match.
+
+    Returns list of matching notes, each with a ``_search_snippet`` attribute
+    showing the text surrounding the first match.
+    """
+    query_lower = query.lower()
+    matching = []
+    for note in notes_list:
+        # Collect all searchable text fields with labels
+        fields = [
+            (note.notes_text or "", "notes_text"),
+            (note.summary or "", "summary"),
+            (note.participant_reflection or "", "reflection"),
+        ]
+        # Include target entry notes (already prefetched)
+        for entry in note.target_entries.all():
+            fields.append((entry.notes or "", "target"))
+
+        # Check each field for a match
+        for text, field_name in fields:
+            if query_lower in text.lower():
+                note._search_snippet = _get_search_snippet(text, query)
+                matching.append(note)
+                break  # one match per note is enough
+    return matching
+
+
+def _get_search_snippet(text, query, context_chars=80):
+    """Return a snippet of text centred around the first match."""
+    idx = text.lower().find(query.lower())
+    if idx == -1:
+        return text[:160] + ("..." if len(text) > 160 else "")
+    start = max(0, idx - context_chars)
+    end = min(len(text), idx + len(query) + context_chars)
+    snippet = text[start:end]
+    if start > 0:
+        snippet = "\u2026" + snippet
+    if end < len(text):
+        snippet = snippet + "\u2026"
+    return snippet
+
+
 @login_required
 @minimum_role("staff")
 def note_list(request, client_id):
@@ -143,6 +189,7 @@ def note_list(request, client_id):
     date_from = request.GET.get("date_from", "")
     date_to = request.GET.get("date_to", "")
     author_filter = request.GET.get("author", "")
+    search_query = request.GET.get("q", "").strip()
 
     valid_interactions = [c[0] for c in ProgressNote.INTERACTION_TYPE_CHOICES]
     if interaction_filter in valid_interactions:
@@ -161,7 +208,17 @@ def note_list(request, client_id):
         notes = notes.filter(author=request.user)
 
     notes = notes.order_by("-_effective_date", "-created_at")
-    paginator = Paginator(notes, 25)
+
+    # Text search — decrypt and filter in memory (encrypted fields can't be
+    # searched in SQL). Only triggered when a search query is present so the
+    # default path remains a fast SQL-only query.
+    if search_query:
+        notes_list = list(notes)
+        notes_list = _search_notes_in_memory(notes_list, search_query)
+        paginator = Paginator(notes_list, 25)
+    else:
+        paginator = Paginator(notes, 25)
+
     page = paginator.get_page(request.GET.get("page"))
 
     # Count active filters for the filter bar indicator
@@ -186,6 +243,7 @@ def note_list(request, client_id):
         "filter_date_from": date_from,
         "filter_date_to": date_to,
         "filter_author": author_filter,
+        "search_query": search_query,
         "active_filter_count": active_filter_count,
         "active_tab": "notes",
         "user_role": getattr(request, "user_program_role", None),

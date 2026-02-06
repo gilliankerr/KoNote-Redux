@@ -646,11 +646,27 @@ body > nav a.nav-active {
     outline: none;
 }
 
-/* ---- Client list search bar ---- */
-.list-search-bar {
+/* ---- Client list search bar (inside filter row) ---- */
+.filter-field--search {
+    flex: 2;
+    min-width: 200px;
+    max-width: 500px;
+}
+.filter-field--search input[type="search"] {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+/* ---- Note search field (always visible above filter bar) ---- */
+.note-search-field {
     margin-bottom: var(--kn-space-base);
 }
-.list-search-bar input[type="search"] {
+.note-search-field label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin-bottom: var(--kn-space-xs);
+}
+.note-search-field input[type="search"] {
     width: 100%;
     max-width: 500px;
     margin-bottom: 0;
