@@ -792,6 +792,9 @@ msgstr "À"
 msgid "Search by name"
 msgstr "Rechercher par nom"
 
+msgid "Search by name or ID..."
+msgstr "Rechercher par nom ou ID..."
+
 msgid "Action"
 msgstr "Action"
 
