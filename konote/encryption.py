@@ -58,7 +58,7 @@ def decrypt_field(ciphertext):
         return f.decrypt(ciphertext).decode("utf-8")
     except InvalidToken:
         logger.error("Decryption failed — possible key mismatch or data corruption")
-        return "[decryption error]"
+        return ""
 
 
 def generate_key():

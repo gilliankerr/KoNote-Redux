@@ -35,7 +35,35 @@ Weekly accountability reports for admins. Requires working email configuration.
 
 ### Independent Code Review
 
-- [ ] Get independent code review from a third-party tool — e.g. Jules (jules.google.com) or GPT Codex — especially for security (SEC-REV1)
+- [x] Get independent security review via Jules — see `tasks/reviews/2026-02-06-security.md` (SEC-REV1)
+- [x] Get independent privacy review (PIPEDA) via Jules — see `tasks/reviews/2026-02-06-privacy.md` (SEC-REV2)
+- [x] Get independent accessibility review via Jules — see `tasks/reviews/2026-02-06-accessibility.md` (SEC-REV3)
+- [x] Get independent deployment review via Jules — see `tasks/reviews/2026-02-06-deployment.md` (SEC-REV4)
+
+### Security Review Fixes (from SEC-REV1)
+
+- [ ] Encrypt PlanTarget.name, .description, .status_reason fields + PlanTargetRevision equivalents (SEC-FIX1)
+- [ ] Add MultiFernet key rotation support to konote/encryption.py (SEC-FIX2)
+- [x] Change decryption error return from "[decryption error]" to empty string (SEC-FIX3)
+
+### Privacy Review Fixes (from SEC-REV2)
+
+- [ ] Create daily management command to alert admins about expired retention dates (PRIV-FIX1)
+- [ ] Add Privacy Officer name/email to InstanceSettings and expose in templates (PRIV-FIX2)
+
+### Accessibility Review Fixes (from SEC-REV3)
+
+- [ ] Add data table alternatives for Chart.js charts (A11Y-FIX1)
+- [ ] Add aria-live to session timer + "Extend Session" button (A11Y-FIX2)
+- [ ] Add aria-describedby to full note form error messages (A11Y-FIX3)
+- [x] Increase auto-dismiss delay from 3s to 8-10s (A11Y-FIX4)
+- [x] Create 404.html and 500.html error pages extending base.html (A11Y-FIX5)
+
+### Deployment Review Fixes (from SEC-REV4)
+
+- [x] Create .dockerignore file to exclude .git, .env, venv, tests, tasks, docs (DEPLOY-FIX1)
+- [x] Add lockdown_audit_db to entrypoint.sh after audit migrations (DEPLOY-FIX2)
+- [x] Move pytest/pytest-django to requirements-dev.txt (DEPLOY-FIX3)
 
 ## Roadmap — Future Extensions
 
@@ -92,9 +120,6 @@ Build after secure export is stable. See `tasks/secure-export-import-plan.md` fo
 
 ### Deployment Workflow Enhancements
 
-- [ ] Create Demo Account Directory page in admin settings — list all demo users and demo clients in one place so admins can manage them (DEMO9)
-- [ ] Add `is_demo_context` flag to audit log entries — lets admins filter out demo activity from real audit trails (DEMO12)
-
 See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-design.md) for full details.
 
 ### Privacy & Security
@@ -105,6 +130,12 @@ See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-desig
 
 ## Recently Done
 
+- [x] Review quick fixes — .dockerignore, audit lockdown, split requirements, decryption error, auto-dismiss delay, error pages — 2026-02-06 (DEPLOY-FIX1-3, SEC-FIX3, A11Y-FIX4-5)
+- [x] Independent deployment review via Jules — 1 high, 1 medium, 1 low — 2026-02-06 (SEC-REV4)
+- [x] Independent accessibility review via Jules — 2 high, 2 medium, 1 low (2 rejected) — 2026-02-06 (SEC-REV3)
+- [x] Demo Account Directory page + is_demo_context audit flag — already built in prior session, marked done — 2026-02-06 (DEMO9, DEMO12)
+- [x] Independent privacy review via Jules — 1 high, 1 medium, 2 low findings — 2026-02-06 (SEC-REV2)
+- [x] Independent security review via Jules — 3 findings (2 high, 1 medium), report saved — 2026-02-06 (SEC-REV1)
 - [x] Parking lot quick wins — aria-describedby on full note form, beautifulsoup4 to test-only, specific erasure email errors, rename receptionist_access → front_desk_access — 2026-02-06 (UX-A11Y1, REV2-DEPS1, REV2-EMAIL2, DB-TERM1)
 - [x] Fix 5 review follow-ups — erasure email templates, tier validation test, history ordering, French filter tests, phone validation tests — 2026-02-06 (REV2-EMAIL1, REV2-TEST1, REV2-ORDER1, TESTFIX1, TESTFIX2)
 - [x] Review follow-ups — email failure warnings, SQL-optimised PM filtering, 30-day PIPEDA aging indicator — 2026-02-06 (REV-W3, REV-W1, REV-PIPEDA1)

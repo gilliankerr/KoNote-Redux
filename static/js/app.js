@@ -16,10 +16,10 @@ document.body.addEventListener("htmx:configRequest", function (event) {
     }
 });
 
-// --- Auto-dismiss success messages after 3 seconds ---
+// --- Auto-dismiss success messages after 8 seconds ---
 // Error messages stay visible until manually dismissed
 (function () {
-    var AUTO_DISMISS_DELAY = 3000; // 3 seconds
+    var AUTO_DISMISS_DELAY = 8000; // 8 seconds (WCAG 2.2.1 — allow time to read)
     var FADE_DURATION = 300; // matches CSS animation
 
     // Check if user prefers reduced motion
@@ -110,7 +110,7 @@ function showToast(message, isError) {
         toast.hidden = false;
         // Only auto-dismiss non-error messages
         if (!isError) {
-            setTimeout(function () { toast.hidden = true; }, 3000);
+            setTimeout(function () { toast.hidden = true; }, 8000);
         }
     } else {
         alert(message);
