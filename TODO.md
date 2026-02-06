@@ -97,6 +97,11 @@ Build after secure export is stable. See `tasks/secure-export-import-plan.md` fo
 
 ## Parking Lot
 
+### Translation Hardening
+
+- [x] Fix .mo build process — commit .mo to git, no compilation in Docker, freshness check in validate_translations.py — 2026-02-06 (I18N-FIX1)
+- [ ] Wrap 106 unwrapped strings across 10 apps in `_()` and add French translations — see `scripts/check_untranslated.py` for full list (I18N-FIX2)
+
 ### Erasure — Deferred Execution for Tier 3
 
 - [ ] Add 24-hour delay before Tier 3 (full erasure) CASCADE delete executes — requires background task scheduler, see `tasks/erasure-hardening.md` section ERASE-H8 (ERASE-H8)
