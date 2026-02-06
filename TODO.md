@@ -2,12 +2,7 @@
 
 ## Flagged
 
-### Pre-existing Test Failures (4 tests)
-
-Not from UX fixes — from earlier "interaction types" redesign and custom fields save issue.
-
-- [ ] Fix French note filter tests — tests expect old note_type filter ("Notes rapides", "Tous les types") but template now uses interaction types (TESTFIX1)
-- [ ] Fix custom field save tests — `test_custom_fields_save_htmx_returns_display_partial` and `test_receptionist_can_save_editable_fields` not saving values (TESTFIX2)
+_Nothing flagged._
 
 ## Active Work
 
@@ -111,6 +106,11 @@ See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-desig
 - [ ] Add `aria-describedby` linking for quick note form error on `interaction_type` field (UX-A11Y1)
 - [ ] Investigate "Note" button not found on Direct Service client detail — may be by design (UX-A11Y2)
 
+### Code Hygiene
+
+- [ ] Move `beautifulsoup4` from `requirements.txt` to a test-only requirements file (REV2-DEPS1)
+- [ ] Make erasure email error handling more specific — distinguish template-not-found from SMTP failure (REV2-EMAIL2)
+
 ### Privacy & Security
 
 - [ ] First-run setup wizard — guided initial configuration (SETUP1)
@@ -119,6 +119,7 @@ See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-desig
 
 ## Recently Done
 
+- [x] Fix 5 review follow-ups — erasure email templates, tier validation test, history ordering, French filter tests, phone validation tests — 2026-02-06 (REV2-EMAIL1, REV2-TEST1, REV2-ORDER1, TESTFIX1, TESTFIX2)
 - [x] Review follow-ups — email failure warnings, SQL-optimised PM filtering, 30-day PIPEDA aging indicator — 2026-02-06 (REV-W3, REV-W1, REV-PIPEDA1)
 - [x] Independent security review docs — added review section, AI prompt template, and "Trust, But Verify" to security ops + README — 2026-02-06 (SEC-DOC1-3, SEC-WEB1)
 - [x] Fix UX walkthrough issues — 500 error, heading structure, table accessibility, search page, 403 page, form validation — 2026-02-06 (UX-WALK1)
