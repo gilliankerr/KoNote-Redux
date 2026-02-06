@@ -10,9 +10,9 @@ Run a single scenario:
     pytest tests/ux_walkthrough/test_scenarios.py::CrossProgramIsolationScenario -v
 """
 from django.test import override_settings
-from django.utils import timezone
 
 from .base import TEST_KEY, UxScenarioBase
+from .checker import Severity
 
 # ------------------------------------------------------------------
 # Forbidden content constants — what each user should NEVER see
@@ -95,7 +95,7 @@ class CrossProgramIsolationScenario(UxScenarioBase):
             bob_url = f"/clients/{self.client_b.pk}/"
             if bob_url in body:
                 issues.append(self._make_issue(
-                    "critical", url, role,
+                    Severity.CRITICAL, url, role,
                     "Search results for Bob",
                     f"Link to Bob's profile ({bob_url}) found in search results",
                 ))
