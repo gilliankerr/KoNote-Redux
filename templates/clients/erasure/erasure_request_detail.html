@@ -24,6 +24,13 @@
 </article>
 {% endif %}
 
+{% if receipt_not_downloaded %}
+<article aria-label="{% trans 'Receipt warning' %}" style="border-left: 4px solid var(--pico-color-orange-500, orange); background: var(--pico-ins-color-bg, rgba(255,165,0,0.05));">
+    <strong>{% trans "PDF receipt has not been downloaded." %}</strong>
+    {% trans "Download the PDF receipt before approving. Once erased, client details cannot be recovered from the system." %}
+</article>
+{% endif %}
+
 {% if active_alerts and er.status == "pending" %}
 <article aria-label="active alerts" class="warning">
     <strong>{% trans "Active Alerts" %}</strong>

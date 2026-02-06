@@ -15,20 +15,12 @@ The core app is feature-complete. These tasks prepare for production use.
 - [ ] Test backup restore from a real database dump (OPS4)
 - [ ] Verify Railway deployment end-to-end with production-like config (OPS5)
 
+### Occasional Tasks
+
+- [ ] Run UX walkthrough — `pytest tests/ux_walkthrough/ -v`, review report at `tasks/ux-review-latest.md` (UX-WALK1)
+
 
 ## Coming Up
-
-### Erasure Hardening (from 2026-02-06 expert panel review)
-
-See `tasks/erasure-hardening.md` for full implementation details.
-
-- [ ] Scope PDF receipt access — restrict download to involved PMs, requester, and admins (ERASE-H1)
-- [ ] Write audit before erasure — fail erasure if audit DB is unavailable (ERASE-H2)
-- [ ] Track receipt downloads — add `receipt_downloaded_at` field, warn on approval if not downloaded (ERASE-H3)
-- [ ] Notify requester on rejection — send email with rejection reason (ERASE-H4)
-- [ ] Deduplicate `build_data_summary()` call — compute once in create view (ERASE-H5)
-- [ ] Fix erasure code race condition — add retry loop on IntegrityError (ERASE-H6)
-- [ ] Add pagination to erasure history view — 20 per page (ERASE-H7)
 
 ### Review Follow-ups (from 2026-02-05 session review)
 
@@ -128,6 +120,7 @@ See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-desig
 
 ## Recently Done
 
+- [x] Erasure hardening — receipt access scoping, audit-before-erasure, download tracking, rejection emails, race condition fix, pagination, 78 tests — 2026-02-06 (ERASE-H1-H7)
 - [x] Redesign erasure system — tiered anonymisation, erasure codes, PDF receipts, role restrictions, 72 tests — 2026-02-06 (ERASE-REDESIGN)
 - [x] Fix footer links — correct GitHub URL, wire up privacy and help routes, fix help guide nav — 2026-02-06 (FOOT1)
 - [x] Documentation refresh — security docs, feature lists, Getting Started guide, website — 2026-02-06 (DOC-REF1-3, WEB-REF1)
@@ -137,10 +130,6 @@ See [deployment workflow design](docs/plans/2026-02-05-deployment-workflow-desig
 - [x] Erase Client Data — multi-PM approval workflow, 49 tests, audit trail — 2026-02-05 (ERASE1-9)
 - [x] French journey test suite — 69 tests covering all 16 areas of the French UX — 2026-02-05 (I18N4b)
 - [x] i18n tooling — `find_untranslated.py` script + `update_translations.py` wrapper — 2026-02-05 (I18N-R5, I18N-R6)
-- [x] Export hardening — CSV injection, receptionist block, filename sanitisation, 20 new tests — 2026-02-05 (EXP-FIX2-5)
-- [x] Individual client data export — PIPEDA compliance, CSV/PDF, audit logging — 2026-02-05 (EXP2x-aa)
-- [x] i18n reliability — check_translations command, pre-commit hook, watchPatterns — 2026-02-05 (I18N-R1-R6)
-- [x] Canadian localisation — postal codes, provinces, phone formats, date/currency — 2026-02-05 (I18N5-5c)
 
 _Older completed tasks moved to [tasks/ARCHIVE.md](tasks/ARCHIVE.md)._
 

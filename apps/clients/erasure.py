@@ -344,35 +344,32 @@ def _purge_narrative_content(client):
 
 
 def _log_erasure_audit(erasure_request, client_pk, record_id, action, ip_address):
-    """Write the audit log entry for an erasure execution."""
-    try:
-        _log_audit(
-            user=None,
-            action=action,
-            resource_type="client_erasure",
-            resource_id=client_pk,
-            ip_address=ip_address,
-            metadata={
-                "erasure_request_id": erasure_request.pk,
-                "erasure_code": erasure_request.erasure_code,
-                "erasure_tier": erasure_request.erasure_tier,
-                "record_id": record_id,
-                "requested_by": erasure_request.requested_by_display,
-                "reason_category": erasure_request.reason_category,
-                "reason": erasure_request.request_reason,
-                "data_summary": erasure_request.data_summary,
-                "programs_required": erasure_request.programs_required,
-                "approvals": [
-                    {"program_id": a.program_id, "approved_by": a.approved_by_display}
-                    for a in erasure_request.approvals.all()
-                ],
-            },
-        )
-    except Exception:
-        logger.error(
-            "Failed to write audit log for erasure %s (client %s)",
-            erasure_request.erasure_code, client_pk, exc_info=True,
-        )
+    """Write the audit log entry for an erasure execution.
+
+    Raises on failure — erasure must not proceed without an audit trail.
+    """
+    _log_audit(
+        user=None,
+        action=action,
+        resource_type="client_erasure",
+        resource_id=client_pk,
+        ip_address=ip_address,
+        metadata={
+            "erasure_request_id": erasure_request.pk,
+            "erasure_code": erasure_request.erasure_code,
+            "erasure_tier": erasure_request.erasure_tier,
+            "record_id": record_id,
+            "requested_by": erasure_request.requested_by_display,
+            "reason_category": erasure_request.reason_category,
+            "reason": erasure_request.request_reason,
+            "data_summary": erasure_request.data_summary,
+            "programs_required": erasure_request.programs_required,
+            "approvals": [
+                {"program_id": a.program_id, "approved_by": a.approved_by_display}
+                for a in erasure_request.approvals.all()
+            ],
+        },
+    )
 
 
 def _execute_tier1_anonymise(erasure_request, ip_address):
@@ -389,6 +386,9 @@ def _execute_tier1_anonymise(erasure_request, ip_address):
     client_pk = client.pk
     record_id = client.record_id
 
+    # Write audit FIRST — if this fails, erasure doesn't proceed
+    _log_erasure_audit(erasure_request, client_pk, record_id, "update", ip_address)
+
     _scrub_registration_submissions(client)
     _anonymise_client_pii(client, erasure_request.erasure_code)
 
@@ -396,8 +396,6 @@ def _execute_tier1_anonymise(erasure_request, ip_address):
     erasure_request.status = "anonymised"
     erasure_request.completed_at = timezone.now()
     erasure_request.save(update_fields=["status", "completed_at"])
-
-    _log_erasure_audit(erasure_request, client_pk, record_id, "update", ip_address)
 
 
 def _execute_tier2_anonymise_purge(erasure_request, ip_address):
@@ -413,6 +411,9 @@ def _execute_tier2_anonymise_purge(erasure_request, ip_address):
     client_pk = client.pk
     record_id = client.record_id
 
+    # Write audit FIRST — if this fails, erasure doesn't proceed
+    _log_erasure_audit(erasure_request, client_pk, record_id, "update", ip_address)
+
     _scrub_registration_submissions(client)
     _anonymise_client_pii(client, erasure_request.erasure_code)
     _purge_narrative_content(client)
@@ -420,8 +421,6 @@ def _execute_tier2_anonymise_purge(erasure_request, ip_address):
     erasure_request.status = "anonymised"
     erasure_request.completed_at = timezone.now()
     erasure_request.save(update_fields=["status", "completed_at"])
-
-    _log_erasure_audit(erasure_request, client_pk, record_id, "update", ip_address)
 
 
 def _execute_tier3_full_erasure(erasure_request, ip_address):
@@ -438,6 +437,9 @@ def _execute_tier3_full_erasure(erasure_request, ip_address):
     client_pk = client.pk
     record_id = client.record_id
 
+    # Write audit FIRST — if this fails, erasure doesn't proceed
+    _log_erasure_audit(erasure_request, client_pk, record_id, "delete", ip_address)
+
     _scrub_registration_submissions(client)
     client.delete()
 
@@ -445,8 +447,6 @@ def _execute_tier3_full_erasure(erasure_request, ip_address):
     erasure_request.completed_at = timezone.now()
     erasure_request.client_file = None
     erasure_request.save(update_fields=["status", "completed_at", "client_file"])
-
-    _log_erasure_audit(erasure_request, client_pk, record_id, "delete", ip_address)
 
 
 def _is_admin_fallback(erasure_request, user):

@@ -96,12 +96,12 @@ def erasure_request_create(request, client_id):
         return redirect("erasure_request_detail", pk=existing.pk)
 
     available_tiers = get_available_tiers(client)
+    summary = build_data_summary(client)
 
     if request.method == "POST":
         form = ErasureRequestForm(request.POST, available_tiers=available_tiers)
         if form.is_valid():
             programs = get_required_programs(client)
-            summary = build_data_summary(client)
 
             er = ErasureRequest.objects.create(
                 client_file=client,
@@ -128,7 +128,6 @@ def erasure_request_create(request, client_id):
     else:
         form = ErasureRequestForm(available_tiers=available_tiers)
 
-    summary = build_data_summary(client)
     active_alerts = Alert.objects.filter(client_file=client, status="default")
 
     return render(request, "clients/erasure/erasure_request_form.html", {
@@ -223,6 +222,7 @@ def erasure_request_detail(request, pk):
         "approval_form": approval_form,
         "reject_form": reject_form,
         "can_download_receipt": er.status == "pending" and er.client_file is not None,
+        "receipt_not_downloaded": er.status == "pending" and er.receipt_downloaded_at is None,
         "nav_active": "admin",
     })
 
@@ -329,6 +329,9 @@ def erasure_reject(request, pk):
         },
     )
 
+    # Notify the requester
+    _notify_requester_rejection(er, request.user, form.cleaned_data["review_notes"])
+
     messages.success(request, _("Erasure request rejected. Client data has been preserved."))
     return redirect("erasure_pending_list")
 
@@ -372,9 +375,16 @@ def erasure_history(request):
     if not _user_is_pm_or_admin(request.user):
         return HttpResponseForbidden(_("Access denied."))
 
+    from django.core.paginator import Paginator
+
     requests = _get_visible_requests(request.user)
+    paginator = Paginator(requests, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
     return render(request, "clients/erasure/erasure_history.html", {
-        "erasure_requests": requests,
+        "erasure_requests": page_obj,
+        "page_obj": page_obj,
         "nav_active": "admin",
     })
 
@@ -390,13 +400,23 @@ def erasure_receipt_pdf(request, pk):
     keeps outside the system before erasure proceeds. The system
     does NOT retain a copy.
     """
+    er = get_object_or_404(ErasureRequest, pk=pk)
+
+    # Scope access: only involved PMs, requester, or admins
+    user_pm_ids = set(_get_user_pm_program_ids(request.user))
+    is_involved = (
+        request.user == er.requested_by
+        or bool(set(er.programs_required) & user_pm_ids)
+        or request.user.is_admin
+    )
+    if not is_involved:
+        return HttpResponseForbidden(_("You do not have access to this receipt."))
+
     from apps.reports.pdf_utils import is_pdf_available, render_pdf
 
     if not is_pdf_available():
         messages.error(request, _("PDF generation is not available on this server."))
         return redirect("erasure_request_detail", pk=pk)
-
-    er = get_object_or_404(ErasureRequest, pk=pk)
 
     # Only available while client data still exists
     if er.client_file is None:
@@ -415,6 +435,12 @@ def erasure_receipt_pdf(request, pk):
         "data_summary": er.data_summary,
         "approvals": er.approvals.select_related("approved_by"),
     }
+
+    # Track first download
+    if not er.receipt_downloaded_at:
+        from django.utils import timezone as tz
+        er.receipt_downloaded_at = tz.now()
+        er.save(update_fields=["receipt_downloaded_at"])
 
     # Audit the download
     from .erasure import _log_audit
@@ -535,4 +561,36 @@ def _notify_erasure_completed(erasure_request, request):
         logger.warning(
             "Failed to send erasure completion notification for request %s",
             erasure_request.pk, exc_info=True,
+        )
+
+
+def _notify_requester_rejection(erasure_request, rejecting_user, review_notes):
+    """Email the requester that their erasure request was rejected."""
+    from django.core.mail import send_mail
+
+    if not erasure_request.requested_by or not erasure_request.requested_by.email:
+        return
+
+    code = erasure_request.erasure_code
+    subject = _("Erasure Request Rejected — %(code)s") % {"code": code}
+    body = (
+        _("Your erasure request %(code)s has been rejected.") % {"code": code}
+        + "\n\n"
+        + _("Rejected by: %(name)s") % {"name": rejecting_user.get_display_name()}
+        + "\n"
+        + _("Reason: %(notes)s") % {"notes": review_notes}
+        + "\n\n"
+        + _("You may submit a new request if circumstances change.")
+    )
+
+    try:
+        send_mail(
+            subject=subject, message=body,
+            from_email=None,
+            recipient_list=[erasure_request.requested_by.email],
+        )
+    except Exception:
+        logger.warning(
+            "Failed to send rejection notification for %s",
+            code, exc_info=True,
         )

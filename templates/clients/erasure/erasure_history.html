@@ -55,6 +55,18 @@
         </tbody>
     </table>
 </figure>
+{% if page_obj.has_other_pages %}
+<nav aria-label="{% trans 'Pagination' %}" style="margin-top: 1rem; text-align: center;">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" role="button" class="outline secondary" style="font-size: 0.875rem;">{% trans "Previous" %}</a>
+    {% endif %}
+    <span style="margin: 0 0.5rem;">{% blocktrans with current=page_obj.number total=page_obj.paginator.num_pages %}Page {{ current }} of {{ total }}{% endblocktrans %}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" role="button" class="outline secondary" style="font-size: 0.875rem;">{% trans "Next" %}</a>
+    {% endif %}
+</nav>
+{% endif %}
+
 {% else %}
 <div class="empty-state">
     <p>{% trans "No erasure requests have been made." %}</p>

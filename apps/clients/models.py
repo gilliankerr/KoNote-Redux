@@ -338,6 +338,7 @@ class ErasureRequest(models.Model):
     # Approval tracking
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     completed_at = models.DateTimeField(null=True, blank=True)
+    receipt_downloaded_at = models.DateTimeField(null=True, blank=True)
 
     # Programs that need PM approval (snapshot of program PKs at request time)
     programs_required = models.JSONField(
@@ -352,11 +353,20 @@ class ErasureRequest(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.erasure_code:
+            from django.db import IntegrityError
             year = timezone.now().year
-            last = ErasureRequest.objects.filter(
-                erasure_code__startswith=f"ER-{year}-",
-            ).count()
-            self.erasure_code = f"ER-{year}-{last + 1:03d}"
+            for attempt in range(5):
+                last = ErasureRequest.objects.filter(
+                    erasure_code__startswith=f"ER-{year}-",
+                ).count()
+                self.erasure_code = f"ER-{year}-{last + 1 + attempt:03d}"
+                try:
+                    super().save(*args, **kwargs)
+                    return
+                except IntegrityError:
+                    if attempt == 4:
+                        raise
+                    continue
         super().save(*args, **kwargs)
 
     def __str__(self):

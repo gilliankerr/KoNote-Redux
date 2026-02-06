@@ -427,6 +427,15 @@ class ExecuteErasureTests(TestCase):
         logs = AuditLog.objects.using("audit").filter(resource_type="client_erasure")
         self.assertTrue(logs.exists())
 
+    @patch("apps.clients.erasure._log_audit", side_effect=Exception("Audit DB down"))
+    def test_erasure_fails_if_audit_db_unavailable(self, mock_audit):
+        """Erasure must not proceed if audit logging fails."""
+        cf_pk = self.cf.pk
+        with self.assertRaises(Exception):
+            execute_erasure(self.er, "127.0.0.1")
+        # Client data should still exist
+        self.assertTrue(ClientFile.objects.filter(pk=cf_pk).exists())
+
 
 @override_settings(FIELD_ENCRYPTION_KEY="ly6OqAlMm32VVf08PoPJigrLCIxGd_tW1-kfWhXxXj8=")
 class DeadlockTests(TestCase):
@@ -717,6 +726,28 @@ class ErasureViewWorkflowTests(TestCase):
         er.refresh_from_db()
         self.assertEqual(er.status, "pending")  # Should NOT have been rejected
 
+    @patch("django.core.mail.send_mail")
+    def test_rejection_emails_requester(self, mock_send):
+        """Rejecting a request sends an email to the requester."""
+        self.staff.email = "staff@example.com"
+        self.staff.save()
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="pm", password="testpass123")
+        self.client.post(f"/erasure/{er.pk}/reject/", {
+            "review_notes": "Not appropriate.",
+        })
+        mock_send.assert_called_once()
+        call_kwargs = mock_send.call_args
+        self.assertIn("staff@example.com", call_kwargs[1]["recipient_list"])
+
     def test_cancel_by_requester(self):
         """PM who created the request can cancel it."""
         er = ErasureRequest.objects.create(
@@ -813,6 +844,72 @@ class ErasureViewWorkflowTests(TestCase):
         self.client.login(username="pm", password="testpass123")
         resp = self.client.get("/erasure/history/")
         self.assertEqual(resp.status_code, 200)
+
+    def test_unrelated_pm_cannot_download_receipt(self):
+        """PM not involved in the request's programs cannot download the PDF receipt."""
+        other_pm = User.objects.create_user(username="other_pm", password="testpass123")
+        other_prog = Program.objects.create(name="Other Prog", colour_hex="#000000", status="active")
+        UserProgramRole.objects.create(user=other_pm, program=other_prog, role="program_manager")
+
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="other_pm", password="testpass123")
+        resp = self.client.get(f"/erasure/{er.pk}/receipt/")
+        self.assertEqual(resp.status_code, 403)
+
+    @patch("apps.reports.pdf_utils.is_pdf_available", return_value=True)
+    @patch("apps.reports.pdf_utils.render_pdf")
+    def test_receipt_download_sets_timestamp(self, mock_pdf, mock_avail):
+        """First receipt download sets receipt_downloaded_at."""
+        from django.http import HttpResponse
+        mock_pdf.return_value = HttpResponse(b"fake-pdf", content_type="application/pdf")
+        er = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            requested_by=self.staff, requested_by_display="Staff",
+            reason_category="other", request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.assertIsNone(er.receipt_downloaded_at)
+        self.client.login(username="pm", password="testpass123")
+        self.client.get(f"/erasure/{er.pk}/receipt/")
+        er.refresh_from_db()
+        self.assertIsNotNone(er.receipt_downloaded_at)
+
+    def test_detail_warns_if_receipt_not_downloaded(self):
+        """Detail page includes warning when receipt hasn't been downloaded."""
+        er = ErasureRequest.objects.create(
+            client_file=self.cf, client_pk=self.cf.pk,
+            requested_by=self.staff, requested_by_display="Staff",
+            reason_category="other", request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="pm", password="testpass123")
+        resp = self.client.get(f"/erasure/{er.pk}/")
+        self.assertContains(resp, "PDF receipt has not been downloaded")
+
+    def test_involved_pm_can_download_receipt(self):
+        """PM in one of the request's required programs can access the receipt."""
+        er = ErasureRequest.objects.create(
+            client_file=self.cf,
+            client_pk=self.cf.pk,
+            requested_by=self.staff,
+            requested_by_display="Staff",
+            reason_category="other",
+            request_reason="Test",
+            programs_required=[self.prog.pk],
+        )
+        self.client.login(username="pm", password="testpass123")
+        # Will redirect or return 200/error depending on PDF availability,
+        # but should NOT be 403
+        resp = self.client.get(f"/erasure/{er.pk}/receipt/")
+        self.assertNotEqual(resp.status_code, 403)
 
     def test_detail_view_accessible(self):
         er = ErasureRequest.objects.create(
