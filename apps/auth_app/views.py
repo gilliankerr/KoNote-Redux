@@ -64,7 +64,12 @@ def sync_language_on_login(request, user):
     persistence mechanism. This just syncs the User model for roaming.
     """
     if user.preferred_language:
-        translation.activate(user.preferred_language)
+        try:
+            translation.activate(user.preferred_language)
+        except (UnicodeDecodeError, Exception) as e:
+            logger.error("Failed to activate language '%s' on login: %s",
+                         user.preferred_language, e)
+            translation.activate("en")
     else:
         current_lang = translation.get_language() or "en"
         user.preferred_language = current_lang
@@ -86,8 +91,15 @@ def switch_language(request):
     if lang_code not in valid_codes:
         lang_code = "en"
 
-    # Activate for this request
-    translation.activate(lang_code)
+    # Activate for this request — wrapped in try/except because
+    # translation.activate() parses .mo files and will crash with
+    # UnicodeDecodeError if the container locale isn't UTF-8.
+    try:
+        translation.activate(lang_code)
+    except (UnicodeDecodeError, Exception) as e:
+        logger.error("Failed to activate language '%s': %s", lang_code, e)
+        lang_code = "en"
+        translation.activate(lang_code)
 
     # Save to user profile if logged in
     if request.user.is_authenticated:

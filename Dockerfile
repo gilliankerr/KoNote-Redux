@@ -1,5 +1,10 @@
 FROM python:3.12-slim
 
+# UTF-8 locale — required for French .mo translation files
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PYTHONIOENCODING=utf-8
+
 # Security: run as non-root user
 RUN groupadd -r konote && useradd -r -g konote -m konote
 
